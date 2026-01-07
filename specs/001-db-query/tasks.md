@@ -56,74 +56,74 @@ description: "Task list for Database Query Tool implementation"
 
 ### Backend Setup
 
-- [ ] T001 Create backend directory structure in backend/src/{api,models,services,core,lib}
-- [ ] T002 [P] Initialize Python project with uv and create backend/pyproject.toml
-- [ ] T003 [P] Configure mypy, ruff for linting and formatting in backend/pyproject.toml
-- [ ] T004 Create .env.example file in backend with ZAI_API_KEY and DB_PATH variables
+- [X] T001 Create backend directory structure in backend/src/{api,models,services,core,lib}
+- [X] T002 [P] Initialize Python project with uv and create backend/pyproject.toml
+- [X] T003 [P] Configure mypy, ruff for linting and formatting in backend/pyproject.toml
+- [X] T004 Create .env.example file in backend with ZAI_API_KEY and DB_PATH variables
 
 ### Core Infrastructure
 
-- [ ] T005 [P] Create CamelModel base class in backend/src/lib/json_encoder.py with camelCase alias generator
-- [ ] T006 [P] Create config module in backend/src/core/config.py loading environment variables
-- [ ] T007 [P] Create SQLite database layer in backend/src/core/sqlite_db.py with connection management
-- [ ] T008 [P] Create SQL parser using sqlglot in backend/src/core/sql_parser.py with SELECT-only validation
-- [ ] T009 [P] Initialize database schema in backend/src/core/sqlite_db.py (databases and query_history tables)
+- [X] T005 [P] Create CamelModel base class in backend/src/lib/json_encoder.py with camelCase alias generator
+- [X] T006 [P] Create config module in backend/src/core/config.py loading environment variables
+- [X] T007 [P] Create SQLite database layer in backend/src/core/sqlite_db.py with connection management
+- [X] T008 [P] Create SQL parser using sqlglot in backend/src/core/sql_parser.py with SELECT-only validation
+- [X] T009 [P] Initialize database schema in backend/src/core/sqlite_db.py (databases and query_history tables)
 
 ### Data Models
 
-- [ ] T010 [P] [US1] Create database models in backend/src/models/database.py (DatabaseConnection, DatabaseCreateRequest, DatabaseDetail, DatabaseListResponse)
-- [ ] T011 [P] [US1] Create metadata models in backend/src/models/metadata.py (ColumnMetadata, TableMetadata, ViewMetadata, MetadataResponse)
-- [ ] T012 [P] [US1] Create error models in backend/src/models/query.py (ErrorResponse, ErrorDetail)
+- [X] T010 [P] [US1] Create database models in backend/src/models/database.py (DatabaseConnection, DatabaseCreateRequest, DatabaseDetail, DatabaseListResponse)
+- [X] T011 [P] [US1] Create metadata models in backend/src/models/metadata.py (ColumnMetadata, TableMetadata, ViewMetadata, MetadataResponse)
+- [X] T012 [P] [US1] Create error models in backend/src/models/query.py (ErrorResponse, ErrorDetail)
 
 ### Database Service
 
-- [ ] T013 [US1] Implement DatabaseService in backend/src/services/db_service.py with methods for create, get, list, delete database connections
-- [ ] T014 [US1] Implement connection string parsing and db_type detection in backend/src/services/db_service.py
-- [ ] T015 [US1] Implement connection testing with SQLAlchemy in backend/src/services/db_service.py
+- [X] T013 [US1] Implement DatabaseService in backend/src/services/db_service.py with methods for create, get, list, delete database connections
+- [X] T014 [US1] Implement connection string parsing and db_type detection in backend/src/services/db_service.py
+- [X] T015 [US1] Implement connection testing with SQLAlchemy in backend/src/services/db_service.py
 
 ### Metadata Service
 
-- [ ] T016 [US1] Implement MetadataService in backend/src/services/metadata_service.py with fetch_metadata method
-- [ ] T017 [US1] Implement Information Schema queries for MySQL/PostgreSQL/SQLite in backend/src/services/metadata_service.py
-- [ ] T018 [US1] Implement metadata caching to SQLite in backend/src/services/metadata_service.py
+- [X] T016 [US1] Implement MetadataService in backend/src/services/metadata_service.py with fetch_metadata method
+- [X] T017 [US1] Implement Information Schema queries for MySQL/PostgreSQL/SQLite in backend/src/services/metadata_service.py
+- [X] T018 [US1] Implement metadata caching to SQLite in backend/src/services/metadata_service.py
 
 ### API Endpoints - Databases
 
-- [ ] T019 [P] Create FastAPI app setup with CORS in backend/src/api/main.py
-- [ ] T020 [P] Create API router module in backend/src/api/v1/__init__.py
-- [ ] T021 [US1] Implement GET /api/v1/dbs endpoint in backend/src/api/v1/databases.py
-- [ ] T022 [US1] Implement PUT /api/v1/dbs endpoint in backend/src/api/v1/databases.py
-- [ ] T023 [US1] Implement GET /api/v1/dbs/{name} endpoint in backend/src/api/v1/databases.py
-- [ ] T024 [US1] Implement DELETE /api/v1/dbs/{name} endpoint in backend/src/api/v1/databases.py
-- [ ] T025 [US1] Add error handlers for connection failures in backend/src/api/v1/databases.py
+- [X] T019 [P] Create FastAPI app setup with CORS in backend/src/api/main.py
+- [X] T020 [P] Create API router module in backend/src/api/v1/__init__.py
+- [X] T021 [US1] Implement GET /api/v1/dbs endpoint in backend/src/api/v1/databases.py
+- [X] T022 [US1] Implement PUT /api/v1/dbs endpoint in backend/src/api/v1/databases.py
+- [X] T023 [US1] Implement GET /api/v1/dbs/{name} endpoint in backend/src/api/v1/databases.py
+- [X] T024 [US1] Implement DELETE /api/v1/dbs/{name} endpoint in backend/src/api/v1/databases.py
+- [X] T025 [US1] Add error handlers for connection failures in backend/src/api/v1/databases.py
 
 ### Frontend Setup
 
-- [ ] T026 [P] Create frontend directory structure in frontend/src/{components,pages,services,types}
-- [ ] T027 [P] Initialize React + Vite project and create frontend/package.json with refine, tailwind, antd dependencies
-- [ ] T028 [P] Configure TypeScript strict mode in frontend/tsconfig.json
-- [ ] T029 [P] Create Vite configuration in frontend/vite.config.ts
-- [ ] T030 [P] Create .env.development in frontend with VITE_API_URL
-- [ ] T031 [P] Setup Tailwind CSS and Ant Design in frontend/src/index.css
+- [X] T026 [P] Create frontend directory structure in frontend/src/{components,pages,services,types}
+- [X] T027 [P] Initialize React + Vite project and create frontend/package.json with refine, tailwind, antd dependencies
+- [X] T028 [P] Configure TypeScript strict mode in frontend/tsconfig.json
+- [X] T029 [P] Create Vite configuration in frontend/vite.config.ts
+- [X] T030 [P] Create .env.development in frontend with VITE_API_URL
+- [X] T031 [P] Setup Tailwind CSS and Ant Design in frontend/src/index.css
 
 ### Frontend Types and API Client
 
-- [ ] T032 [P] [US1] Create TypeScript types in frontend/src/types/index.ts matching backend Pydantic models
-- [ ] T033 [US1] Create API client in frontend/src/services/api.ts with fetch wrappers for all endpoints
+- [X] T032 [P] [US1] Create TypeScript types in frontend/src/types/index.ts matching backend Pydantic models
+- [X] T033 [US1] Create API client in frontend/src/services/api.ts with fetch wrappers for all endpoints
 
 ### Frontend Components - Database Management
 
-- [ ] T034 [P] [US1] Create DatabaseList component in frontend/src/components/database/DatabaseList.tsx
-- [ ] T035 [P] [US1] Create AddDatabaseForm component in frontend/src/components/database/AddDatabaseForm.tsx
-- [ ] T036 [P] [US1] Create DatabaseDetail component in frontend/src/components/database/DatabaseDetail.tsx
-- [ ] T037 [P] [US1] Create TableList component in frontend/src/components/metadata/TableList.tsx
-- [ ] T038 [P] [US1] Create TableSchema component in frontend/src/components/metadata/TableSchema.tsx
+- [X] T034 [P] [US1] Create DatabaseList component in frontend/src/components/database/DatabaseList.tsx
+- [X] T035 [P] [US1] Create AddDatabaseForm component in frontend/src/components/database/AddDatabaseForm.tsx
+- [X] T036 [P] [US1] Create DatabaseDetail component in frontend/src/components/database/DatabaseDetail.tsx
+- [X] T037 [P] [US1] Create TableList component in frontend/src/components/metadata/TableList.tsx
+- [X] T038 [P] [US1] Create TableSchema component in frontend/src/components/metadata/TableSchema.tsx
 
 ### Frontend Pages
 
-- [ ] T039 [US1] Create Dashboard page in frontend/src/pages/Dashboard.tsx showing all databases
-- [ ] T040 [US1] Create DatabasePage page in frontend/src/pages/DatabasePage.tsx with database detail view
-- [ ] T041 [US1] Update App.tsx and main.tsx in frontend/src/ to setup routing
+- [X] T039 [US1] Create Dashboard page in frontend/src/pages/Dashboard.tsx showing all databases
+- [X] T040 [US1] Create DatabasePage page in frontend/src/pages/DatabasePage.tsx with database detail view
+- [X] T041 [US1] Update App.tsx and main.tsx in frontend/src/ to setup routing
 
 **Checkpoint**: At this point, users can add database connections, view their metadata (tables and views), and see table schemas. This is a complete MVP for database management.
 

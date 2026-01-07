@@ -1,0 +1,301 @@
+### ============================================================================
+### Database Query Tool API Tests
+### ============================================================================
+### 使用 VS Code REST Client 插件测试 API
+### 安装: https://marketplace.visualstudio.com/items?itemName=humao.rest-client
+### ============================================================================
+
+@baseUrl = http://localhost:8000
+@apiBase = {{baseUrl}}/api/v1
+
+### ============================================================================
+### Health Check
+### ============================================================================
+
+### 1. Root endpoint
+GET {{baseUrl}}/
+
+### 2. Health check
+GET {{baseUrl}}/health
+
+### ============================================================================
+### Database Management
+### ============================================================================
+
+### 3. List all databases (initially empty)
+GET {{apiBase}}/dbs
+
+### 4. Create a SQLite database connection
+PUT {{apiBase}}/dbs/test-sqlite
+Content-Type: application/json
+
+{
+  "name": "test-sqlite",
+  "url": "sqlite:///tmp/test.db"
+}
+
+### 5. Create a PostgreSQL database connection (example - will fail if not available)
+PUT {{apiBase}}/dbs/test-postgres
+Content-Type: application/json
+
+{
+  "name": "test-postgres",
+  "url": "postgresql://user:password@localhost:5432/testdb"
+}
+
+### 6. Create a MySQL database connection (example - will fail if not available)
+PUT {{apiBase}}/dbs/test-mysql
+Content-Type: application/json
+
+{
+  "name": "test-mysql",
+  "url": "mysql://user:password@localhost:3306/testdb"
+}
+
+### 7. List all databases (after creating)
+GET {{apiBase}}/dbs
+
+### 8. Get database details with metadata (SQLite)
+GET {{apiBase}}/dbs/test-sqlite
+
+### 9. Get database details with metadata (force refresh)
+GET {{apiBase}}/dbs/test-sqlite?refresh=true
+
+### 10. Get database metadata endpoint
+GET {{apiBase}}/dbs/test-sqlite/metadata
+
+### 11. Get database metadata (force refresh)
+GET {{apiBase}}/dbs/test-sqlite/metadata?refresh=true
+
+### ============================================================================
+### Error Cases - Database Management
+### ============================================================================
+
+### 12. Try to create duplicate database (should fail)
+PUT {{apiBase}}/dbs/test-sqlite
+Content-Type: application/json
+
+{
+  "name": "test-sqlite",
+  "url": "sqlite:///tmp/test.db"
+}
+
+### 13. Try to get non-existent database (should fail)
+GET {{apiBase}}/dbs/nonexistent
+
+### 14. Try to delete non-existent database (should fail)
+DELETE {{apiBase}}/dbs/nonexistent
+
+### ============================================================================
+### Query Execution (Phase 2 - not implemented yet)
+### ============================================================================
+
+### 15. Execute SQL query (not implemented - will return 404)
+POST {{apiBase}}/dbs/test-sqlite/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT 1 as test_column, 'hello' as message"
+}
+
+### 16. Execute SQL with LIMIT
+POST {{apiBase}}/dbs/test-sqlite/query
+Content-Type: application/json
+
+{
+  "sql": "SELECT * FROM sqlite_master LIMIT 5"
+}
+
+### 17. Try non-SELECT query (should fail when implemented)
+POST {{apiBase}}/dbs/test-sqlite/query
+Content-Type: application/json
+
+{
+  "sql": "DROP TABLE users"
+}
+
+### 18. Try invalid SQL (should fail when implemented)
+POST {{apiBase}}/dbs/test-sqlite/query
+Content-Type: application/json
+
+{
+  "sql": "SELEC * FROM"
+}
+
+### ============================================================================
+### Natural Language Query (Phase 3 - not implemented yet)
+### ============================================================================
+
+### 19. Natural language query (not implemented - will return 404)
+POST {{apiBase}}/dbs/test-sqlite/query/natural
+Content-Type: application/json
+
+{
+  "prompt": "Show me all tables",
+  "executeImmediately": false
+}
+
+### 20. Natural language query with immediate execution
+POST {{apiBase}}/dbs/test-sqlite/query/natural
+Content-Type: application/json
+
+{
+  "prompt": "Count all records in the users table",
+  "executeImmediately": true
+}
+
+### ============================================================================
+### Query History (Phase 2 - not implemented yet)
+### ============================================================================
+
+### 21. Get query history (not implemented - will return 404)
+GET {{apiBase}}/dbs/test-sqlite/history
+
+### 22. Get query history with pagination
+GET {{apiBase}}/dbs/test-sqlite/history?page=1&pageSize=10
+
+### ============================================================================
+### Cleanup
+### ============================================================================
+
+### 23. Delete SQLite database
+DELETE {{apiBase}}/dbs/test-sqlite
+
+### 24. List all databases (after cleanup)
+GET {{apiBase}}/dbs
+
+### ============================================================================
+### Additional Test Cases
+### ============================================================================
+
+### 25. Create another SQLite database with custom name
+PUT {{apiBase}}/dbs/chinook
+Content-Type: application/json
+
+{
+  "name": "chinook",
+  "url": "sqlite:///tmp/chinook.db"
+}
+
+### 26. Get chinook database details
+GET {{apiBase}}/dbs/chinook?refresh=true
+
+### 27. Delete chinook database
+DELETE {{apiBase}}/dbs/chinook
+
+### ============================================================================
+### Performance / Stress Tests
+### ============================================================================
+
+### 28. Create multiple databases in sequence
+PUT {{apiBase}}/dbs/db1
+Content-Type: application/json
+
+{
+  "name": "db1",
+  "url": "sqlite:///tmp/db1.db"
+}
+
+###
+
+PUT {{apiBase}}/dbs/db2
+Content-Type: application/json
+
+{
+  "name": "db2",
+  "url": "sqlite:///tmp/db2.db"
+}
+
+###
+
+PUT {{apiBase}}/dbs/db3
+Content-Type: application/json
+
+{
+  "name": "db3",
+  "url": "sqlite:///tmp/db3.db"
+}
+
+### 29. List all databases to verify
+GET {{apiBase}}/dbs
+
+### 30. Cleanup test databases
+DELETE {{apiBase}}/dbs/db1
+
+###
+
+DELETE {{apiBase}}/dbs/db2
+
+###
+
+DELETE {{apiBase}}/dbs/db3
+
+### ============================================================================
+### Edge Cases
+### ============================================================================
+
+### 31. Create database with special characters in name
+PUT {{apiBase}}/dbs/test-db-123
+Content-Type: application/json
+
+{
+  "name": "test-db-123",
+  "url": "sqlite:///tmp/special.db"
+}
+
+### 32. Get database with special characters
+GET {{apiBase}}/dbs/test-db-123
+
+### 33. Delete database with special characters
+DELETE {{apiBase}}/dbs/test-db-123
+
+### 34. Test with very long database name
+PUT {{apiBase}}/dbs/this-is-a-very-long-database-name-that-might-exist-in-some-systems
+Content-Type: application/json
+
+{
+  "name": "this-is-a-very-long-database-name-that-might-exist-in-some-systems",
+  "url": "sqlite:///tmp/longname.db"
+}
+
+### 35. Delete long name database
+DELETE {{apiBase}}/dbs/this-is-a-very-long-database-name-that-might-exist-in-some-systems
+
+### ============================================================================
+### Connection String Variations
+### ============================================================================
+
+### 36. Test SQLite with different path formats
+PUT {{apiBase}}/dbs/sqlite-abs-path
+Content-Type: application/json
+
+{
+  "name": "sqlite-abs-path",
+  "url": "sqlite:////tmp/absolute.db"
+}
+
+### 37. Test with sqlite:// (three slashes) - relative path
+PUT {{apiBase}}/dbs/sqlite-rel-path
+Content-Type: application/json
+
+{
+  "name": "sqlite-rel-path",
+  "url": "sqlite://relative.db"
+}
+
+### 38. Cleanup SQLite test databases
+DELETE {{apiBase}}/dbs/sqlite-abs-path
+
+###
+
+DELETE {{apiBase}}/dbs/sqlite-rel-path
+
+### ============================================================================
+### Final Verification
+### ============================================================================
+
+### 39. Final list check (should be empty)
+GET {{apiBase}}/dbs
+
+### 40. Final health check
+GET {{baseUrl}}/health
