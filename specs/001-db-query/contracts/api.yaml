@@ -1,0 +1,539 @@
+openapi: 3.0.3
+info:
+  title: Database Query Tool API
+  description: API for managing database connections and executing queries
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+tags:
+  - name: databases
+    description: Database connection management
+  - name: queries
+    description: Query execution
+
+paths:
+  /api/v1/dbs:
+    get:
+      summary: List all databases
+      tags: [databases]
+      operationId: listDatabases
+      responses:
+        '200':
+          description: List of all database connections
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseListResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Add a new database connection
+      tags: [databases]
+      operationId: createDatabase
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DatabaseCreateRequest'
+      responses:
+        '201':
+          description: Database created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseDetail'
+        '400':
+          description: Invalid request (duplicate name, invalid URL)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to connect to database
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/dbs/{name}:
+    get:
+      summary: Get database details with metadata
+      tags: [databases]
+      operationId: getDatabase
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Database connection name
+        - name: refresh
+          in: query
+          required: false
+          schema:
+            type: boolean
+            default: false
+          description: Force refresh metadata from database
+      responses:
+        '200':
+          description: Database details with tables and views
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DatabaseDetail'
+        '404':
+          description: Database not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to fetch metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      summary: Delete a database connection
+      tags: [databases]
+      operationId: deleteDatabase
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Database deleted successfully
+        '404':
+          description: Database not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/dbs/{name}/query:
+    post:
+      summary: Execute a SQL query
+      tags: [queries]
+      operationId: executeQuery
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+      responses:
+        '200':
+          description: Query executed successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+        '400':
+          description: Invalid SQL (syntax error or non-SELECT)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Database not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Query execution error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/dbs/{name}/query/natural:
+    post:
+      summary: Generate SQL from natural language
+      tags: [queries]
+      operationId: naturalQuery
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/NaturalQueryRequest'
+      responses:
+        '200':
+          description: SQL generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NaturalQueryResponse'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Database not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Failed to generate SQL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/v1/dbs/{name}/history:
+    get:
+      summary: Get query history for a database
+      tags: [queries]
+      operationId: getQueryHistory
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Query history
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryHistoryResponse'
+        '404':
+          description: Database not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    DatabaseCreateRequest:
+      type: object
+      required: [name, url]
+      properties:
+        name:
+          type: string
+          description: Unique name for this database connection
+          example: "Production PostgreSQL"
+        url:
+          type: string
+          description: Database connection string
+          example: "postgresql://user:pass@localhost:5432/mydb"
+
+    DatabaseConnection:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "Production PostgreSQL"
+        url:
+          type: string
+          description: Connection string (credentials partially redacted)
+          example: "postgresql://***:***@localhost:5432/mydb"
+        dbType:
+          type: string
+          enum: [mysql, postgresql, sqlite]
+          example: "postgresql"
+        createdAt:
+          type: string
+          format: date-time
+          example: "2026-01-07T10:00:00Z"
+        lastConnectedAt:
+          type: string
+          format: date-time
+          nullable: true
+        isActive:
+          type: boolean
+          example: true
+
+    DatabaseDetail:
+      allOf:
+        - $ref: '#/components/schemas/DatabaseConnection'
+        - type: object
+          properties:
+            tables:
+              type: array
+              items:
+                $ref: '#/components/schemas/TableMetadata'
+            views:
+              type: array
+              items:
+                $ref: '#/components/schemas/ViewMetadata'
+            metadataUpdatedAt:
+              type: string
+              format: date-time
+              nullable: true
+
+    DatabaseListResponse:
+      type: object
+      properties:
+        databases:
+          type: array
+          items:
+            $ref: '#/components/schemas/DatabaseConnection'
+        totalCount:
+          type: integer
+          example: 3
+
+    ColumnMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "email"
+        dataType:
+          type: string
+          example: "VARCHAR(255)"
+        isNullable:
+          type: boolean
+          example: true
+        defaultValue:
+          type: string
+          nullable: true
+        isPrimaryKey:
+          type: boolean
+          example: false
+
+    TableMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "users"
+        schema:
+          type: string
+          nullable: true
+          example: "public"
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColumnMetadata'
+        rowCountEstimate:
+          type: integer
+          nullable: true
+          example: 15000
+        description:
+          type: string
+          nullable: true
+
+    ViewMetadata:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "active_users"
+        schema:
+          type: string
+          nullable: true
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColumnMetadata'
+        definition:
+          type: string
+          nullable: true
+        description:
+          type: string
+          nullable: true
+
+    QueryRequest:
+      type: object
+      required: [sql]
+      properties:
+        sql:
+          type: string
+          description: SQL query to execute
+          example: "SELECT * FROM users WHERE created_at > '2026-01-01'"
+
+    NaturalQueryRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt:
+          type: string
+          description: Natural language query description
+          example: "Show me all users created this year"
+        executeImmediately:
+          type: boolean
+          description: If true, execute without confirmation
+          default: false
+
+    QueryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        executedSql:
+          type: string
+          description: The SQL that was executed (may have LIMIT added)
+          example: "SELECT * FROM users WHERE created_at > '2026-01-01' LIMIT 1000"
+        rowCount:
+          type: integer
+          example: 42
+        executionTimeMs:
+          type: integer
+          example: 156
+        columns:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColumnMetadata'
+        rows:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        hasLimit:
+          type: boolean
+          description: True if LIMIT was present or added
+          example: true
+        limitValue:
+          type: integer
+          nullable: true
+          example: 1000
+
+    NaturalQueryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        generatedSql:
+          type: string
+          example: "SELECT * FROM users WHERE created_at >= '2026-01-01' ORDER BY created_at DESC"
+        explanation:
+          type: string
+          nullable: true
+          example: "Queries users created in or after 2026, ordered by creation date"
+        isValid:
+          type: boolean
+          description: Whether the SQL is syntactically valid
+        validationMessage:
+          type: string
+          nullable: true
+
+    QueryHistoryItem:
+      type: object
+      properties:
+        id:
+          type: integer
+        databaseId:
+          type: integer
+        databaseName:
+          type: string
+        queryType:
+          type: string
+          enum: [sql, natural]
+        inputText:
+          type: string
+        executedSql:
+          type: string
+        rowCount:
+          type: integer
+          nullable: true
+        executionTimeMs:
+          type: integer
+          nullable: true
+        status:
+          type: string
+          enum: [success, error]
+        errorMessage:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    QueryHistoryResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/QueryHistoryItem'
+        totalCount:
+          type: integer
+        page:
+          type: integer
+        pageSize:
+          type: integer
+
+    ErrorDetail:
+      type: object
+      properties:
+        code:
+          type: string
+          description: Error code (e.g., SQL_SYNTAX_ERROR, CONNECTION_FAILED)
+          example: "SQL_SYNTAX_ERROR"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Unexpected token near line 3"
+        details:
+          type: string
+          nullable: true
+          description: Additional error details
+
+    ErrorResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: false
+        error:
+          $ref: '#/components/schemas/ErrorDetail'
+
+# Error Codes Reference:
+# - DUPLICATE_NAME: Database name already exists
+# - INVALID_CONNECTION_STRING: Malformed or unsupported connection string
+# - CONNECTION_FAILED: Could not connect to database
+# - DATABASE_NOT_FOUND: Database connection does not exist
+# - SQL_SYNTAX_ERROR: SQL query has syntax errors
+# - INVALID_STATEMENT_TYPE: Non-SELECT query attempted
+# - QUERY_EXECUTION_ERROR: Database returned an error during execution
+# - METADATA_FETCH_ERROR: Failed to retrieve table/view metadata
+# - LLM_SERVICE_ERROR: Failed to generate SQL from natural language
