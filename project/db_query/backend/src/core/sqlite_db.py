@@ -69,6 +69,7 @@ class SQLiteDB:
             CREATE TABLE IF NOT EXISTS query_history (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 database_id INTEGER NOT NULL,
+                database_name TEXT NOT NULL,
                 query_type TEXT NOT NULL,
                 input_text TEXT NOT NULL,
                 generated_sql TEXT,

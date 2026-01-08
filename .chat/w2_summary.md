@@ -16,6 +16,9 @@
     - /speckit.specify
     - /speckit.plan
     - /speckit.tasks
+    - /speckit.implement 在./project/db_query下实现phase 1的所有任务
+
+
 
 
 ### Rule/Command

@@ -17,12 +17,12 @@ export function AddDatabaseForm({ onDatabaseCreated }: AddDatabaseFormProps) {
     setLoading(true);
     try {
       await api.createDatabase(values.name, values.url);
-      message.success("Database added successfully");
+      message.success("数据库添加成功");
       form.resetFields();
       setIsModalOpen(false);
       onDatabaseCreated();
     } catch (error) {
-      message.error(error instanceof Error ? error.message : "Failed to add database");
+      message.error(error instanceof Error ? error.message : "添加数据库失败");
     } finally {
       setLoading(false);
     }
@@ -35,10 +35,10 @@ export function AddDatabaseForm({ onDatabaseCreated }: AddDatabaseFormProps) {
         icon={<PlusOutlined />}
         onClick={() => setIsModalOpen(true)}
       >
-        Add Database
+        添加数据库
       </Button>
       <Modal
-        title="Add Database Connection"
+        title="添加数据库连接"
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         footer={null}
@@ -50,26 +50,26 @@ export function AddDatabaseForm({ onDatabaseCreated }: AddDatabaseFormProps) {
           autoComplete="off"
         >
           <Form.Item
-            label="Name"
+            label="名称"
             name="name"
             rules={[
-              { required: true, message: "Please enter a name for this database" },
+              { required: true, message: "请输入数据库名称" },
             ]}
           >
-            <Input placeholder="My PostgreSQL Database" />
+            <Input placeholder="我的 PostgreSQL 数据库" />
           </Form.Item>
           <Form.Item
-            label="Connection String"
+            label="连接字符串"
             name="url"
             rules={[
-              { required: true, message: "Please enter a connection string" },
+              { required: true, message: "请输入连接字符串" },
               {
                 pattern: /^(postgres|mysql|sqlite):\/\//,
                 message:
-                  "Connection string must start with postgres://, mysql://, or sqlite://",
+                  "连接字符串必须以 postgres://, mysql:// 或 sqlite:// 开头",
               },
             ]}
-            extra="Examples: postgresql://user:pass@localhost:5432/mydb, mysql://user:pass@localhost:3306/mydb, sqlite:///path/to/file.db"
+            extra="示例：postgresql://user:pass@localhost:5432/mydb, mysql://user:pass@localhost:3306/mydb, sqlite:///path/to/file.db"
           >
             <Input.TextArea
               rows={3}
@@ -79,9 +79,9 @@ export function AddDatabaseForm({ onDatabaseCreated }: AddDatabaseFormProps) {
           <Form.Item>
             <Space>
               <Button type="primary" htmlType="submit" loading={loading}>
-                Add Database
+                添加数据库
               </Button>
-              <Button onClick={() => setIsModalOpen(false)}>Cancel</Button>
+              <Button onClick={() => setIsModalOpen(false)}>取消</Button>
             </Space>
           </Form.Item>
         </Form>

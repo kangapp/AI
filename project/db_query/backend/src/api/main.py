@@ -42,9 +42,13 @@ app.add_middleware(
 )
 
 # Import routers after app creation to avoid circular imports
-from .v1 import databases  # noqa: E402
+from .v1 import (  # noqa: E402
+    databases,
+    queries,
+)
 
 app.include_router(databases.router, prefix="/api/v1", tags=["databases"])
+app.include_router(queries.router, prefix="/api/v1", tags=["queries"])
 
 
 @app.get("/")

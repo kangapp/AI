@@ -63,6 +63,43 @@ export interface MetadataResponse {
   updatedAt: string;
 }
 
+// Query types
+export interface QueryRequest {
+  sql: string;
+}
+
+export interface QueryResponse {
+  success: boolean;
+  executedSql: string;
+  rowCount: number;
+  executionTimeMs: number;
+  columns: ColumnMetadata[];
+  rows: Record<string, unknown>[];
+  hasLimit: boolean;
+  limitValue: number | null;
+}
+
+export interface QueryHistoryItem {
+  id: number;
+  databaseId: number;
+  databaseName: string;
+  queryType: string;
+  inputText: string;
+  executedSql: string;
+  rowCount: number | null;
+  executionTimeMs: number | null;
+  status: string;
+  errorMessage: string | null;
+  createdAt: string;
+}
+
+export interface QueryHistoryResponse {
+  items: QueryHistoryItem[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+}
+
 // Error types
 export interface ErrorDetail {
   code: string;

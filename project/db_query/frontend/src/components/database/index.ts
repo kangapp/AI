@@ -1,3 +1,3 @@
 export { AddDatabaseForm } from "./AddDatabaseForm";
 export { DatabaseList } from "./DatabaseList";
-export { DatabaseDetail } from "./DatabaseDetail";
+export { DatabaseDetailComponent as DatabaseDetail } from "./DatabaseDetail";

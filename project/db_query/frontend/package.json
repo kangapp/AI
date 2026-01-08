@@ -10,6 +10,7 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
     "@refinedev/core": "^4.57.0",
     "@refinedev/simple-rest": "^5.0.0",
     "antd": "^5.22.2",

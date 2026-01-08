@@ -1,5 +1,5 @@
 """API v1 endpoints."""
 
-from . import databases
+from . import databases, queries
 
-__all__ = ["databases"]
+__all__ = ["databases", "queries"]

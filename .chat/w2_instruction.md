@@ -57,6 +57,13 @@ POST /api/v1/dbs/{name}/query/natural
 }
 ```
 
+## 任务实现
+- phase 1 
+在./project/db_query下撰写Makefile完成基本工作,另外根据specs/001-db-query/contracts/api.yaml生成./project/db_query/fixtures/test.rest,使用vscode rest client来测试所有的api
+
+- phase 2
+仔细阅读 ./project/db_query 下面的代码，然后运行后端和前端，根据@w2/db_query/fixtures/test.rest 用 curl 测试后端已实现的路由；然后用 playwright 开前端进行测试，任何测试问题，think ultra hard and fix
+
 ## 测试
 
 仔细阅读 ./w2/db_query 下面的代码，然后运行后端和前端，根据@w2/db_query/fixtures/test.rest 用 curl 测试后端已实现的路由；然后用 playwright 开前端进行测试，任何测试问题，think ultra hard and fix

@@ -2,7 +2,23 @@
  * API client for communicating with the backend.
  */
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+import type {
+  DatabaseConnection,
+  DatabaseCreateRequest,
+  DatabaseDetail,
+  DatabaseListResponse,
+  ColumnMetadata,
+  TableMetadata,
+  ViewMetadata,
+  MetadataResponse,
+  QueryRequest,
+  QueryResponse,
+  QueryHistoryItem,
+  QueryHistoryResponse,
+  ErrorResponse,
+} from "../types";
+
+const API_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:8000";
 
 /**
  * Base API client with error handling.
@@ -29,8 +45,13 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      const error: ErrorResponse = await response.json();
+      const error = (await response.json()) as ErrorResponse;
       throw new Error(error.error?.message || "Request failed");
+    }
+
+    // Handle 204 No Content responses (e.g., DELETE)
+    if (response.status === 204) {
+      return undefined as T;
     }
 
     return response.json();
@@ -68,6 +89,32 @@ class ApiClient {
       `/api/v1/dbs/${encodeURIComponent(name)}/metadata?${params}`
     );
   }
+
+  // Query endpoints
+
+  async executeQuery(name: string, sql: string): Promise<QueryResponse> {
+    return this.request<QueryResponse>(
+      `/api/v1/dbs/${encodeURIComponent(name)}/query`,
+      {
+        method: "POST",
+        body: JSON.stringify({ sql }),
+      }
+    );
+  }
+
+  async getQueryHistory(
+    name: string,
+    page = 1,
+    pageSize = 20
+  ): Promise<QueryHistoryResponse> {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+    });
+    return this.request<QueryHistoryResponse>(
+      `/api/v1/dbs/${encodeURIComponent(name)}/history?${params}`
+    );
+  }
 }
 
 // Export singleton instance
@@ -83,5 +130,9 @@ export type {
   TableMetadata,
   ViewMetadata,
   MetadataResponse,
+  QueryRequest,
+  QueryResponse,
+  QueryHistoryItem,
+  QueryHistoryResponse,
   ErrorResponse,
-} from "./types";
+} from "../types";

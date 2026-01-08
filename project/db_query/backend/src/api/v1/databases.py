@@ -25,7 +25,7 @@ async def list_databases() -> dict[str, Any]:
     databases = await db_service.list_databases()
     # Convert to dict for camelCase output
     return {
-        "databases": [db.model_dump(mode="json") for db in databases],
+        "databases": [db.model_dump(by_alias=True) for db in databases],
         "totalCount": len(databases),
     }
 
@@ -80,8 +80,8 @@ async def get_database(
         # Get metadata
         from sqlalchemy import create_engine
 
-        original_url = await db_service.get_original_url(name)
-        engine = create_engine(original_url)
+        connection_url = await db_service.get_connection_url_with_driver(name)
+        engine = create_engine(connection_url)
 
         metadata = await metadata_service.fetch_metadata(database, engine, force_refresh=refresh)
 
@@ -145,8 +145,8 @@ async def get_database_metadata(
 
         from sqlalchemy import create_engine
 
-        original_url = await db_service.get_original_url(name)
-        engine = create_engine(original_url)
+        connection_url = await db_service.get_connection_url_with_driver(name)
+        engine = create_engine(connection_url)
 
         return await metadata_service.fetch_metadata(database, engine, force_refresh=refresh)
 

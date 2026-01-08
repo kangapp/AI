@@ -75,6 +75,27 @@ class DatabaseService:
             database=parsed.path.lstrip("/") if parsed.path else None,
         )
 
+    def _add_driver_to_url(self, url: str, db_type: str) -> str:
+        """Add appropriate SQLAlchemy driver to the connection URL.
+
+        Args:
+            url: The connection URL.
+            db_type: The database type.
+
+        Returns:
+            The connection URL with the appropriate driver.
+        """
+        # For MySQL, use pymysql driver
+        if db_type == "mysql" and not "+" in url:
+            # Replace mysql:// with mysql+pymysql://
+            return url.replace("mysql://", "mysql+pymysql://", 1)
+        # For PostgreSQL, use psycopg2 if available
+        if db_type == "postgresql" and not "+" in url:
+            # Try postgresql+psycopg2://
+            return url.replace("postgresql://", "postgresql+psycopg2://", 1)
+        # For SQLite, no driver needed
+        return url
+
     def _test_connection(self, url: str) -> bool:
         """Test a database connection.
 
@@ -107,9 +128,9 @@ class DatabaseService:
         Raises:
             ValueError: If the name already exists or connection fails.
         """
-        # Check for duplicate name
+        # Check for duplicate name (only active databases)
         existing = await self.db.fetch_one(
-            "SELECT id FROM databases WHERE name = :name", {"name": request.name}
+            "SELECT id FROM databases WHERE name = :name AND is_active = 1", {"name": request.name}
         )
         if existing:
             raise ValueError(f"Database with name '{request.name}' already exists")
@@ -117,13 +138,16 @@ class DatabaseService:
         # Detect database type
         db_type = self._detect_db_type(request.url)
 
+        # Convert connection URL to use appropriate driver
+        connection_url = self._add_driver_to_url(request.url, db_type)
+
         # Test connection
         try:
-            await asyncio.to_thread(self._test_connection, request.url)
+            await asyncio.to_thread(self._test_connection, connection_url)
         except SQLAlchemyError as e:
             raise ValueError(f"Failed to connect to database: {e}") from e
 
-        # Insert into database
+        # Insert into database (store original URL, not the one with driver)
         now = datetime.now()
         cursor = await self.db.execute(
             """
@@ -233,9 +257,9 @@ class DatabaseService:
         # Check existence
         await self.get_database_by_name(name)
 
-        # Delete (soft delete by setting is_active = 0)
+        # Hard delete (remove the record entirely)
         await self.db.execute(
-            "UPDATE databases SET is_active = 0 WHERE name = :name", {"name": name}
+            "DELETE FROM databases WHERE name = :name", {"name": name}
         )
 
     def get_engine(self, db_id: int, url: str) -> Engine:
@@ -243,7 +267,7 @@ class DatabaseService:
 
         Args:
             db_id: The database ID.
-            url: The connection string.
+            url: The connection string (should include driver).
 
         Returns:
             A SQLAlchemy engine.
@@ -251,6 +275,27 @@ class DatabaseService:
         if db_id not in self._engines:
             self._engines[db_id] = create_engine(url)
         return self._engines[db_id]
+
+    async def get_connection_url_with_driver(self, name: str) -> str:
+        """Get the connection string with the appropriate driver.
+
+        Args:
+            name: The database name.
+
+        Returns:
+            The connection string with driver.
+
+        Raises:
+            ValueError: If the database is not found.
+        """
+        row = await self.db.fetch_one(
+            "SELECT url, db_type FROM databases WHERE name = :name AND is_active = 1", {"name": name}
+        )
+        if not row:
+            raise ValueError(f"Database '{name}' not found")
+        url = row["url"] if isinstance(row["url"], str) else str(row["url"])
+        db_type = row["db_type"]
+        return self._add_driver_to_url(url, db_type)
 
     async def get_original_url(self, name: str) -> str:
         """Get the original (non-redacted) connection string.
