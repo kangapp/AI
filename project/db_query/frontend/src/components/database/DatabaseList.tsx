@@ -1,6 +1,7 @@
-import { List, Button, Space, Typography, Tag } from "antd";
-import { DeleteOutlined, CheckCircleFilled } from "@ant-design/icons";
+import { List, Typography, Tag } from "antd";
+import { DeleteOutlined, EditOutlined, DatabaseOutlined } from "@ant-design/icons";
 import type { DatabaseConnection } from "../../types";
+import { EditDatabaseForm } from "./EditDatabaseForm";
 
 const { Text } = Typography;
 
@@ -8,85 +9,148 @@ interface DatabaseListProps {
   databases: DatabaseConnection[];
   onSelect: (name: string) => void;
   onDelete: (name: string) => void;
+  onDatabaseUpdated?: () => void;
   selectedName?: string | null;
 }
 
-export function DatabaseList({ databases, onSelect, onDelete, selectedName }: DatabaseListProps) {
+// Action button component
+interface ActionButtonProps {
+  icon: React.ReactNode;
+  onClick?: (e: React.MouseEvent) => void;
+  danger?: boolean;
+  children?: React.ReactNode;
+}
+
+function ActionButton({ icon, onClick, danger, children }: ActionButtonProps) {
   return (
-    <Space direction="vertical" style={{ width: "100%" }} size="middle">
+    <button
+      onClick={onClick}
+      style={{
+        border: "none",
+        background: "transparent",
+        cursor: "pointer",
+        padding: "4px",
+        fontSize: "12px",
+        color: danger ? "#ff4d4f" : "#8c8c8c",
+        borderRadius: "4px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        transition: "all 0.2s",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.backgroundColor = danger ? "#fff1f0" : "#f5f5f5";
+        e.currentTarget.style.color = danger ? "#ff4d4f" : "#262626";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.backgroundColor = "transparent";
+        e.currentTarget.style.color = danger ? "#ff4d4f" : "#8c8c8c";
+      }}
+    >
+      {children || icon}
+    </button>
+  );
+}
+
+export function DatabaseList({ databases, onSelect, onDelete, onDatabaseUpdated, selectedName }: DatabaseListProps) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
       {databases.length === 0 ? (
-        <Text type="secondary" style={{ fontSize: "13px" }}>
-          尚未配置数据库。
+        <Text type="secondary" style={{ fontSize: "12px" }}>
+          尚未配置数据库
         </Text>
       ) : (
-        <List
-          dataSource={databases}
-          size="small"
-          renderItem={(db) => {
-            const isSelected = db.name === selectedName;
-            return (
-              <List.Item
+        databases.map((db) => {
+          const isSelected = db.name === selectedName;
+          return (
+            <div
+              key={db.name}
+              onClick={() => onSelect(db.name)}
+              style={{
+                padding: "6px 8px",
+                backgroundColor: isSelected ? "#e6f7ff" : "transparent",
+                borderRadius: "6px",
+                border: isSelected ? "1px solid #91d5ff" : "1px solid transparent",
+                cursor: "pointer",
+                transition: "all 0.2s",
+                display: "flex",
+                alignItems: "center",
+                gap: "8px",
+              }}
+              onMouseEnter={(e) => {
+                if (!isSelected) {
+                  e.currentTarget.style.backgroundColor = "#fafafa";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isSelected) {
+                  e.currentTarget.style.backgroundColor = "transparent";
+                }
+              }}
+            >
+              {/* Database icon */}
+              <DatabaseOutlined
                 style={{
-                  padding: "8px 12px",
-                  backgroundColor: isSelected ? "#e6f7ff" : "transparent",
-                  borderRadius: "4px",
-                  border: isSelected ? "1px solid #91d5ff" : "1px solid transparent",
-                  marginBottom: "4px",
-                  cursor: "pointer",
+                  color: isSelected ? "#1890ff" : "#8c8c8c",
+                  fontSize: "14px",
+                  flexShrink: 0,
                 }}
-                actions={[
-                  <Button
-                    danger
-                    type="text"
-                    size="small"
-                    icon={<DeleteOutlined />}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete(db.name);
-                    }}
-                    style={{ fontSize: "12px" }}
-                  >
-                    删除
-                  </Button>,
-                ]}
-                onClick={() => onSelect(db.name)}
+              />
+
+              {/* Database name and type */}
+              <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: "6px" }}>
+                <Text
+                  strong
+                  style={{
+                    fontSize: "13px",
+                    color: isSelected ? "#1890ff" : "#262626",
+                    flex: 1,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                  ellipsis
+                >
+                  {db.name}
+                </Text>
+                <Tag
+                  color={isSelected ? "blue" : "default"}
+                  style={{
+                    fontSize: "10px",
+                    margin: 0,
+                    padding: "0 4px",
+                    height: "16px",
+                    lineHeight: "16px",
+                    borderRadius: "3px",
+                    flexShrink: 0,
+                  }}
+                >
+                  {db.dbType.toUpperCase()}
+                </Tag>
+              </div>
+
+              {/* Action buttons */}
+              <div
+                style={{ display: "flex", gap: "2px", flexShrink: 0 }}
+                onClick={(e) => e.stopPropagation()}
               >
-                <List.Item.Meta
-                  avatar={
-                    isSelected ? (
-                      <CheckCircleFilled style={{ color: "#1890ff", fontSize: "16px" }} />
-                    ) : null
-                  }
-                  title={
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px", flexWrap: "nowrap" }}>
-                      <Text
-                        strong={isSelected}
-                        style={{
-                          fontSize: "13px",
-                          color: isSelected ? "#1890ff" : "inherit",
-                          flexShrink: 0,
-                        }}
-                      >
-                        {db.name}
-                      </Text>
-                      <Tag color={isSelected ? "blue" : "default"} style={{ fontSize: "10px", margin: 0, flexShrink: 0 }}>
-                        {db.dbType}
-                      </Tag>
-                    </div>
-                  }
-                  description={
-                    <Text type="secondary" style={{ fontSize: "12px" }}>
-                      {db.lastConnectedAt
-                        ? new Date(db.lastConnectedAt).toLocaleString()
-                        : "尚未连接"}
-                    </Text>
-                  }
+                <EditDatabaseForm
+                  database={db}
+                  onDatabaseUpdated={onDatabaseUpdated || (() => {})}
                 />
-              </List.Item>
-            );
-          }}
-        />
+                <ActionButton
+                  icon={<DeleteOutlined />}
+                  danger
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(db.name);
+                  }}
+                />
+              </div>
+            </div>
+          );
+        })
       )}
-    </Space>
+    </div>
   );
 }

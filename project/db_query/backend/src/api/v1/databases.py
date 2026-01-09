@@ -4,7 +4,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query, status
 
-from ...models.database import DatabaseCreateRequest, DatabaseDetail
+from ...models.database import DatabaseCreateRequest, DatabaseUpdateRequest, DatabaseDetail
 from ...services.db_service import DatabaseService
 from ...services.metadata_service import MetadataService
 
@@ -99,6 +99,31 @@ async def get_database(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to fetch database metadata: {e}",
+        ) from e
+
+
+@router.patch("/dbs/{name}")
+async def update_database(name: str, request: DatabaseUpdateRequest) -> DatabaseDetail:
+    """Update a database connection.
+
+    Args:
+        name: The current database name.
+        request: The update request.
+
+    Returns:
+        The updated database connection.
+
+    Raises:
+        HTTPException: If database is not found or update fails.
+    """
+    try:
+        return await db_service.update_database(name, request)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)) from e
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to update database: {e}",
         ) from e
 
 

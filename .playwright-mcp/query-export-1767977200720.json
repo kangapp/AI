@@ -1,0 +1,73 @@
+{
+  "metadata": {
+    "database": "meta_db",
+    "executed_sql": "SELECT * FROM databases ORDER BY name LIMIT 1000",
+    "row_count": 2,
+    "execution_time_ms": 0,
+    "exported_at": "2026-01-10T00:46:40.715839"
+  },
+  "columns": [
+    {
+      "name": "id",
+      "data_type": "INTEGER",
+      "is_nullable": true
+    },
+    {
+      "name": "name",
+      "data_type": "TEXT",
+      "is_nullable": true
+    },
+    {
+      "name": "url",
+      "data_type": "TEXT",
+      "is_nullable": true
+    },
+    {
+      "name": "db_type",
+      "data_type": "TEXT",
+      "is_nullable": true
+    },
+    {
+      "name": "created_at",
+      "data_type": "TEXT",
+      "is_nullable": true
+    },
+    {
+      "name": "last_connected_at",
+      "data_type": "TEXT",
+      "is_nullable": true
+    },
+    {
+      "name": "metadata_json",
+      "data_type": "TEXT",
+      "is_nullable": true
+    },
+    {
+      "name": "is_active",
+      "data_type": "INTEGER",
+      "is_nullable": true
+    }
+  ],
+  "rows": [
+    {
+      "id": 4,
+      "name": "sample_db",
+      "url": "sqlite:////Users/liufukang/workplace/AI/project/db_query/backend/sample.db",
+      "db_type": "sqlite",
+      "created_at": "2026-01-09 00:00:56",
+      "last_connected_at": "2026-01-09 08:01:57.535691",
+      "metadata_json": "{\"tables\": [{\"name\": \"customers\", \"schema\": null, \"columns\": [{\"name\": \"id\", \"data_type\": \"INTEGER\", \"is_nullable\": true, \"default_value\": null, \"is_primary_key\": true}, {\"name\": \"name\", \"data_type\": \"TEXT\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}, {\"name\": \"email\", \"data_type\": \"TEXT\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}, {\"name\": \"created_at\", \"data_type\": \"DATETIME\", \"is_nullable\": true, \"default_value\": \"CURRENT_TIMESTAMP\", \"is_primary_key\": false}], \"row_count_estimate\": null, \"description\": null}, {\"name\": \"orders\", \"schema\": null, \"columns\": [{\"name\": \"id\", \"data_type\": \"INTEGER\", \"is_nullable\": true, \"default_value\": null, \"is_primary_key\": true}, {\"name\": \"customer_id\", \"data_type\": \"INTEGER\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}, {\"name\": \"product_id\", \"data_type\": \"INTEGER\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}, {\"name\": \"quantity\", \"data_type\": \"INTEGER\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}, {\"name\": \"order_date\", \"data_type\": \"DATETIME\", \"is_nullable\": true, \"default_value\": \"CURRENT_TIMESTAMP\", \"is_primary_key\": false}], \"row_count_estimate\": null, \"description\": null}, {\"name\": \"products\", \"schema\": null, \"columns\": [{\"name\": \"id\", \"data_type\": \"INTEGER\", \"is_nullable\": true, \"default_value\": null, \"is_primary_key\": true}, {\"name\": \"name\", \"data_type\": \"TEXT\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}, {\"name\": \"price\", \"data_type\": \"DECIMAL(10,2)\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}, {\"name\": \"category\", \"data_type\": \"TEXT\", \"is_nullable\": true, \"default_value\": null, \"is_primary_key\": false}], \"row_count_estimate\": null, \"description\": null}], \"views\": []}",
+      "is_active": 1
+    },
+    {
+      "id": 3,
+      "name": "ticket_db",
+      "url": "mysql://root:123456@localhost:3306/ticket_db",
+      "db_type": "mysql",
+      "created_at": "2026-01-08 15:38:37",
+      "last_connected_at": "2026-01-09 08:01:55.597626",
+      "metadata_json": "{\"tables\": [{\"name\": \"tags\", \"schema\": \"ticket_db\", \"columns\": [{\"name\": \"id\", \"data_type\": \"int\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": true}, {\"name\": \"name\", \"data_type\": \"varchar\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}, {\"name\": \"color\", \"data_type\": \"varchar\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}, {\"name\": \"created_at\", \"data_type\": \"datetime\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}], \"row_count_estimate\": null, \"description\": null}, {\"name\": \"tickets\", \"schema\": \"ticket_db\", \"columns\": [{\"name\": \"id\", \"data_type\": \"int\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": true}, {\"name\": \"title\", \"data_type\": \"varchar\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}, {\"name\": \"description\", \"data_type\": \"text\", \"is_nullable\": true, \"default_value\": null, \"is_primary_key\": false}, {\"name\": \"is_completed\", \"data_type\": \"tinyint\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}, {\"name\": \"completed_at\", \"data_type\": \"datetime\", \"is_nullable\": true, \"default_value\": null, \"is_primary_key\": false}, {\"name\": \"created_at\", \"data_type\": \"datetime\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}, {\"name\": \"updated_at\", \"data_type\": \"datetime\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}], \"row_count_estimate\": null, \"description\": null}, {\"name\": \"ticket_tags\", \"schema\": \"ticket_db\", \"columns\": [{\"name\": \"ticket_id\", \"data_type\": \"int\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": true}, {\"name\": \"tag_id\", \"data_type\": \"int\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": true}, {\"name\": \"created_at\", \"data_type\": \"datetime\", \"is_nullable\": false, \"default_value\": null, \"is_primary_key\": false}], \"row_count_estimate\": null, \"description\": null}], \"views\": []}",
+      "is_active": 1
+    }
+  ]
+}

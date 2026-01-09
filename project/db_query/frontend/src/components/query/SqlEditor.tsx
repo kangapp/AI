@@ -105,8 +105,54 @@ export const SqlEditor: React.FC<SqlEditorProps> = ({
   const handleFormat = () => {
     if (editorRef.current) {
       const editor = editorRef.current;
-      editor.getAction("editor.action.formatDocument")?.run();
+      const currentValue = editor.getValue();
+
+      // Basic SQL formatting
+      const formatted = formatSQL(currentValue);
+
+      // Update React state through onChange callback
+      onChange(formatted);
     }
+  };
+
+  // Basic SQL formatter
+  const formatSQL = (sql: string): string => {
+    // Remove extra whitespace
+    let formatted = sql.trim().replace(/\s+/g, " ");
+
+    // Add newlines after major keywords
+    const keywords = ["SELECT", "FROM", "WHERE", "JOIN", "LEFT JOIN", "RIGHT JOIN",
+                     "INNER JOIN", "ON", "AND", "OR", "ORDER BY", "GROUP BY", "HAVING",
+                     "LIMIT", "OFFSET", "UNION", "INTERSECT", "EXCEPT"];
+
+    keywords.forEach(keyword => {
+      const regex = new RegExp(`\\b${keyword}\\b`, "gi");
+      formatted = formatted.replace(regex, `\n${keyword}`);
+    });
+
+    // Fix indentation and remove empty lines
+    const lines = formatted.split("\n").filter(line => line.trim());
+    let indentLevel = 0;
+    const indentedLines: string[] = [];
+
+    lines.forEach(line => {
+      const trimmed = line.trim();
+
+      // Decrease indent after certain keywords
+      if (trimmed.match(/^(FROM|WHERE|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|GROUP BY|HAVING|ORDER BY|UNION|INTERSECT|EXCEPT)/i)) {
+        indentLevel = Math.max(0, indentLevel - 1);
+      }
+
+      // Add current line with indentation
+      indentedLines.push("  ".repeat(indentLevel) + trimmed);
+
+      // Increase indent after certain keywords
+      if (trimmed.match(/^(SELECT|FROM|JOIN|LEFT JOIN|RIGHT JOIN|INNER JOIN|WHERE|AND|OR|GROUP BY|HAVING|ORDER BY)$/i)) {
+        indentLevel++;
+      }
+    });
+
+    return indentedLines.join("\n");
   };
 
   return (

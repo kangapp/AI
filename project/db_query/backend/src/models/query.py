@@ -9,15 +9,15 @@ from ..lib.json_encoder import CamelModel
 from .metadata import ColumnMetadata
 
 
-class ErrorDetail:
-    """Error detail (using dataclass to avoid camelCase on error codes)."""
+class ErrorDetail(CamelModel):
+    """Error detail."""
 
-    code: str
-    message: str
-    details: str | None = None
+    code: str = Field(..., description="Error code (e.g., SQL_SYNTAX_ERROR, CONNECTION_FAILED)")
+    message: str = Field(..., description="Human-readable error message")
+    details: str | None = Field(None, description="Additional error details")
 
 
-class ErrorResponse:
+class ErrorResponse(CamelModel):
     """Error response."""
 
     success: bool = False
@@ -28,6 +28,25 @@ class QueryRequest(CamelModel):
     """Request to execute a SQL query."""
 
     sql: str = Field(..., description="SQL query to execute")
+
+
+class NaturalQueryRequest(CamelModel):
+    """Request to generate SQL from natural language."""
+
+    prompt: str = Field(..., description="Natural language query description")
+    execute_immediately: bool = Field(
+        default=False, description="If true, execute without confirmation"
+    )
+
+
+class NaturalQueryResponse(CamelModel):
+    """Response from natural language to SQL generation."""
+
+    success: bool
+    generated_sql: str = Field(..., description="The generated SQL query")
+    explanation: str | None = Field(None, description="Optional explanation of the query")
+    is_valid: bool = Field(..., description="Whether the SQL is syntactically valid")
+    validation_message: str | None = Field(None, description="Validation error if invalid")
 
 
 class QueryResponse(CamelModel):
@@ -66,3 +85,19 @@ class QueryHistoryResponse(CamelModel):
     total_count: int
     page: int
     page_size: int
+
+
+class ExportRequest(CamelModel):
+    """Request to export query results."""
+
+    sql: str = Field(..., description="SQL query to execute")
+    format: str = Field(..., description="Export format: 'csv' or 'json'")
+    include_headers: bool = Field(default=True, description="Include column headers")
+
+
+class ExportResponse(CamelModel):
+    """Response with exported data."""
+
+    content: str = Field(..., description="Exported data as string")
+    content_type: str = Field(..., description="MIME type for download")
+    filename: str = Field(..., description="Suggested filename")

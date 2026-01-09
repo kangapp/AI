@@ -20,6 +20,11 @@ export interface DatabaseCreateRequest {
   url: string;
 }
 
+export interface DatabaseUpdateRequest {
+  name?: string;
+  url?: string;
+}
+
 export interface ColumnMetadata {
   name: string;
   dataType: string;
@@ -68,6 +73,19 @@ export interface QueryRequest {
   sql: string;
 }
 
+export interface NaturalQueryRequest {
+  prompt: string;
+  executeImmediately: boolean;
+}
+
+export interface NaturalQueryResponse {
+  success: boolean;
+  generatedSql: string;
+  explanation: string | null;
+  isValid: boolean;
+  validationMessage: string | null;
+}
+
 export interface QueryResponse {
   success: boolean;
   executedSql: string;
@@ -98,6 +116,18 @@ export interface QueryHistoryResponse {
   totalCount: number;
   page: number;
   pageSize: number;
+}
+
+// Export types
+export interface ExportRequest {
+  format: "csv" | "json";
+  includeHeaders?: boolean;
+}
+
+export interface ExportResponse {
+  content: string;
+  contentType: string;
+  filename: string;
 }
 
 // Error types

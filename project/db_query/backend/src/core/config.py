@@ -3,16 +3,24 @@
 from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class AppConfig(BaseModel):
+class AppConfig(BaseSettings):
     """Application configuration loaded from environment variables."""
 
-    zai_api_key: str = Field(default="", alias="ZAI_API_KEY")
-    db_path: str = Field(default="~/.db_query/db_query.db", alias="DB_PATH")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore",
+    )
+
+    zai_api_key: str = Field(default="")
+    db_path: str = Field(default="~/.db_query/db_query.db")
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
-        default="INFO", alias="LOG_LEVEL"
+        default="INFO"
     )
 
     def get_resolved_db_path(self) -> Path:

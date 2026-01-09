@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { Layout, Typography, Space, Modal, message, Tree, Alert } from "antd";
-import { TableOutlined, ColumnHeightOutlined, DatabaseOutlined } from "@ant-design/icons";
+import { Layout, Typography, Space, Modal, message, Tree, Alert, Tabs } from "antd";
+import { TableOutlined, ColumnHeightOutlined, DatabaseOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { DatabaseList, AddDatabaseForm } from "../components/database";
-import { SqlEditor, QueryResults } from "../components/query";
+import { SqlEditor, QueryResults, NaturalQueryInput } from "../components/query";
 import type { DatabaseConnection, DatabaseDetail, TableMetadata, ColumnMetadata, ViewMetadata } from "../types";
 import { api } from "../services/api";
-import type { QueryResponse } from "../services/api";
+import type { QueryResponse, NaturalQueryResponse } from "../services/api";
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
@@ -15,6 +15,8 @@ interface DataNode {
   key: string;
   icon?: React.ReactNode;
   children?: DataNode[];
+  className?: string;
+  style?: React.CSSProperties;
 }
 
 export function Dashboard() {
@@ -29,6 +31,7 @@ export function Dashboard() {
   const [queryError, setQueryError] = useState<string | null>(null);
   const [metadataLoading, setMetadataLoading] = useState(false);
   const [metadataError, setMetadataError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("sql");
 
   const loadDatabases = async () => {
     setLoading(true);
@@ -115,6 +118,17 @@ export function Dashboard() {
     }
   };
 
+  const handleQueryGenerated = (generatedSql: string) => {
+    setSql(generatedSql);
+    setActiveTab("sql");
+  };
+
+  const handleNaturalQueryExecuted = (response: NaturalQueryResponse) => {
+    if (response.explanation) {
+      message.success(response.explanation);
+    }
+  };
+
   // Build tree data from metadata
   const buildTreeData = (): DataNode[] => {
     if (!selectedDatabase) return [];
@@ -139,17 +153,20 @@ export function Dashboard() {
         const tableNodes: DataNode[] = selectedDatabase.tables.map((table) => ({
           title: table.name,
           key: `table-default-${table.name}`,
-          icon: <TableOutlined />,
+          icon: <TableOutlined style={{ fontSize: "12px", color: "#8c8c8c" }} />,
+          style: { fontSize: "12px" },
           children: table.columns.map((col) => ({
             title: `${col.name}: ${col.dataType}`,
             key: `table-default-${table.name}-col-${col.name}`,
-            icon: <ColumnHeightOutlined />,
+            icon: <ColumnHeightOutlined style={{ fontSize: "10px", color: "#bfbfbf" }} />,
+            style: { fontSize: "11px", color: "#8c8c8c" },
           })),
         }));
         nodes.push({
           title: `Tables (${selectedDatabase.tables.length})`,
           key: "tables",
-          icon: <DatabaseOutlined />,
+          icon: <DatabaseOutlined style={{ fontSize: "13px", color: "#1890ff" }} />,
+          style: { fontSize: "13px", fontWeight: 500, color: "#262626" },
           children: tableNodes,
         });
       } else {
@@ -158,17 +175,20 @@ export function Dashboard() {
           const tableNodes: DataNode[] = tables.map((table) => ({
             title: table.name,
             key: `table-${schema}-${table.name}`,
-            icon: <TableOutlined />,
+            icon: <TableOutlined style={{ fontSize: "12px", color: "#8c8c8c" }} />,
+            style: { fontSize: "12px" },
             children: table.columns.map((col) => ({
               title: `${col.name}: ${col.dataType}`,
               key: `table-${schema}-${table.name}-col-${col.name}`,
-              icon: <ColumnHeightOutlined />,
+              icon: <ColumnHeightOutlined style={{ fontSize: "10px", color: "#bfbfbf" }} />,
+              style: { fontSize: "11px", color: "#8c8c8c" },
             })),
           }));
           nodes.push({
             title: `${schema} (${tables.length})`,
             key: `schema-${schema}`,
-            icon: <DatabaseOutlined />,
+            icon: <DatabaseOutlined style={{ fontSize: "13px", color: "#1890ff" }} />,
+            style: { fontSize: "13px", fontWeight: 500, color: "#262626" },
             children: tableNodes,
           });
         }
@@ -193,17 +213,20 @@ export function Dashboard() {
         const viewNodes: DataNode[] = selectedDatabase.views.map((view) => ({
           title: view.name,
           key: `view-default-${view.name}`,
-          icon: <TableOutlined />,
+          icon: <TableOutlined style={{ fontSize: "12px", color: "#8c8c8c" }} />,
+          style: { fontSize: "12px" },
           children: view.columns.map((col) => ({
             title: `${col.name}: ${col.dataType}`,
             key: `view-default-${view.name}-col-${col.name}`,
-            icon: <ColumnHeightOutlined />,
+            icon: <ColumnHeightOutlined style={{ fontSize: "10px", color: "#bfbfbf" }} />,
+            style: { fontSize: "11px", color: "#8c8c8c" },
           })),
         }));
         nodes.push({
           title: `Views (${selectedDatabase.views.length})`,
           key: "views",
-          icon: <DatabaseOutlined />,
+          icon: <DatabaseOutlined style={{ fontSize: "13px", color: "#1890ff" }} />,
+          style: { fontSize: "13px", fontWeight: 500, color: "#262626" },
           children: viewNodes,
         });
       } else {
@@ -212,17 +235,20 @@ export function Dashboard() {
           const viewNodes: DataNode[] = views.map((view) => ({
             title: view.name,
             key: `view-${schema}-${view.name}`,
-            icon: <TableOutlined />,
+            icon: <TableOutlined style={{ fontSize: "12px", color: "#8c8c8c" }} />,
+            style: { fontSize: "12px" },
             children: view.columns.map((col) => ({
               title: `${col.name}: ${col.dataType}`,
               key: `view-${schema}-${view.name}-col-${col.name}`,
-              icon: <ColumnHeightOutlined />,
+              icon: <ColumnHeightOutlined style={{ fontSize: "10px", color: "#bfbfbf" }} />,
+              style: { fontSize: "11px", color: "#8c8c8c" },
             })),
           }));
           nodes.push({
             title: `${schema} (${views.length})`,
             key: `view-schema-${schema}`,
-            icon: <DatabaseOutlined />,
+            icon: <DatabaseOutlined style={{ fontSize: "13px", color: "#1890ff" }} />,
+            style: { fontSize: "13px", fontWeight: 500, color: "#262626" },
             children: viewNodes,
           });
         }
@@ -247,6 +273,12 @@ export function Dashboard() {
         keyStr === `view-${schema}-${obj.name}`
       ) {
         setSelectedTable(obj);
+
+        // Generate SQL query for the selected table
+        const columns = obj.columns.map(col => col.name).join(", ");
+        const query = `SELECT\n  ${columns}\nFROM ${obj.name}\nLIMIT 100;`;
+        setSql(query);
+
         return;
       }
     }
@@ -269,6 +301,7 @@ export function Dashboard() {
               databases={databases}
               onSelect={handleSelectDatabase}
               onDelete={handleDelete}
+              onDatabaseUpdated={loadDatabases}
               selectedName={selectedDatabaseName}
             />
 
@@ -313,39 +346,97 @@ export function Dashboard() {
 
             {selectedDatabase && (
               <Alert
-                message={`已连接到：${selectedDatabase.name}`}
-                description={`${selectedDatabase.tables.length} 个表，${selectedDatabase.views.length} 个视图 • ${selectedDatabase.dbType}`}
-                type="info"
-                showIcon
-                closable
-                onClose={() => {
-                  setSelectedDatabaseName(null);
-                  setSelectedDatabase(null);
-                  setSelectedTable(null);
-                  setSql("");
-                  setQueryResult(null);
-                  setQueryError(null);
-                }}
-              />
-            )}
+                message={
+                  <div style={{ display: "flex", alignItems: "center", gap: "12px", flexWrap: "wrap" }}>
+                    {/* Database info */}
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <DatabaseOutlined style={{ fontSize: "13px", color: "#1890ff" }} />
+                      <span style={{ fontSize: "13px", fontWeight: 500 }}>
+                        {selectedDatabase.name}
+                      </span>
+                      <span style={{
+                        fontSize: "11px",
+                        fontWeight: 500,
+                        color: selectedDatabase.dbType === "mysql" ? "#1890ff" :
+                               selectedDatabase.dbType === "sqlite" ? "#52c41a" : "#8c8c8c",
+                        textTransform: "uppercase",
+                        padding: "1px 6px",
+                        borderRadius: "3px",
+                        backgroundColor: selectedDatabase.dbType === "mysql" ? "#e6f7ff" :
+                                         selectedDatabase.dbType === "sqlite" ? "#f6ffed" : "#f5f5f5"
+                      }}>
+                        {selectedDatabase.dbType}
+                      </span>
+                    </div>
 
-            {selectedTable && (
-              <Alert
-                message={selectedTable.name}
-                description={
-                  <div>
-                    <div>类型: <strong>{selectedTable.schema || "default"}</strong></div>
-                    <div>列数: {selectedTable.columns.length}</div>
-                    {selectedTable.rowCountEstimate !== null && (
-                      <div>行数（估）: {selectedTable.rowCountEstimate}</div>
+                    {/* Separator */}
+                    <span style={{ color: "#d9d9d9", fontSize: "12px" }}>|</span>
+
+                    {/* Stats */}
+                    <span style={{ fontSize: "12px", color: "#8c8c8c" }}>
+                      {selectedDatabase.tables.length} 表 · {selectedDatabase.views.length} 视图
+                    </span>
+
+                    {/* Table info */}
+                    {selectedTable && (
+                      <>
+                        <span style={{ color: "#d9d9d9", fontSize: "12px" }}>→</span>
+                        <div style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                          <TableOutlined style={{ fontSize: "12px", color: "#fa8c16" }} />
+                          <span style={{ fontSize: "12px", fontWeight: 500, color: "#262626" }}>
+                            {selectedTable.name}
+                          </span>
+                          <span style={{ fontSize: "11px", color: "#8c8c8c" }}>
+                            ({selectedTable.columns.length} 列)
+                          </span>
+                        </div>
+                      </>
                     )}
-                    {selectedTable.description && <div>{selectedTable.description}</div>}
+
+                    {/* Close button area */}
+                    <div style={{ marginLeft: "auto" }}>
+                      <button
+                        onClick={() => {
+                          setSelectedDatabaseName(null);
+                          setSelectedDatabase(null);
+                          setSelectedTable(null);
+                          setSql("");
+                          setQueryResult(null);
+                          setQueryError(null);
+                        }}
+                        style={{
+                          border: "none",
+                          background: "transparent",
+                          cursor: "pointer",
+                          padding: "2px 6px",
+                          fontSize: "12px",
+                          color: "#8c8c8c",
+                          borderRadius: "4px",
+                          display: "flex",
+                          alignItems: "center"
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.backgroundColor = "#f5f5f5";
+                          e.currentTarget.style.color = "#262626";
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.backgroundColor = "transparent";
+                          e.currentTarget.style.color = "#8c8c8c";
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
                   </div>
                 }
                 type="info"
-                showIcon
-                closable
-                onClose={() => setSelectedTable(null)}
+                showIcon={false}
+                style={{
+                  borderRadius: "6px",
+                  borderLeft: "3px solid #1890ff",
+                  backgroundColor: "#fafafa",
+                  padding: "8px 12px"
+                }}
               />
             )}
 
@@ -367,12 +458,46 @@ export function Dashboard() {
 
             {selectedDatabase && (
               <>
-                <SqlEditor
-                  value={sql}
-                  onChange={setSql}
-                  onExecute={handleExecuteQuery}
-                  loading={queryLoading}
-                  placeholder="在此输入 SELECT 查询..."
+                <Tabs
+                  activeKey={activeTab}
+                  onChange={setActiveTab}
+                  items={[
+                    {
+                      key: "sql",
+                      label: (
+                        <span>
+                          <ColumnHeightOutlined />
+                          SQL 查询
+                        </span>
+                      ),
+                      children: (
+                        <SqlEditor
+                          value={sql}
+                          onChange={setSql}
+                          onExecute={handleExecuteQuery}
+                          loading={queryLoading}
+                          placeholder="在此输入 SELECT 查询..."
+                        />
+                      ),
+                    },
+                    {
+                      key: "natural",
+                      label: (
+                        <span>
+                          <ThunderboltOutlined />
+                          AI 查询
+                        </span>
+                      ),
+                      children: (
+                        <NaturalQueryInput
+                          databaseName={selectedDatabase.name}
+                          onQueryGenerated={handleQueryGenerated}
+                          onQueryExecuted={handleNaturalQueryExecuted}
+                          disabled={queryLoading}
+                        />
+                      ),
+                    },
+                  ]}
                 />
                 <QueryResults
                   result={queryResult}

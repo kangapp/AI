@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
-import { Layout, Typography, Space, Button, message, Spin, Menu, Tree, Alert } from "antd";
-import { ArrowLeftOutlined, TableOutlined, ColumnHeightOutlined, DatabaseOutlined } from "@ant-design/icons";
+import { Layout, Typography, Space, Button, message, Spin, Menu, Tree, Alert, Tabs } from "antd";
+import { ArrowLeftOutlined, TableOutlined, ColumnHeightOutlined, DatabaseOutlined, ThunderboltOutlined } from "@ant-design/icons";
 import { useNavigate, useParams } from "react-router-dom";
 import type { DatabaseDetail, TableMetadata, ColumnMetadata, ViewMetadata } from "../types";
 import { api } from "../services/api";
 import { SqlEditor, QueryResults, QueryHistory } from "../components/query";
-import type { QueryResponse } from "../services/api";
+import { NaturalQueryInput } from "../components/query/NaturalQueryInput";
+import type { QueryResponse, NaturalQueryResponse } from "../services/api";
 
 const { Header, Content, Sider } = Layout;
 const { Title } = Typography;
@@ -29,6 +30,7 @@ export function DatabasePage() {
   const [queryError, setQueryError] = useState<string | null>(null);
   const [historyVisible, setHistoryVisible] = useState(false);
   const [selectedTable, setSelectedTable] = useState<TableMetadata | ViewMetadata | null>(null);
+  const [activeTab, setActiveTab] = useState("sql");
 
   const loadDatabase = async () => {
     if (!name) return;
@@ -72,6 +74,18 @@ export function DatabasePage() {
 
   const handleSelectHistoryQuery = (querySql: string) => {
     setSql(querySql);
+    setActiveTab("sql");
+  };
+
+  const handleQueryGenerated = (generatedSql: string) => {
+    setSql(generatedSql);
+    setActiveTab("sql");
+  };
+
+  const handleNaturalQueryExecuted = (response: NaturalQueryResponse) => {
+    if (response.explanation) {
+      message.success(response.explanation);
+    }
   };
 
   // Build tree data from metadata
@@ -140,6 +154,40 @@ export function DatabasePage() {
   useEffect(() => {
     loadDatabase();
   }, [name]);
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + Enter to execute query
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        if (sql.trim() && !queryLoading) {
+          handleExecuteQuery();
+        }
+      }
+
+      // Ctrl/Cmd + Shift + N to switch to natural language tab
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "N") {
+        e.preventDefault();
+        setActiveTab("natural");
+      }
+
+      // Ctrl/Cmd + Shift + S to switch to SQL tab
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "S") {
+        e.preventDefault();
+        setActiveTab("sql");
+      }
+
+      // Ctrl/Cmd + H to toggle history
+      if ((e.ctrlKey || e.metaKey) && e.key === "h") {
+        e.preventDefault();
+        setHistoryVisible(!historyVisible);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyPress);
+    return () => window.removeEventListener("keydown", handleKeyPress);
+  }, [sql, queryLoading, historyVisible, activeTab]);
 
   if (loading) {
     return (
@@ -237,17 +285,54 @@ export function DatabasePage() {
               />
             )}
 
-            <SqlEditor
-              value={sql}
-              onChange={setSql}
-              onExecute={handleExecuteQuery}
-              loading={queryLoading}
-              placeholder="Enter SELECT query here..."
+            <Tabs
+              activeKey={activeTab}
+              onChange={setActiveTab}
+              items={[
+                {
+                  key: "sql",
+                  label: (
+                    <span>
+                      <ColumnHeightOutlined />
+                      SQL Editor
+                    </span>
+                  ),
+                  children: (
+                    <SqlEditor
+                      value={sql}
+                      onChange={setSql}
+                      onExecute={handleExecuteQuery}
+                      loading={queryLoading}
+                      placeholder="Enter SELECT query here..."
+                    />
+                  ),
+                },
+                {
+                  key: "natural",
+                  label: (
+                    <span>
+                      <ThunderboltOutlined />
+                      AI Query
+                    </span>
+                  ),
+                  children: (
+                    <NaturalQueryInput
+                      databaseName={database.name}
+                      onQueryGenerated={handleQueryGenerated}
+                      onQueryExecuted={handleNaturalQueryExecuted}
+                      disabled={queryLoading}
+                    />
+                  ),
+                },
+              ]}
             />
+
             <QueryResults
               result={queryResult}
               loading={queryLoading}
               error={queryError}
+              databaseName={database.name}
+              currentSql={sql}
             />
           </Space>
         </Content>

@@ -17,6 +17,7 @@
     - /speckit.plan
     - /speckit.tasks
     - /speckit.implement 在./project/db_query下实现phase 1的所有任务
+    - /speckit.analyze 仔细review 所有代码,删除不用的代码,添加更多的unit test,以及寻找oppotunity
 
 
 

@@ -1,7 +1,10 @@
 """Query execution service."""
 
 import asyncio
+import csv
+import json
 from datetime import datetime
+from io import StringIO
 from typing import Any
 
 from sqlalchemy import Engine, text
@@ -10,7 +13,12 @@ from ..core.sql_parser import get_parser
 from ..core.sqlite_db import get_db
 from ..models.database import DatabaseDetail
 from ..models.metadata import ColumnMetadata
-from ..models.query import QueryHistoryItem, QueryResponse
+from ..models.query import (
+    ExportRequest,
+    ExportResponse,
+    QueryHistoryItem,
+    QueryResponse,
+)
 
 
 class QueryService:
@@ -142,11 +150,12 @@ class QueryService:
             # Fetch all results and convert to list
             return list(result.fetchall())
 
-    def _serialize_results(self, result: list[Any]) -> tuple[list[ColumnMetadata], list[dict[str, Any]]]:
+    def _serialize_results(self, result: list[Any], column_types: list[str] | None = None) -> tuple[list[ColumnMetadata], list[dict[str, Any]]]:
         """Serialize query results into columns and rows.
 
         Args:
             result: The raw query result.
+            column_types: Optional list of column type names.
 
         Returns:
             A tuple of (columns, rows).
@@ -165,16 +174,38 @@ class QueryService:
             # Fallback: use numeric indices
             column_names = [f"column_{i}" for i in range(len(first_row))]
 
-        # Create column metadata
-        columns = [
-            ColumnMetadata(
-                name=name,
-                data_type="UNKNOWN",  # SQLAlchemy doesn't always provide type info
-                is_nullable=True,
-                is_primary_key=False,
+        # Create column metadata with type inference from values
+        columns = []
+        for i, name in enumerate(column_names):
+            # Try to get type from column_types if provided
+            data_type = "UNKNOWN"
+            if column_types and i < len(column_types):
+                data_type = column_types[i].upper()
+            else:
+                # Infer type from actual row values
+                for row in result[:100]:  # Check first 100 rows
+                    value = row[i] if i < len(row) else None
+                    if value is not None:
+                        if isinstance(value, bool):
+                            data_type = "BOOLEAN"
+                        elif isinstance(value, int):
+                            data_type = "INTEGER"
+                        elif isinstance(value, float):
+                            data_type = "FLOAT"
+                        elif isinstance(value, str):
+                            data_type = "TEXT"
+                        else:
+                            data_type = str(type(value).__name__).upper()
+                        break
+
+            columns.append(
+                ColumnMetadata(
+                    name=name,
+                    data_type=data_type,
+                    is_nullable=True,
+                    is_primary_key=False,
+                )
             )
-            for name in column_names
-        ]
 
         # Convert rows to dictionaries
         rows = []
@@ -303,3 +334,120 @@ class QueryService:
             {"database_name": database_name},
         )
         return row["count"] if row else 0
+
+    def export_results(
+        self,
+        query_response: QueryResponse,
+        export_request: ExportRequest,
+        database_name: str,
+    ) -> ExportResponse:
+        """Export query results to CSV or JSON format.
+
+        Args:
+            query_response: The query response to export.
+            export_request: The export configuration.
+            database_name: The database name for filename.
+
+        Returns:
+            The export response with content, content type, and filename.
+        """
+        export_format = export_request.format.lower()
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        if export_format == "csv":
+            return self._export_csv(
+                query_response,
+                export_request.include_headers,
+                database_name,
+                timestamp,
+            )
+        elif export_format == "json":
+            return self._export_json(
+                query_response,
+                database_name,
+                timestamp,
+            )
+        else:
+            raise ValueError(f"Unsupported export format: {export_format}")
+
+    def _export_csv(
+        self,
+        query_response: QueryResponse,
+        include_headers: bool,
+        database_name: str,
+        timestamp: str,
+    ) -> ExportResponse:
+        """Export results to CSV format.
+
+        Args:
+            query_response: The query response.
+            include_headers: Whether to include column headers.
+            database_name: The database name.
+            timestamp: The timestamp for filename.
+
+        Returns:
+            The export response.
+        """
+        output = StringIO()
+        writer = csv.writer(output)
+
+        # Write headers if requested
+        if include_headers:
+            headers = [col.name for col in query_response.columns]
+            writer.writerow(headers)
+
+        # Write rows
+        for row in query_response.rows:
+            # Convert all values to strings
+            row_values = [
+                str(value) if value is not None else "" for value in row.values()
+            ]
+            writer.writerow(row_values)
+
+        return ExportResponse(
+            content=output.getvalue(),
+            content_type="text/csv",
+            filename=f"{database_name}_query_{timestamp}.csv",
+        )
+
+    def _export_json(
+        self,
+        query_response: QueryResponse,
+        database_name: str,
+        timestamp: str,
+    ) -> ExportResponse:
+        """Export results to JSON format.
+
+        Args:
+            query_response: The query response.
+            database_name: The database name.
+            timestamp: The timestamp for filename.
+
+        Returns:
+            The export response.
+        """
+        # Build export data structure
+        export_data = {
+            "metadata": {
+                "database": database_name,
+                "executed_sql": query_response.executed_sql,
+                "row_count": query_response.row_count,
+                "execution_time_ms": query_response.execution_time_ms,
+                "exported_at": datetime.now().isoformat(),
+            },
+            "columns": [
+                {
+                    "name": col.name,
+                    "data_type": col.data_type,
+                    "is_nullable": col.is_nullable,
+                }
+                for col in query_response.columns
+            ],
+            "rows": query_response.rows,
+        }
+
+        return ExportResponse(
+            content=json.dumps(export_data, ensure_ascii=False, indent=2),
+            content_type="application/json",
+            filename=f"{database_name}_query_{timestamp}.json",
+        )

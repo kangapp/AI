@@ -181,34 +181,34 @@ description: "Task list for Database Query Tool implementation"
 
 ### LLM Service
 
-- [ ] T057 [P] [US3] Create zai-sdk integration in backend/src/services/llm_service.py
-- [ ] T058 [US3] Implement metadata context formatting for LLM in backend/src/services/llm_service.py
-- [ ] T059 [US3] Implement natural language to SQL generation in backend/src/services/llm_service.py
-- [ ] T060 [US3] Add LLM error handling and graceful degradation in backend/src/services/llm_service.py
+- [X] T057 [P] [US3] Create zai-sdk integration in backend/src/services/llm_service.py
+- [X] T058 [US3] Implement metadata context formatting for LLM in backend/src/services/llm_service.py
+- [X] T059 [US3] Implement natural language to SQL generation in backend/src/services/llm_service.py
+- [X] T060 [US3] Add LLM error handling and graceful degradation in backend/src/services/llm_service.py
 
 ### Natural Language API
 
-- [ ] T061 [US3] Create NaturalQueryRequest/Response models in backend/src/models/query.py
-- [ ] T062 [US3] Implement POST /api/v1/dbs/{name}/query/natural endpoint in backend/src/api/v1/queries.py
-- [ ] T063 [US3] Add SQL validation for generated queries in backend/src/api/v1/queries.py
+- [X] T061 [US3] Create NaturalQueryRequest/Response models in backend/src/models/query.py
+- [X] T062 [US3] Implement POST /api/v1/dbs/{name}/query/natural endpoint in backend/src/api/v1/queries.py
+- [X] T063 [US3] Add SQL validation for generated queries in backend/src/api/v1/queries.py
 
 ### Frontend Components - Natural Language
 
-- [ ] T064 [P] [US3] Create NaturalQueryInput component in frontend/src/components/query/NaturalQueryInput.tsx
-- [ ] T065 [US3] Add generated SQL confirmation dialog in frontend/src/components/query/NaturalQueryInput.tsx
-- [ ] T066 [US3] Add natural language query UI to DatabasePage in frontend/src/pages/DatabasePage.tsx
+- [X] T064 [P] [US3] Create NaturalQueryInput component in frontend/src/components/query/NaturalQueryInput.tsx
+- [X] T065 [US3] Add generated SQL confirmation dialog in frontend/src/components/query/NaturalQueryInput.tsx
+- [X] T066 [US3] Add natural language query UI to DatabasePage in frontend/src/pages/DatabasePage.tsx
 
 ### Polish & Cross-Cutting Concerns
 
-- [ ] T067 [P] Add connection string redaction in API responses in backend/src/models/database.py
-- [ ] T068 [P] Implement metadata refresh functionality in backend/src/services/metadata_service.py
-- [ ] T069 [P] Add query result export (CSV/JSON) in backend/src/services/query_service.py
-- [ ] T070 [P] Add loading states and error messages in frontend components
-- [ ] T071 [P] Add responsive design adjustments in frontend/src/components/
-- [ ] T072 [P] Add keyboard shortcuts in frontend/src/pages/DatabasePage.tsx
-- [ ] T073 Update README.md with setup and usage instructions
-- [ ] T074 Run quickstart.md validation to ensure setup guide is accurate
-- [ ] T075 Final code cleanup and refactoring
+- [X] T067 [P] Add connection string redaction in API responses in backend/src/models/database.py
+- [X] T068 [P] Implement metadata refresh functionality in backend/src/services/metadata_service.py
+- [X] T069 [P] Add query result export (CSV/JSON) in backend/src/services/query_service.py
+- [X] T070 [P] Add loading states and error messages in frontend components
+- [X] T071 [P] Add responsive design adjustments in frontend/src/components/
+- [X] T072 [P] Add keyboard shortcuts in frontend/src/pages/DatabasePage.tsx
+- [X] T073 Update README.md with setup and usage instructions
+- [X] T074 Run quickstart.md validation to ensure setup guide is accurate
+- [X] T075 Final code cleanup and refactoring
 
 **Checkpoint**: All features complete. Users can manage databases, execute SQL queries, and use natural language to generate queries.
 

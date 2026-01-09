@@ -5,6 +5,7 @@
 import type {
   DatabaseConnection,
   DatabaseCreateRequest,
+  DatabaseUpdateRequest,
   DatabaseDetail,
   DatabaseListResponse,
   ColumnMetadata,
@@ -13,8 +14,11 @@ import type {
   MetadataResponse,
   QueryRequest,
   QueryResponse,
+  NaturalQueryRequest,
+  NaturalQueryResponse,
   QueryHistoryItem,
   QueryHistoryResponse,
+  ExportRequest,
   ErrorResponse,
 } from "../types";
 
@@ -83,6 +87,13 @@ class ApiClient {
     });
   }
 
+  async updateDatabase(name: string, data: DatabaseUpdateRequest): Promise<DatabaseDetail> {
+    return this.request<DatabaseDetail>(`/api/v1/dbs/${encodeURIComponent(name)}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  }
+
   async getMetadata(name: string, refresh = false): Promise<MetadataResponse> {
     const params = new URLSearchParams({ refresh: refresh.toString() });
     return this.request<MetadataResponse>(
@@ -102,6 +113,27 @@ class ApiClient {
     );
   }
 
+  async naturalQuery(
+    name: string,
+    prompt: string,
+    executeImmediately = false
+  ): Promise<NaturalQueryResponse> {
+    return this.request<NaturalQueryResponse>(
+      `/api/v1/dbs/${encodeURIComponent(name)}/query/natural`,
+      {
+        method: "POST",
+        body: JSON.stringify({ prompt, executeImmediately }),
+      }
+    );
+  }
+
+  async getSuggestedQueries(name: string, limit = 6): Promise<{ suggestions: string[] }> {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    return this.request<{ suggestions: string[] }>(
+      `/api/v1/dbs/${encodeURIComponent(name)}/suggested-queries?${params}`
+    );
+  }
+
   async getQueryHistory(
     name: string,
     page = 1,
@@ -114,6 +146,53 @@ class ApiClient {
     return this.request<QueryHistoryResponse>(
       `/api/v1/dbs/${encodeURIComponent(name)}/history?${params}`
     );
+  }
+
+  async exportQueryResults(
+    name: string,
+    sql: string,
+    format: "csv" | "json",
+    includeHeaders = true
+  ): Promise<void> {
+    const url = `${this.baseUrl}/api/v1/dbs/${encodeURIComponent(name)}/query/export`;
+
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        sql,
+        format,
+        includeHeaders,
+      } satisfies ExportRequest),
+    });
+
+    if (!response.ok) {
+      const error = (await response.json()) as ErrorResponse;
+      throw new Error(error.error?.message || "Export failed");
+    }
+
+    // Get filename from Content-Disposition header
+    const contentDisposition = response.headers.get("Content-Disposition");
+    let filename = `query_export_${Date.now()}.${format}`;
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+      if (filenameMatch) {
+        filename = filenameMatch[1];
+      }
+    }
+
+    // Download the file
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
   }
 }
 
@@ -132,6 +211,8 @@ export type {
   MetadataResponse,
   QueryRequest,
   QueryResponse,
+  NaturalQueryRequest,
+  NaturalQueryResponse,
   QueryHistoryItem,
   QueryHistoryResponse,
   ErrorResponse,

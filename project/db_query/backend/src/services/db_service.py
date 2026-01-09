@@ -2,7 +2,7 @@
 
 import asyncio
 from datetime import datetime
-from typing import Literal
+from typing import Any, Literal
 from urllib.parse import urlparse
 
 from sqlalchemy import create_engine, text
@@ -14,6 +14,7 @@ from ..models.database import (
     ConnectionString,
     DatabaseConnection,
     DatabaseCreateRequest,
+    DatabaseUpdateRequest,
     DatabaseDetail,
 )
 
@@ -261,6 +262,68 @@ class DatabaseService:
         await self.db.execute(
             "DELETE FROM databases WHERE name = :name", {"name": name}
         )
+
+    async def update_database(self, name: str, request: DatabaseUpdateRequest) -> DatabaseDetail:
+        """Update a database connection.
+
+        Args:
+            name: The current database name.
+            request: The update request.
+
+        Returns:
+            The updated database connection.
+
+        Raises:
+            ValueError: If the database is not found or new name already exists.
+        """
+        # Check existence
+        await self.get_database_by_name(name)
+
+        # Build update query dynamically
+        updates: list[str] = []
+        params: dict[str, Any] = {"name": name}
+
+        if request.name is not None and request.name != name:
+            # Check if new name already exists
+            existing = await self.db.fetch_one(
+                "SELECT id FROM databases WHERE name = :new_name AND is_active = 1",
+                {"new_name": request.name}
+            )
+            if existing:
+                raise ValueError(f"Database with name '{request.name}' already exists")
+            updates.append("name = :new_name")
+            params["new_name"] = request.name
+
+        if request.url is not None:
+            # Detect database type and test connection
+            db_type = self._detect_db_type(request.url)
+            connection_url = self._add_driver_to_url(request.url, db_type)
+
+            try:
+                await asyncio.to_thread(self._test_connection, connection_url)
+            except SQLAlchemyError as e:
+                raise ValueError(f"Failed to connect to database: {e}") from e
+
+            updates.append("url = :url")
+            updates.append("db_type = :db_type")
+            updates.append("last_connected_at = :last_connected_at")
+            params["url"] = request.url
+            params["db_type"] = db_type
+            params["last_connected_at"] = datetime.now()
+
+        if not updates:
+            # No updates, return current database
+            return await self.get_database_by_name(name)
+
+        # Execute update
+        await self.db.execute(
+            f"UPDATE databases SET {', '.join(updates)} WHERE name = :name",
+            params
+        )
+
+        # Return updated database (use new name if changed)
+        new_name = request.name if request.name is not None else name
+        return await self.get_database_by_name(new_name)
 
     def get_engine(self, db_id: int, url: str) -> Engine:
         """Get or create a SQLAlchemy engine for the database.

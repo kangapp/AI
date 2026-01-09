@@ -16,6 +16,13 @@ class DatabaseCreateRequest(CamelModel):
     url: str = Field(..., description="Full connection string")
 
 
+class DatabaseUpdateRequest(CamelModel):
+    """Request to update a database connection."""
+
+    name: str | None = Field(None, description="New user-friendly name")
+    url: str | None = Field(None, description="New connection string")
+
+
 class DatabaseConnection(CamelModel):
     """A database connection configuration."""
 
