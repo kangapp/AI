@@ -1,6 +1,7 @@
 """Database connection management service."""
 
 import asyncio
+import time
 from datetime import datetime
 from typing import Any, Literal
 from urllib.parse import urlparse
@@ -19,6 +20,10 @@ from ..models.database import (
 )
 
 
+# Engine timeout: close engines idle for more than 1 hour
+ENGINE_IDLE_TIMEOUT = 3600  # seconds
+
+
 class DatabaseService:
     """Service for managing database connections."""
 
@@ -26,6 +31,64 @@ class DatabaseService:
         """Initialize the database service."""
         self.db = get_db()
         self._engines: dict[int, Engine] = {}
+        self._engine_last_used: dict[int, float] = {}
+        # Start background task to clean up idle engines
+        self._cleanup_task: asyncio.Task[None] | None = None
+
+    async def _start_cleanup_task(self) -> None:
+        """Start background task to clean up idle engines."""
+        if self._cleanup_task is None or self._cleanup_task.done():
+            self._cleanup_task = asyncio.create_task(self._cleanup_idle_engines())
+
+    async def _cleanup_idle_engines(self) -> None:
+        """Background task to clean up idle engines."""
+        while True:
+            try:
+                await asyncio.sleep(300)  # Check every 5 minutes
+                now = time.time()
+                idle_engines = [
+                    db_id
+                    for db_id, last_used in self._engine_last_used.items()
+                    if now - last_used > ENGINE_IDLE_TIMEOUT
+                ]
+                for db_id in idle_engines:
+                    await self._dispose_engine(db_id)
+            except asyncio.CancelledError:
+                break
+            except Exception:
+                # Log but don't stop the cleanup task
+                pass
+
+    async def _dispose_engine(self, database_id: int) -> None:
+        """Dispose of a database engine.
+
+        Args:
+            database_id: The database ID.
+        """
+        if database_id in self._engines:
+            try:
+                self._engines[database_id].dispose()
+                del self._engines[database_id]
+                del self._engine_last_used[database_id]
+            except Exception:
+                pass
+
+    async def dispose_all(self) -> None:
+        """Dispose of all database engines."""
+        for db_id in list(self._engines.keys()):
+            await self._dispose_engine(db_id)
+
+    async def close(self) -> None:
+        """Close the service and cleanup resources."""
+        # Cancel cleanup task
+        if self._cleanup_task and not self._cleanup_task.done():
+            self._cleanup_task.cancel()
+            try:
+                await self._cleanup_task
+            except asyncio.CancelledError:
+                pass
+        # Dispose all engines
+        await self.dispose_all()
 
     def _detect_db_type(self, url: str) -> Literal["mysql", "postgresql", "sqlite"]:
         """Detect the database type from connection string.
@@ -59,9 +122,25 @@ class DatabaseService:
         """
         parsed = urlparse(url)
 
-        # Handle sqlite:///path/to/file.db
-        if parsed.scheme == "sqlite" or url.startswith("sqlite:///"):
-            path = url.replace("sqlite:///", "").replace("sqlite://", "")
+        # Handle sqlite: URLs
+        # For sqlite, we need to extract the actual file path
+        # Formats: sqlite:///path/to/db.db (3 slashes for absolute), sqlite:///path/to/db.db (4 slashes also valid)
+        if parsed.scheme == "sqlite":
+            # Extract path after sqlite:/ or sqlite:///
+            # Remove sqlite:/ prefix and get the actual path
+            path = url
+            if path.startswith("sqlite:///"):
+                # Absolute path format: sqlite:///Users/path/to/db.db
+                path = path[11:]  # Remove "sqlite:///"
+            elif path.startswith("sqlite://"):
+                # Relative or other format: sqlite://path/to/db.db
+                path = path[10:]  # Remove "sqlite://"
+            elif path.startswith("sqlite:/"):
+                # Single slash format
+                path = path[9:]  # Remove "sqlite:/"
+            # Remove leading slash if present (from the netloc part in URL parsing)
+            if path.startswith("/"):
+                path = path[1:]
             return ConnectionString(
                 scheme="sqlite",
                 database=path,
@@ -94,7 +173,18 @@ class DatabaseService:
         if db_type == "postgresql" and not "+" in url:
             # Try postgresql+psycopg2://
             return url.replace("postgresql://", "postgresql+psycopg2://", 1)
-        # For SQLite, no driver needed
+        # For SQLite, ensure proper format for absolute paths
+        if db_type == "sqlite":
+            # sqlite:///path (3 slashes) is relative, sqlite:////path (4 slashes) is absolute
+            # If the path starts with /, it's an absolute path and needs 4 slashes
+            if url.startswith("sqlite:///") and len(url) > 11 and url[11] == "/":
+                # This is sqlite:///Users/... format (3 slashes but absolute path)
+                # Convert to sqlite:////Users/... format (4 slashes for absolute path)
+                return "sqlite:////" + url[11:]
+            # For relative paths or already correct formats, return as-is
+            # sqlite:////path (4 slashes) - absolute path (correct)
+            # sqlite:///path (3 slashes, path doesn't start with /) - relative path (correct)
+            return url
         return url
 
     def _test_connection(self, url: str) -> bool:
@@ -337,6 +427,10 @@ class DatabaseService:
         """
         if db_id not in self._engines:
             self._engines[db_id] = create_engine(url)
+            # Start cleanup task on first engine creation
+            asyncio.create_task(self._start_cleanup_task())
+        # Update last used time
+        self._engine_last_used[db_id] = time.time()
         return self._engines[db_id]
 
     async def get_connection_url_with_driver(self, name: str) -> str:

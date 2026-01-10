@@ -22,7 +22,7 @@ import type {
   ErrorResponse,
 } from "../types";
 
-const API_URL = (import.meta as any).env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
 
 /**
  * Base API client with error handling.
@@ -127,8 +127,18 @@ class ApiClient {
     );
   }
 
-  async getSuggestedQueries(name: string, limit = 6): Promise<{ suggestions: string[] }> {
+  async getSuggestedQueries(
+    name: string,
+    limit = 6,
+    options?: { seed?: number; exclude?: string[] }
+  ): Promise<{ suggestions: string[] }> {
     const params = new URLSearchParams({ limit: limit.toString() });
+    if (options?.seed !== undefined) {
+      params.set("seed", options.seed.toString());
+    }
+    if (options?.exclude && options.exclude.length > 0) {
+      params.set("exclude", options.exclude.join(","));
+    }
     return this.request<{ suggestions: string[] }>(
       `/api/v1/dbs/${encodeURIComponent(name)}/suggested-queries?${params}`
     );
@@ -145,6 +155,31 @@ class ApiClient {
     });
     return this.request<QueryHistoryResponse>(
       `/api/v1/dbs/${encodeURIComponent(name)}/history?${params}`
+    );
+  }
+
+  async deleteQueryHistory(name: string, ids?: number[]): Promise<void> {
+    const url = `${this.baseUrl}/api/v1/dbs/${encodeURIComponent(name)}/history`;
+    const body = ids === undefined ? {} : { ids };
+    const response = await fetch(url, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      const error = (await response.json()) as ErrorResponse;
+      throw new Error(error.error?.message || "Delete failed");
+    }
+  }
+
+  async getHistorySummary(name: string): Promise<{
+    total_count: number;
+    recent_success_count: number;
+    recent_error_count: number;
+  }> {
+    return this.request<{ total_count: number; recent_success_count: number; recent_error_count: number }>(
+      `/api/v1/dbs/${encodeURIComponent(name)}/history/summary`
     );
   }
 

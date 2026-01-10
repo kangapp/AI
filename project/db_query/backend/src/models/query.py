@@ -47,6 +47,11 @@ class NaturalQueryResponse(CamelModel):
     explanation: str | None = Field(None, description="Optional explanation of the query")
     is_valid: bool = Field(..., description="Whether the SQL is syntactically valid")
     validation_message: str | None = Field(None, description="Validation error if invalid")
+    # Optional query result data when execute_immediately is true
+    row_count: int | None = Field(None, description="Number of rows returned if executed")
+    execution_time_ms: int | None = Field(None, description="Execution time in ms if executed")
+    columns: list[ColumnMetadata] | None = Field(None, description="Column metadata if executed")
+    rows: list[dict[str, Any]] | None = Field(None, description="Query results if executed")
 
 
 class QueryResponse(CamelModel):

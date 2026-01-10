@@ -317,6 +317,9 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
         views: list[ViewMetadata],
         db_type: str,
         limit: int = 6,
+        seed: int | None = None,
+        exclude: list[str] | None = None,
+        history: list[str] | None = None,
     ) -> list[str]:
         """Generate suggested query descriptions based on database metadata.
 
@@ -325,6 +328,9 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
             views: List of view metadata.
             db_type: The database type.
             limit: Number of suggestions to generate.
+            seed: Random seed for generating different suggestions.
+            exclude: List of suggestions to exclude from the response.
+            history: List of historical query descriptions for context.
 
         Returns:
             A list of suggested query descriptions in Chinese.
@@ -340,14 +346,28 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
 
 数据库架构:
 {metadata_context}
+"""
 
+        # Add history context if available
+        if history:
+            prompt += f"\n用户历史查询（用于参考偏好）:\n"
+            for i, h in enumerate(history[:5], 1):
+                prompt += f"  {i}. {h}\n"
+
+        prompt += f"""
 要求:
 1. 生成 {limit} 个不同类型的查询建议
 2. 每个建议用中文描述
 3. 建议应该涵盖常见的查询场景，如: 数据统计、关联查询、排序筛选等
 4. 每个建议应该简洁明了，不超过20个字
 5. 只返回建议列表，每行一个，不要有编号或其他格式
+"""
 
+        # Add exclusion context
+        if exclude:
+            prompt += f"\n请避免生成以下已展示的建议: {', '.join(exclude[:10])}\n"
+
+        prompt += """
 示例格式:
 显示所有订单按日期排序
 统计每个客户的订单数量
@@ -356,17 +376,23 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
 
         try:
             client = self._get_client()
+            # Use seed to influence randomness via different system prompts
+            system_content = "你是一个数据库查询专家，擅长根据数据库结构生成实用的中文查询建议。"
+            if seed is not None:
+                system_content += f" 今天的随机种子是 {seed}，请生成不同于以往的建议。"
+
             response = client.chat.completions.create(
                 model="glm-4-flash",
                 messages=[
                     {
                         "role": "system",
-                        "content": "你是一个数据库查询专家，擅长根据数据库结构生成实用的中文查询建议。",
+                        "content": system_content,
                     },
                     {"role": "user", "content": prompt},
                 ],
-                temperature=0.8,
+                temperature=0.9 if seed is not None else 0.8,  # Higher temperature for refresh
                 max_tokens=500,
+                top_p=0.95,
             )
             content = response.choices[0].message.content
 
@@ -386,7 +412,8 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
                     if cleaned.startswith(prefix):
                         cleaned = cleaned[len(prefix):]
                         break
-                if cleaned:
+                # Check if suggestion should be excluded
+                if cleaned and (not exclude or cleaned not in exclude):
                     cleaned_suggestions.append(cleaned)
 
             return cleaned_suggestions[:limit]

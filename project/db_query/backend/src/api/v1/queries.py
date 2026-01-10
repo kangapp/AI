@@ -1,7 +1,7 @@
 """Query execution endpoints."""
 
 
-from fastapi import APIRouter, HTTPException, Query, Response, status
+from fastapi import APIRouter, Body, HTTPException, Query, Response, status
 from pydantic import BaseModel
 
 from ...models.query import (
@@ -31,6 +31,12 @@ class SuggestedQueriesResponse(BaseModel):
     """Response model for suggested queries."""
 
     suggestions: list[str]
+
+
+class DeleteHistoryRequest(BaseModel):
+    """Request model for deleting history items."""
+
+    ids: list[int] | None = None  # If null, delete all for the database
 
 
 @router.post("/dbs/{name}/query", status_code=status.HTTP_200_OK)
@@ -168,15 +174,21 @@ async def natural_query(name: str, request: NaturalQueryRequest) -> NaturalQuery
         # If execute_immediately is True, execute the query
         if request.execute_immediately and is_valid:
             query_response = await query_service.execute_query(
-                database, engine, generated_sql
+                database, engine, generated_sql,
+                query_type="natural",
+                input_text=request.prompt
             )
-            # Return the generated SQL with execution results in explanation
+            # Return the generated SQL with full execution results
             return NaturalQueryResponse(
                 success=True,
                 generated_sql=query_response.executed_sql,
                 explanation=f"Executed successfully: {query_response.row_count} rows returned in {query_response.execution_time_ms}ms",
                 is_valid=True,
                 validation_message=None,
+                row_count=query_response.row_count,
+                execution_time_ms=query_response.execution_time_ms,
+                columns=query_response.columns,
+                rows=query_response.rows,
             )
 
         return NaturalQueryResponse(
@@ -321,12 +333,19 @@ async def export_query_results(
 
 
 @router.get("/dbs/{name}/suggested-queries", status_code=status.HTTP_200_OK)
-async def get_suggested_queries(name: str, limit: int = Query(6, ge=3, le=10)) -> SuggestedQueriesResponse:
+async def get_suggested_queries(
+    name: str,
+    limit: int = Query(6, ge=3, le=10),
+    seed: int | None = Query(None, description="Random seed for generating different suggestions"),
+    exclude: str | None = Query(None, description="Comma-separated list of suggestions to exclude")
+) -> SuggestedQueriesResponse:
     """Get AI-suggested query descriptions based on database metadata.
 
     Args:
         name: The database name.
         limit: Number of suggestions to return (3-10).
+        seed: Random seed for generating different suggestions (for "refresh" functionality).
+        exclude: Comma-separated list of suggestions to exclude from the response.
 
     Returns:
         The suggested queries response.
@@ -346,9 +365,21 @@ async def get_suggested_queries(name: str, limit: int = Query(6, ge=3, le=10)) -
         metadata_response = await metadata_service.fetch_metadata(database, engine, force_refresh=False)
         tables, views = metadata_response.tables, metadata_response.views
 
+        # Parse exclude list
+        exclude_list = []
+        if exclude:
+            exclude_list = [s.strip() for s in exclude.split(",") if s.strip()]
+
+        # Get query history for context (optional)
+        try:
+            history_items = await query_service.get_query_history(name, page=1, page_size=10)
+            history_context = [item.input_text for item in history_items if item.input_text]
+        except Exception:
+            history_context = []
+
         # Generate suggested queries using LLM
         suggestions = await llm_service.generate_suggested_queries(
-            tables, views, database.db_type, limit
+            tables, views, database.db_type, limit, seed=seed, exclude=exclude_list, history=history_context
         )
 
         return SuggestedQueriesResponse(suggestions=suggestions)
@@ -360,4 +391,91 @@ async def get_suggested_queries(name: str, limit: int = Query(6, ge=3, le=10)) -
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail={"code": "SUGGESTION_ERROR", "message": error_msg},
+        ) from e
+
+
+@router.delete("/dbs/{name}/history", status_code=status.HTTP_200_OK)
+async def delete_query_history(name: str, request: DeleteHistoryRequest) -> Response:
+    """Delete query history items for a database.
+
+    Args:
+        name: The database name.
+        request: The delete request with optional list of IDs.
+
+    Returns:
+        204 No Content on success.
+
+    Raises:
+        HTTPException: If the database is not found or deletion fails.
+    """
+    try:
+        # Verify database exists
+        await db_service.get_database_by_name(name)
+
+        if request.ids is None:
+            # Delete all history for this database
+            deleted_count = await query_service.clear_query_history(name)
+        elif len(request.ids) == 0:
+            # No IDs to delete
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
+        else:
+            # Delete specific items
+            deleted_count = await query_service.delete_query_history_batch(request.ids)
+
+        if deleted_count > 0:
+            return Response(
+                content=f"Deleted {deleted_count} history item(s)",
+                status_code=status.HTTP_200_OK,
+            )
+        else:
+            return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except Exception as e:
+        error_msg = str(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "DELETE_HISTORY_ERROR", "message": error_msg},
+        ) from e
+
+
+@router.get("/dbs/{name}/history/summary", status_code=status.HTTP_200_OK)
+async def get_history_summary(name: str) -> dict[str, int]:
+    """Get query history summary for a database.
+
+    Args:
+        name: The database name.
+
+    Returns:
+        A dictionary with total count and recent success/error counts.
+
+    Raises:
+        HTTPException: If the database is not found.
+    """
+    try:
+        # Verify database exists
+        await db_service.get_database_by_name(name)
+
+        # Get total count
+        total_count = await query_service.get_query_history_count(name)
+
+        # Get recent items for summary
+        recent_items = await query_service.get_query_history(name, page=1, page_size=100)
+        success_count = sum(1 for item in recent_items if item.status == "success")
+        error_count = sum(1 for item in recent_items if item.status == "error")
+
+        return {
+            "total_count": total_count,
+            "recent_success_count": success_count,
+            "recent_error_count": error_count,
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except Exception as e:
+        error_msg = str(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "HISTORY_SUMMARY_ERROR", "message": error_msg},
         ) from e

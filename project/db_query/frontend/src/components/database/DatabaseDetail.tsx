@@ -8,13 +8,13 @@ import {
   Tabs,
   message,
 } from "antd";
-import { ReloadOutlined, HistoryOutlined } from "@ant-design/icons";
+import { ReloadOutlined } from "@ant-design/icons";
 import { useState } from "react";
 import type { DatabaseDetail } from "../../types";
 import type { QueryResponse } from "../../services/api";
 import { api } from "../../services/api";
 import { TableList } from "../metadata";
-import { SqlEditor, QueryResults, QueryHistory } from "../query";
+import { SqlEditor, QueryResults } from "../query";
 
 interface DatabaseDetailProps {
   database: DatabaseDetail;
@@ -27,7 +27,6 @@ export function DatabaseDetailComponent({ database, onRefresh }: DatabaseDetailP
   const [queryResult, setQueryResult] = useState<QueryResponse | null>(null);
   const [queryLoading, setQueryLoading] = useState(false);
   const [queryError, setQueryError] = useState<string | null>(null);
-  const [historyVisible, setHistoryVisible] = useState(false);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -64,10 +63,6 @@ export function DatabaseDetailComponent({ database, onRefresh }: DatabaseDetailP
     }
   };
 
-  const handleSelectHistoryQuery = (querySql: string) => {
-    setSql(querySql);
-  };
-
   return (
     <Space direction="vertical" style={{ width: "100%" }} size="large">
       <Descriptions title={database.name} bordered column={2}>
@@ -100,12 +95,6 @@ export function DatabaseDetailComponent({ database, onRefresh }: DatabaseDetailP
           loading={refreshing}
         >
           Refresh Metadata
-        </Button>
-        <Button
-          icon={<HistoryOutlined />}
-          onClick={() => setHistoryVisible(true)}
-        >
-          Query History
         </Button>
       </Space>
 
@@ -154,13 +143,6 @@ export function DatabaseDetailComponent({ database, onRefresh }: DatabaseDetailP
             ),
           },
         ]}
-      />
-
-      <QueryHistory
-        databaseName={database.name}
-        onSelectQuery={handleSelectHistoryQuery}
-        visible={historyVisible}
-        onClose={() => setHistoryVisible(false)}
       />
     </Space>
   );

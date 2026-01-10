@@ -4,5 +4,5 @@
 
 export { SqlEditor } from "./SqlEditor";
 export { QueryResults } from "./QueryResults";
-export { QueryHistory } from "./QueryHistory";
+export { QueryHistoryTab } from "./QueryHistoryTab";
 export { NaturalQueryInput } from "./NaturalQueryInput";

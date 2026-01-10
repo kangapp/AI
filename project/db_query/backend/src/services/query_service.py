@@ -1,8 +1,6 @@
 """Query execution service."""
 
 import asyncio
-import csv
-import json
 from datetime import datetime
 from io import StringIO
 from typing import Any
@@ -34,6 +32,8 @@ class QueryService:
         engine: Engine,
         sql: str,
         timeout: int = 30,
+        query_type: str = "sql",
+        input_text: str | None = None,
     ) -> QueryResponse:
         """Execute a SQL query on the database.
 
@@ -42,6 +42,8 @@ class QueryService:
             engine: The SQLAlchemy engine for the database.
             sql: The SQL query to execute.
             timeout: Query timeout in seconds.
+            query_type: The query type (sql or natural).
+            input_text: The input text (SQL or natural language prompt).
 
         Returns:
             The query response.
@@ -51,6 +53,8 @@ class QueryService:
             asyncio.TimeoutError: If the query times out.
             SQLAlchemyError: If the query execution fails.
         """
+        # Use input_text for logging, default to sql if not provided
+        log_input_text = input_text if input_text is not None else sql
         # Validate SQL
         parser = get_parser(database.db_type)
         parser.validate_select_only(sql)
@@ -82,8 +86,8 @@ class QueryService:
             await self._log_query(
                 database_id=database.id,
                 database_name=database.name,
-                query_type="sql",
-                input_text=sql,
+                query_type=query_type,
+                input_text=log_input_text,
                 executed_sql=final_sql,
                 row_count=None,
                 execution_time_ms=int((datetime.now() - start_time).total_seconds() * 1000),
@@ -102,8 +106,8 @@ class QueryService:
         await self._log_query(
             database_id=database.id,
             database_name=database.name,
-            query_type="sql",
-            input_text=sql,
+            query_type=query_type,
+            input_text=log_input_text,
             executed_sql=final_sql,
             row_count=len(rows),
             execution_time_ms=execution_time_ms,
@@ -335,6 +339,62 @@ class QueryService:
         )
         return row["count"] if row else 0
 
+    async def delete_query_history_item(self, item_id: int) -> bool:
+        """Delete a single query history item.
+
+        Args:
+            item_id: The history item ID to delete.
+
+        Returns:
+            True if deleted successfully, False otherwise.
+        """
+        result = await self.db.execute(
+            "DELETE FROM query_history WHERE id = :id",
+            {"id": item_id},
+        )
+        return result > 0
+
+    async def delete_query_history_batch(self, item_ids: list[int]) -> int:
+        """Delete multiple query history items.
+
+        Args:
+            item_ids: The list of history item IDs to delete.
+
+        Returns:
+            The number of items deleted.
+        """
+        if not item_ids:
+            return 0
+
+        placeholders = ",".join([f":id{i}" for i in range(len(item_ids))])
+        params = {f"id{i}": item_id for i, item_id in enumerate(item_ids)}
+
+        result = await self.db.execute(
+            f"DELETE FROM query_history WHERE id IN ({placeholders})",
+            params,
+        )
+        return result
+
+    async def clear_query_history(self, database_name: str) -> int:
+        """Clear all query history for a database.
+
+        Args:
+            database_name: The database name.
+
+        Returns:
+            The number of items deleted.
+        """
+        # First get the count
+        count = await self.get_query_history_count(database_name)
+
+        # Then delete all
+        await self.db.execute(
+            "DELETE FROM query_history WHERE database_name = :database_name",
+            {"database_name": database_name},
+        )
+
+        return count
+
     def export_results(
         self,
         query_response: QueryResponse,
@@ -388,6 +448,8 @@ class QueryService:
         Returns:
             The export response.
         """
+        import csv
+
         output = StringIO()
         writer = csv.writer(output)
 
@@ -426,6 +488,8 @@ class QueryService:
         Returns:
             The export response.
         """
+        import json
+
         # Build export data structure
         export_data = {
             "metadata": {

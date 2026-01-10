@@ -84,6 +84,11 @@ export interface NaturalQueryResponse {
   explanation: string | null;
   isValid: boolean;
   validationMessage: string | null;
+  // Optional query result data when executeImmediately is true
+  rowCount?: number | null;
+  executionTimeMs?: number | null;
+  columns?: ColumnMetadata[] | null;
+  rows?: Record<string, unknown>[] | null;
 }
 
 export interface QueryResponse {

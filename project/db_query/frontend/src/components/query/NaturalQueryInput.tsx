@@ -2,9 +2,9 @@
  * Natural language query input component.
  */
 
-import { useState, useEffect } from "react";
-import { Button, Input, Modal, Space, Typography, Alert, Spin, Card, Tag } from "antd";
-import { ThunderboltOutlined, CheckCircleOutlined, ExclamationCircleOutlined, BulbOutlined, FireOutlined } from "@ant-design/icons";
+import { useState, useEffect, useRef } from "react";
+import { Button, Input, Modal, Space, Typography, Alert, Spin, Card, Tag, message } from "antd";
+import { ThunderboltOutlined, CheckCircleOutlined, ExclamationCircleOutlined, BulbOutlined, FireOutlined, SyncOutlined } from "@ant-design/icons";
 import type { NaturalQueryResponse } from "../../types";
 import { api } from "../../services/api";
 
@@ -32,14 +32,31 @@ export const NaturalQueryInput: React.FC<NaturalQueryInputProps> = ({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [suggestedQueries, setSuggestedQueries] = useState<string[]>([]);
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
+  const [refreshCount, setRefreshCount] = useState(0);
+  const previousSuggestionsRef = useRef<Set<string>>(new Set());
 
   // Load suggested queries when database changes
   useEffect(() => {
     const loadSuggestions = async () => {
       setLoadingSuggestions(true);
       try {
-        const response = await api.getSuggestedQueries(databaseName, 6);
+        // Use refreshCount as seed for generating different suggestions
+        const seed = refreshCount > 0 ? Date.now() : undefined;
+        // Get previous suggestions to exclude
+        const exclude = refreshCount > 0 ? Array.from(previousSuggestionsRef.current) : undefined;
+
+        const response = await api.getSuggestedQueries(databaseName, 6, { seed, exclude });
         setSuggestedQueries(response.suggestions);
+
+        // Update previous suggestions set
+        if (response.suggestions.length > 0) {
+          response.suggestions.forEach(s => previousSuggestionsRef.current.add(s));
+          // Keep only recent 30 suggestions to avoid the set growing too large
+          if (previousSuggestionsRef.current.size > 30) {
+            const arr = Array.from(previousSuggestionsRef.current);
+            previousSuggestionsRef.current = new Set(arr.slice(-30));
+          }
+        }
       } catch (err) {
         console.error("Failed to load suggested queries:", err);
         setSuggestedQueries([]);
@@ -49,7 +66,7 @@ export const NaturalQueryInput: React.FC<NaturalQueryInputProps> = ({
     };
 
     loadSuggestions();
-  }, [databaseName]);
+  }, [databaseName, refreshCount]);
 
   const handleGenerate = async () => {
     if (!prompt.trim()) {
@@ -85,18 +102,20 @@ export const NaturalQueryInput: React.FC<NaturalQueryInputProps> = ({
     setShowConfirmModal(false);
 
     try {
-      const response = await api.naturalQuery(databaseName, prompt.trim(), true);
+      // Use naturalQuery API with execute_immediately=true to properly log as "natural" type
+      const result = await api.naturalQuery(databaseName, prompt, true);
 
-      if (response.success) {
-        onQueryGenerated(response.generatedSql);
-        if (onQueryExecuted) {
-          onQueryExecuted(response);
-        }
-      } else {
-        setError(response.validationMessage || "Query execution failed");
+      // Notify parent that SQL was generated (for updating the editor)
+      onQueryGenerated(generatedSql);
+
+      if (onQueryExecuted) {
+        await onQueryExecuted(result);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Query execution failed");
+      console.error("[NaturalQueryInput] Error executing query:", err);
+      const errorMsg = err instanceof Error ? err.message : "Query execution failed";
+      setError(errorMsg);
+      message.error(errorMsg);
     } finally {
       setLoading(false);
       setGeneratedSql(null);
@@ -120,16 +139,20 @@ export const NaturalQueryInput: React.FC<NaturalQueryInputProps> = ({
     setExplanation(null);
   };
 
+  const handleRefreshSuggestions = () => {
+    setRefreshCount(prev => prev + 1);
+  };
+
   return (
     <>
       <Card
-        bordered={false}
+        variant="outlined"
+        styles={{ body: { padding: 0 } }}
         style={{
           background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
           borderRadius: "12px",
           overflow: "hidden",
         }}
-        bodyStyle={{ padding: 0 }}
       >
         <div style={{ padding: "24px" }}>
           {/* 标题区域 */}
@@ -251,15 +274,42 @@ export const NaturalQueryInput: React.FC<NaturalQueryInputProps> = ({
                 style={{
                   display: "flex",
                   alignItems: "center",
-                  gap: "8px",
+                  justifyContent: "space-between",
                   marginBottom: "12px",
                   color: "rgba(255, 255, 255, 0.9)",
                 }}
               >
-                <FireOutlined style={{ color: "#FFD700", fontSize: "16px" }} />
-                <Text strong style={{ color: "rgba(255, 255, 255, 0.9)", fontSize: "14px" }}>
-                  猜你想搜
-                </Text>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <FireOutlined style={{ color: "#FFD700", fontSize: "16px" }} />
+                  <Text strong style={{ color: "rgba(255, 255, 255, 0.9)", fontSize: "14px" }}>
+                    猜你想搜
+                  </Text>
+                </div>
+                <Button
+                  type="text"
+                  icon={<SyncOutlined />}
+                  onClick={handleRefreshSuggestions}
+                  disabled={loadingSuggestions}
+                  style={{
+                    color: "rgba(255, 255, 255, 0.8)",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "4px",
+                    fontSize: "13px",
+                    padding: "4px 8px",
+                    height: "auto",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.color = "#fff";
+                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.color = "rgba(255, 255, 255, 0.8)";
+                    e.currentTarget.style.background = "transparent";
+                  }}
+                >
+                  换一批
+                </Button>
               </div>
               <div
                 style={{
@@ -325,10 +375,8 @@ export const NaturalQueryInput: React.FC<NaturalQueryInputProps> = ({
         width={680}
         centered
         closeIcon={<span style={{ color: "#fff", fontSize: "20px" }}>✕</span>}
-        style={{
-          background: "transparent",
-        }}
-        bodyStyle={{ padding: 0 }}
+        style={{ background: "transparent" }}
+        styles={{ body: { padding: 0 } }}
       >
         <div
           style={{

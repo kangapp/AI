@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Layout, Typography, Space, Modal, message, Tree, Alert, Tabs } from "antd";
-import { TableOutlined, ColumnHeightOutlined, DatabaseOutlined, ThunderboltOutlined } from "@ant-design/icons";
+import { TableOutlined, ColumnHeightOutlined, DatabaseOutlined, ThunderboltOutlined, HistoryOutlined } from "@ant-design/icons";
 import { DatabaseList, AddDatabaseForm } from "../components/database";
-import { SqlEditor, QueryResults, NaturalQueryInput } from "../components/query";
+import { SqlEditor, QueryResults, NaturalQueryInput, QueryHistoryTab } from "../components/query";
 import type { DatabaseConnection, DatabaseDetail, TableMetadata, ColumnMetadata, ViewMetadata } from "../types";
 import { api } from "../services/api";
 import type { QueryResponse, NaturalQueryResponse } from "../services/api";
@@ -123,9 +123,40 @@ export function Dashboard() {
     setActiveTab("sql");
   };
 
-  const handleNaturalQueryExecuted = (response: NaturalQueryResponse) => {
-    if (response.explanation) {
-      message.success(response.explanation);
+  const handleNaturalQueryExecuted = async (response: NaturalQueryResponse) => {
+    // When AI query is executed immediately, use the result data directly
+    if (response.generatedSql) {
+      setSql(response.generatedSql);
+      setActiveTab("sql");
+
+      // If query results are available, update the query result state
+      if (response.rowCount !== null && response.rowCount !== undefined &&
+          response.columns && response.rows) {
+        setQueryResult({
+          success: true,
+          executedSql: response.generatedSql,
+          rowCount: response.rowCount,
+          executionTimeMs: response.executionTimeMs || 0,
+          columns: response.columns,
+          rows: response.rows,
+          hasLimit: false,
+          limitValue: null,
+        });
+        setQueryError(null);
+        message.success(`AI 查询返回 ${response.rowCount} 行，耗时 ${response.executionTimeMs || 0}ms`);
+      } else {
+        // Parse the result from explanation if available (fallback)
+        if (response.explanation && response.explanation.includes("rows returned")) {
+          const match = response.explanation.match(/(\d+) rows returned in (\d+)ms/);
+          if (match) {
+            const rowCount = parseInt(match[1]);
+            const executionTime = parseInt(match[2]);
+            message.success(`AI 查询返回 ${rowCount} 行，耗时 ${executionTime}ms`);
+          }
+        } else {
+          message.success("AI 查询执行成功");
+        }
+      }
     }
   };
 
@@ -471,13 +502,20 @@ export function Dashboard() {
                         </span>
                       ),
                       children: (
-                        <SqlEditor
-                          value={sql}
-                          onChange={setSql}
-                          onExecute={handleExecuteQuery}
-                          loading={queryLoading}
-                          placeholder="在此输入 SELECT 查询..."
-                        />
+                        <>
+                          <SqlEditor
+                            value={sql}
+                            onChange={setSql}
+                            onExecute={handleExecuteQuery}
+                            loading={queryLoading}
+                            placeholder="在此输入 SELECT 查询..."
+                          />
+                          <QueryResults
+                            result={queryResult}
+                            loading={queryLoading}
+                            error={queryError}
+                          />
+                        </>
                       ),
                     },
                     {
@@ -497,12 +535,43 @@ export function Dashboard() {
                         />
                       ),
                     },
+                    {
+                      key: "history",
+                      label: (
+                        <span>
+                          <HistoryOutlined />
+                          历史记录
+                        </span>
+                      ),
+                      children: (
+                        <QueryHistoryTab
+                          databaseName={selectedDatabase.name}
+                          onSelectQuery={(sql) => {
+                            setSql(sql);
+                            setActiveTab("sql");
+                          }}
+                          onReExecuteQuery={async (sql) => {
+                            setSql(sql);
+                            setActiveTab("sql");
+                            setQueryLoading(true);
+                            setQueryError(null);
+                            setQueryResult(null);
+                            try {
+                              const result = await api.executeQuery(selectedDatabase.name, sql);
+                              setQueryResult(result);
+                              message.success(`查询返回 ${result.rowCount} 行，耗时 ${result.executionTimeMs}ms`);
+                            } catch (error) {
+                              const errorMsg = error instanceof Error ? error.message : "查询执行失败";
+                              setQueryError(errorMsg);
+                              message.error(errorMsg);
+                            } finally {
+                              setQueryLoading(false);
+                            }
+                          }}
+                        />
+                      ),
+                    },
                   ]}
-                />
-                <QueryResults
-                  result={queryResult}
-                  loading={queryLoading}
-                  error={queryError}
                 />
               </>
             )}

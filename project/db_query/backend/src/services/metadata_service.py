@@ -1,5 +1,6 @@
 """Metadata extraction and caching service."""
 
+import re
 from datetime import datetime
 from typing import Any
 from urllib.parse import urlparse
@@ -20,9 +21,34 @@ from ..models.metadata import (
 class MetadataService:
     """Service for extracting and caching database metadata."""
 
+    # SQL identifier pattern - only alphanumeric, underscore, and $ allowed
+    _SQL_IDENTIFIER_PATTERN = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_$]*$')
+
     def __init__(self) -> None:
         """Initialize the metadata service."""
         self.db = get_db()
+
+    @classmethod
+    def _validate_identifier(cls, identifier: str | None) -> str | None:
+        """Validate a SQL identifier to prevent injection.
+
+        Args:
+            identifier: The identifier to validate.
+
+        Returns:
+            The validated identifier, or None if invalid or empty.
+
+        Raises:
+            ValueError: If the identifier contains invalid characters.
+        """
+        if not identifier:
+            return None
+        if not cls._SQL_IDENTIFIER_PATTERN.match(identifier):
+            raise ValueError(
+                f"Invalid SQL identifier: '{identifier}'. "
+                "Only alphanumeric characters, underscores, and $ are allowed."
+            )
+        return identifier
 
     async def fetch_metadata(
         self, database: DatabaseDetail, engine: Engine, force_refresh: bool = False
@@ -121,6 +147,9 @@ class MetadataService:
         """
         tables = []
 
+        # Validate schema name to prevent SQL injection
+        database_schema = self._validate_identifier(database_schema)
+
         try:
             with engine.connect() as conn:
                 # Query for all tables at once
@@ -199,7 +228,11 @@ class MetadataService:
         if db_type == "sqlite":
             # For SQLite, query each table's columns (no batch option)
             for table_name, _ in table_list:
-                result = conn.execute(text(f"PRAGMA table_info('{table_name}')"))
+                # Validate table name
+                validated_name = self._validate_identifier(table_name)
+                if not validated_name:
+                    continue
+                result = conn.execute(text(f"PRAGMA table_info('{validated_name}')"))
                 columns = []
                 for row in result:
                     columns.append(
@@ -214,23 +247,32 @@ class MetadataService:
                 columns_map[("default", table_name)] = columns
         else:
             # For MySQL and PostgreSQL, use a more efficient approach:
-            # 1. Build a set of unique schemas
-            # 2. For each schema, fetch columns and primary keys separately
+            # 1. Validate all identifiers first
+            # 2. Build a set of unique schemas
+            # 3. For each schema, fetch columns and primary keys separately
             unique_schemas = set()
             schema_tables: dict[str, list[str]] = {}
             for table_name, schema_name in table_list:
-                schema = schema_name or "default"
-                unique_schemas.add(schema)
-                if schema not in schema_tables:
-                    schema_tables[schema] = []
-                schema_tables[schema].append(table_name)
+                # Validate identifiers
+                validated_table = self._validate_identifier(table_name)
+                validated_schema = self._validate_identifier(schema_name) or "default"
+
+                if not validated_table:
+                    continue
+
+                unique_schemas.add(validated_schema)
+                if validated_schema not in schema_tables:
+                    schema_tables[validated_schema] = []
+                schema_tables[validated_schema].append(validated_table)
 
             # Fetch columns grouped by schema (much faster)
-            for schema in unique_schemas:
-                tables = schema_tables[schema]
-                tables_str = ", ".join([f"'{t}'" for t in tables])
+            for schema, tables in schema_tables.items():
+                # Validate schema
+                schema = self._validate_identifier(schema) or "default"
+                tables_str = ", ".join([f"'{self._validate_identifier(t)}'" for t in tables])
 
                 # Get all columns for tables in this schema
+                # Note: schema and table names are validated above, preventing injection
                 columns_query = f"""
                     SELECT
                         c.table_name,
@@ -325,6 +367,9 @@ class MetadataService:
         """
         views = []
 
+        # Validate schema name to prevent SQL injection
+        database_schema = self._validate_identifier(database_schema)
+
         try:
             with engine.connect() as conn:
                 # Query for all views at once
@@ -385,113 +430,3 @@ class MetadataService:
             raise RuntimeError(f"Failed to fetch view metadata: {e}") from e
 
         return views
-
-    async def _fetch_columns(
-        self, conn: Any, table_name: str, schema_name: str | None, db_type: str
-    ) -> list[ColumnMetadata]:
-        """Fetch column metadata for a table or view.
-
-        Args:
-            conn: The SQLAlchemy connection.
-            table_name: The table or view name.
-            schema_name: The schema name.
-            db_type: The database type.
-
-        Returns:
-            List of column metadata.
-        """
-        columns = []
-
-        if db_type == "sqlite":
-            result = conn.execute(
-                text(f"PRAGMA table_info('{table_name}')"),
-            )
-            for row in result:
-                # PRAGMA table_info returns: cid, name, type, notnull, default_value, pk
-                columns.append(
-                    ColumnMetadata(
-                        name=row[1],
-                        data_type=row[2] or "ANY",
-                        is_nullable=not row[3],
-                        default_value=row[4],
-                        is_primary_key=row[5] > 0,
-                    )
-                )
-        else:
-            # MySQL and PostgreSQL use Information Schema
-            schema_filter = f"AND c.table_schema = '{schema_name}'" if schema_name else ""
-
-            # For MySQL, we need to use table_constraints to check constraint type
-            # For PostgreSQL, constraint_type exists in key_column_usage
-            if db_type == "mysql":
-                # MySQL-specific query using table_constraints
-                result = conn.execute(
-                    text(
-                        f"""
-                        SELECT
-                            c.column_name,
-                            c.data_type,
-                            c.is_nullable,
-                            c.column_default,
-                            CASE
-                                WHEN EXISTS (
-                                    SELECT 1 FROM information_schema.table_constraints tc
-                                    JOIN information_schema.key_column_usage kcu
-                                        ON tc.constraint_name = kcu.constraint_name
-                                        AND tc.table_schema = kcu.table_schema
-                                    WHERE tc.table_name = :table_name
-                                    AND kcu.column_name = c.column_name
-                                    {"AND tc.table_schema = '" + schema_name + "'" if schema_name else ""}
-                                    AND tc.constraint_type = 'PRIMARY KEY'
-                                ) THEN 1
-                                ELSE 0
-                            END as is_primary_key
-                        FROM information_schema.columns c
-                        WHERE c.table_name = :table_name
-                        {schema_filter}
-                        ORDER BY c.ordinal_position
-                        """
-                    ),
-                    {"table_name": table_name},
-                )
-            else:
-                # PostgreSQL - constraint_type exists in key_column_usage
-                result = conn.execute(
-                    text(
-                        f"""
-                        SELECT
-                            column_name,
-                            data_type,
-                            is_nullable,
-                            column_default,
-                            CASE
-                                WHEN EXISTS (
-                                    SELECT 1 FROM information_schema.key_column_usage kcu
-                                    WHERE kcu.table_name = :table_name
-                                    AND kcu.column_name = columns.column_name
-                                    {"AND kcu.table_schema = '" + schema_name + "'" if schema_name else ""}
-                                    AND kcu.constraint_type = 'PRIMARY KEY'
-                                ) THEN 1
-                                ELSE 0
-                            END as is_primary_key
-                        FROM information_schema.columns
-                        WHERE table_name = :table_name
-                        {schema_filter}
-                        ORDER BY ordinal_position
-                        """
-                    ),
-                    {"table_name": table_name},
-                )
-
-            for row in result:
-                columns.append(
-                    ColumnMetadata(
-                        name=row[0],
-                        data_type=row[1],
-                        is_nullable=row[2].upper() == "YES",
-                        default_value=row[3],
-                        is_primary_key=bool(row[4]),
-                    )
-                )
-
-        return columns
