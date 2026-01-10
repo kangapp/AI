@@ -72,32 +72,32 @@
 ```mermaid
 graph TB
     subgraph 前端层
-        A[Dashboard.tsx<br/>主仪表板]
-        B[DatabaseList<br/>数据库列表]
-        C[SqlEditor<br/>SQL编辑器]
-        D[NaturalQueryInput<br/>AI查询输入]
-        E[QueryResults<br/>结果展示]
-        F[QueryHistoryTab<br/>查询历史]
+        A[Dashboard.tsx / 主仪表板]
+        B[DatabaseList / 数据库列表]
+        C[SqlEditor / SQL编辑器]
+        D[NaturalQueryInput / AI查询输入]
+        E[QueryResults / 结果展示]
+        F[QueryHistoryTab / 查询历史]
     end
 
     subgraph API层
         G[FastAPI Router]
-        H[/api/v1/dbs<br/>数据库管理]
-        I[/api/v1/dbs/{name}/query<br/>查询执行]
-        J[/api/v1/dbs/{name}/query/natural<br/>AI查询]
-        K[/api/v1/dbs/{name}/history<br/>查询历史]
+        H["/api/v1/dbs / 数据库管理"]
+        I["/api/v1/dbs/:name/query / 查询执行"]
+        J["/api/v1/dbs/:name/query/natural / AI查询"]
+        K["/api/v1/dbs/:name/history / 查询历史"]
     end
 
     subgraph 服务层
-        L[DatabaseService<br/>数据库连接管理]
-        M[QueryService<br/>查询执行]
-        N[LLMService<br/>AI服务]
-        O[MetadataService<br/>元数据提取]
+        L[DatabaseService / 数据库连接管理]
+        M[QueryService / 查询执行]
+        N[LLMService / AI服务]
+        O[MetadataService / 元数据提取]
     end
 
     subgraph 数据层
-        P[(SQLite<br/>应用数据库)]
-        Q[(MySQL/PostgreSQL<br/>用户数据库)]
+        P[(SQLite / 应用数据库)]
+        Q[(MySQL-PostgreSQL / 用户数据库)]
         R[元数据缓存]
     end
 
@@ -132,7 +132,7 @@ sequenceDiagram
     participant DB as 数据库服务
 
     User->>Frontend: 输入自然语言查询
-    Frontend->>API: POST /dbs/{name}/query/natural
+    Frontend->>API: POST /dbs/:name/query/natural
     API->>LLM: 生成SQL
     LLM->>LLM: 构建Prompt（含元数据）
     LLM->>LLM: 调用智谱AI API
@@ -148,29 +148,29 @@ sequenceDiagram
 
 ```mermaid
 graph LR
-    subgraph "src/api"
-        A[main.py<br/>应用入口]
-        B[v1/databases.py<br/>数据库API]
-        C[v1/queries.py<br/>查询API]
+    subgraph src_api
+        A[main.py / 应用入口]
+        B[v1_databases.py / 数据库API]
+        C[v1_queries.py / 查询API]
     end
 
-    subgraph "src/services"
-        D[db_service.py<br/>数据库连接]
-        E[query_service.py<br/>查询执行]
-        F[llm_service.py<br/>AI服务]
-        G[metadata_service.py<br/>元数据提取]
+    subgraph src_services
+        D[db_service.py / 数据库连接]
+        E[query_service.py / 查询执行]
+        F[llm_service.py / AI服务]
+        G[metadata_service.py / 元数据提取]
     end
 
-    subgraph "src/models"
-        H[database.py<br/>数据库模型]
-        I[query.py<br/>查询模型]
-        J[metadata.py<br/>元数据模型]
+    subgraph src_models
+        H[database.py / 数据库模型]
+        I[query.py / 查询模型]
+        J[metadata.py / 元数据模型]
     end
 
-    subgraph "src/core"
-        K[config.py<br/>配置管理]
-        L[sql_parser.py<br/>SQL解析]
-        M[sqlite_db.py<br/>SQLite连接]
+    subgraph src_core
+        K[config.py / 配置管理]
+        L[sql_parser.py / SQL解析]
+        M[sqlite_db.py / SQLite连接]
     end
 
     B --> D
@@ -189,9 +189,9 @@ graph LR
 
 ```mermaid
 graph TD
-    A[Dashboard.tsx<br/>主页面] --> B[DatabaseList<br/>数据库列表]
-    A --> C[Tree<br/>架构浏览器]
-    A --> D[Tabs<br/>功能标签页]
+    A[Dashboard.tsx / 主页面] --> B[DatabaseList / 数据库列表]
+    A --> C[Tree / 架构浏览器]
+    A --> D[Tabs / 功能标签页]
 
     D --> E[SQL查询Tab]
     D --> F[AI查询Tab]
