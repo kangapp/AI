@@ -8,720 +8,540 @@ description: Perform deep code review for Python and TypeScript codebases with c
 $ARGUMENTS
 ```
 
-You **MUST** consider the user input before proceeding (if not empty).
+You **MUST** consider the user input before proceeding.
+
+The user input can be:
+- **File path**: Review a specific file (e.g., `src/services/user.py`)
+- **Directory path**: Review all files in a directory (e.g., `src/services/`)
+- **Glob pattern**: Review matching files (e.g., `**/*.py` or `src/**/*.ts`)
+- **Empty/`.`**: Review the entire codebase
 
 ## Outline
 
-The text the user typed after `/deep-code-review` in the triggering message **is** the target path to review. Assume you always have it available in this conversation even if `$ARGUMENTS` appears literally below.
+Given the user input, perform a comprehensive deep code review:
 
-**Input Format**: `[path]` or `[path] --depth [quick|standard|deep]`
-- Default depth: `standard`
-- `quick`: Focus on Critical and High issues only
-- `standard`: Full review with Medium issues
-- `deep`: Include all Low priority suggestions
+### Phase 1: Analysis Preparation
 
-Given the target path, follow this execution flow:
+1. **Parse and validate input**:
+   - If empty, use current working directory
+   - Resolve relative paths to absolute paths
+   - Validate the path exists
+   - If directory, discover all relevant files (.py, .ts, .tsx)
 
-### Phase 1: Input Analysis & Scope Determination
+2. **Determine scope**:
+   - Count total files to review
+   - Group by language (Python vs TypeScript)
+   - Calculate estimated complexity metrics
 
-1. **Parse Input Parameters**:
-   - Extract target path (relative or absolute)
-   - Determine review depth (default: standard)
-   - Detect language type (Python/TypeScript/mixed)
+### Phase 2: Multi-Dimensional Analysis
 
-2. **Validate Target**:
-   - Check if path exists
-   - Determine if it's a file or directory
-   - If directory: identify all relevant source files
-   - Filter out: test files, fixtures, node_modules, __pycache__, build artifacts
+For each file, perform comprehensive analysis across these dimensions:
 
-3. **Determine Review Scope**:
-   - **Single file**: Review that specific file
-   - **Directory**: Recursively review all relevant source files
-   - Auto-detect language by file extension:
-     - Python: `.py`
-     - TypeScript: `.ts`, `.tsx`
-     - Exclude: `.test.ts`, `.test.tsx`, `.spec.ts`, `__tests__`, `test_*.py`
+#### 2.1 Architecture & Design
 
-### Phase 2: Review Number Assignment
+**Python-specific checks**:
+- Package structure follows `src/` layout or standard layout
+- Clear separation of concerns (models, services, views, etc.)
+- Module organization follows logical grouping
+- Dependency injection patterns where appropriate
+- Abstract base classes for extensible interfaces
 
-1. **Check Existing Reviews**:
-   ```bash
-   ls -la specs/reviews/ 2>/dev/null | grep -E "deep-code-review" || echo "No existing reviews"
-   ```
+**TypeScript-specific checks**:
+- Clear directory structure (e.g., `/src/components`, `/src/services`, `/src/hooks`)
+- Separation of UI components, business logic, and data layers
+- Proper barrel exports (index.ts files)
+- Module boundaries respected
+- Context/Redux patterns used appropriately for state
 
-2. **Determine Next Number**:
-   - Find all directories matching `specs/reviews/*-deep-code-review/`
-   - Extract numbers from directory names
-   - Use max + 1, or start from 1 if none exist
+**Common checks**:
+- Interface boundaries are well-defined
+- Components/modules are loosely coupled
+- High cohesion within modules
+- Extension points are available
+- Configuration is externalized
+- Framework abstractions exist (not tightly coupled to implementation)
 
-3. **Create Review Directory**:
-   ```bash
-   mkdir -p specs/reviews/{number}-deep-code-review
-   ```
+#### 2.2 Code Quality Metrics
 
-### Phase 3: Comprehensive Code Review
+**Apply these principles**:
+- **KISS (Keep It Simple, Stupid)**: Code is straightforward, no over-engineering
+- **DRY (Don't Repeat Yourself)**: No duplicated logic; extract common functions
+- **YAGNI (You Aren't Gonna Need It)**: No unused or premature abstractions
+- **SOLID Principles**:
+  - **S**ingle Responsibility: Each function/class does one thing well
+  - **O**pen/Closed: Open for extension, closed for modification
+  - **L**iskov Substitution: Subtypes are substitutable
+  - **I**nterface Segregation: Small, focused interfaces
+  - **D**ependency Inversion: Depend on abstractions, not concretions
 
-Execute multi-dimensional analysis following this structure for each file in scope:
+**Function limits**:
+- ⚠️ Flag functions exceeding 80 lines
+- ❌ Error: Functions exceeding 150 lines
+- ⚠️ Flag functions with more than 5 parameters
+- ❌ Error: Functions with more than 7 parameters
+- Cyclomatic complexity should be ≤ 10
 
-#### Dimension 1: Architecture & Design
+**Class limits**:
+- Classes should typically be under 300 lines
+- Methods should follow function limits
+- Prefer composition over inheritance
 
-**Evaluation Criteria**:
-
-**Python-Specific**:
-- Layer separation (API/Service/Data/Domain)
-- Package structure and modularity
-- Dependency injection patterns
-- Abstract base classes and protocols
-- Plugin/extension mechanisms
-
-**TypeScript-Specific**:
-- Component hierarchy and composition
-- State management architecture
-- Module boundaries and exports
-- Context/Provider patterns
-- Hook composition patterns
-
-**General**:
-- Interface clarity and cohesion
-- Coupling levels between modules
-- Separation of concerns
-- Design pattern appropriateness
-- Extensibility considerations
-
-**Scoring**: Low/Medium/High/Very High complexity
-
-**Output**:
-- Architecture diagram (Mermaid)
-- Dependency graph
-- Pattern analysis
-- Coupling assessment
-
-#### Dimension 2: KISS Principle (Keep It Simple, Stupid)
-
-**Evaluation Criteria**:
-- Logic clarity and straightforwardness
-- Unnecessary complexity detection
-- Single responsibility per function/method
-- Nesting depth (should not exceed 4 levels)
-- Clever code vs. readable code
-- Premature optimization detection
-
-**Metrics**:
-- Maximum nesting depth
-- Cyclomatic complexity (if calculable)
-- Cognitive complexity estimate
-
-**Output**:
-- Complexity hotspots
-- Over-engineered sections
-- Simplification recommendations
-
-#### Dimension 3: Code Quality
-
-**DRY (Don't Repeat Yourself)**:
-- Duplicate code block detection
-- Similar logic patterns
-- Extraction opportunities (functions, classes, modules)
-- Copy-paste code identification
-
-**YAGNI (You Aren't Gonna Need It)**:
-- Unused code, functions, parameters
-- Dead code detection
-- Commented-out code
-- "Future-proofing" abstractions
-- Unnecessary flexibility
-
-**SOLID Principles**:
-- **S**ingle Responsibility: Classes/functions doing one thing
-- **O**pen/Closed: Easy to extend, not modify
-- **L**iskov Substitution: Proper inheritance
-- **I**nterface Segregation: Not bloated interfaces
-- **D**ependency Inversion: Depend on abstractions
-
-**Function Size Analysis**:
-- Count lines per function/method
-- Flag functions > 150 lines
-- Identify functions > 300 lines (critical)
-- Provide breakdown by file
-
-**Parameter Count Analysis**:
-- Count parameters per function
-- Flag functions > 7 parameters
-- Flag functions > 10 parameters (critical)
-- Suggest parameter objects/data classes
-
-**Output**:
-- Violation counts by category
-- Specific locations and line numbers
-- Refactoring suggestions with examples
-
-#### Dimension 4: Code Style
+#### 2.3 Code Style & Conventions
 
 **Python (PEP 8)**:
 - Naming conventions:
-  - `snake_case` for functions/variables
+  - `snake_case` for functions and variables
   - `PascalCase` for classes
-  - `UPPER_CASE` for constants
-  - `_leading_underscore` for protected
-- Import ordering (stdlib, third-party, local)
-- Indentation consistency (4 spaces)
-- Line length (prefer ≤ 100, max 120)
-- Docstring completeness (Google/NumPy style)
-- Type hints usage
-- Whitespace usage
-- Trailing whitespace
+  - `UPPER_SNAKE_CASE` for constants
+- Import ordering: standard library → third-party → local
+- Docstrings present for all public modules, classes, functions
+- Type hints used (required in this codebase - strict mypy)
+- Maximum line length: 100 characters
+- Spacing around operators and after commas
+- No unused imports or variables
 
 **TypeScript**:
 - Naming conventions:
-  - `camelCase` for variables/functions
-  - `PascalCase` for classes/interfaces/types
-  - `UPPER_CASE` for constants
+  - `camelCase` for functions, variables, and methods
+  - `PascalCase` for classes, interfaces, types, components
+  - `UPPER_SNAKE_CASE` for constants
   - `kebab-case` for files
-- Type usage:
-  - Avoid `any` (prefer `unknown`)
-  - Interface vs type usage
-  - Union types and intersections
-  - Type guards and assertions
-- Async/await patterns
-- JSX/TSX conventions
-- Import/export patterns
-- Null/undefined handling
+- Import organization with proper grouping
+- Explicit return types (no implicit any)
+- Interface vs Type: prefer `interface` for object shapes, `type` for unions
+- No `any` types without justification
+- Proper use of `readonly`, `const` assertions
+- React hooks rules compliance (for React code)
 
-**Code Readability**:
-- Semantic naming
-- Magic numbers/strings elimination
-- Helpful comments (why, not what)
-- Consistent formatting
-- Code organization
+#### 2.4 Error Handling
 
-**Output**:
-- Style violations by category
-- Naming convention issues
-- Formatting inconsistencies
+**Python error handling**:
+- Specific exception types (not bare `except:`)
+- Custom exception classes for domain-specific errors
+- Resources cleaned up using context managers (`with` statements)
+- Logging of errors with appropriate levels
+- Exceptions handled at appropriate layer (not swallowed silently)
+- Input validation at boundaries
 
-#### Dimension 5: Error Handling
+**TypeScript error handling**:
+- Proper try/catch with specific error types
+- Error boundaries for React components
+- API error responses handled gracefully
+- Type guards for runtime type checking
+- Null/undefined checks (especially with optional chaining)
+- Promise rejections handled
 
-**Python**:
-- Exception handling specificity
-- Avoid bare `except:` blocks
-- Custom exception hierarchy
-- Context manager usage (`with` statements)
-- Resource cleanup (finally blocks)
-- Exception propagation
-- Error message quality
-- Logging vs raising
+**Common checks**:
+- All network operations have error handling
+- Database operations handle connection failures
+- File operations handle I/O errors
+- User input is validated
+- Error messages are user-friendly
+- No silent failures
 
-**TypeScript**:
-- try/catch specificity
-- Error type checking
-- Promise rejection handling
-- Async error propagation
-- Null/undefined checks
-- Optional chaining usage
-- Error boundaries (React)
-- Error type definitions
+#### 2.5 Performance Considerations
 
-**Resource Management**:
-- File handle cleanup
-- Connection closure
-- Memory leak detection
-- Context manager usage
-- Dispose pattern implementation
+**Python performance**:
+- Database query optimization (N+1 problems, proper indexing)
+- Efficient data structures (list vs set vs dict)
+- Avoid premature optimization but recognize O(n²) patterns
+- Async/await used for I/O-bound operations
+- Caching strategies for expensive operations
+- Generator expressions for large data processing
+- String concatenation using join() not + in loops
 
-**Output**:
-- Missing error handlers
-- Overly broad catches
-- Resource leak risks
-- Error handling improvements
+**TypeScript performance**:
+- React optimization: useMemo, useCallback, React.memo
+- Virtualization for long lists
+- Code splitting and lazy loading
+- Image optimization and lazy loading
+- Debouncing/throttling user input
+- Avoid unnecessary re-renders
+- Efficient state updates (immutable patterns)
 
-#### Dimension 6: Performance Optimization
-
-**Algorithmic Complexity**:
-- Identify O(n²) or worse algorithms
-- Suggest better alternatives
-- Nested loop analysis
-- Recursive call depth
-
-**Database/Network I/O**:
-- N+1 query patterns
-- Batch operation opportunities
-- Connection pooling
-- Caching strategies
-- Lazy loading issues
+**Common patterns**:
+- Time complexity analysis for critical paths
+- Memory leak detection (unclosed connections, event listeners)
 - Pagination for large datasets
+- Index usage in database queries
+- Caching of expensive computations
 
-**Memory Usage**:
-- Large data structure handling
-- Memory leak risks
-- Unnecessary copies
-- Generator/iterator usage (Python)
-- Stream processing (TypeScript)
+#### 2.6 Design Patterns
 
-**Concurrency/Async**:
-- Proper async/await usage
-- Race condition detection
-- Deadlock risks
-- Lock/ mutex usage
-- Coroutine patterns
+**Python patterns**:
+- Repository pattern for data access
+- Factory pattern for object creation
+- Strategy pattern for interchangeable algorithms
+- Observer pattern for event handling
+- Decorator pattern for cross-cutting concerns
+- Dependency injection (manual or framework)
 
-**Python-Specific**:
-- List comprehensions vs loops
-- Generator expressions
-- Global interpreter lock (GIL) awareness
-- Context variables usage
-- LRU caching
+**TypeScript/React patterns**:
+- Container/Presentational pattern
+- Higher-Order Components (HOC) or custom hooks
+- Compound components pattern
+- Context API for global state
+- Provider pattern
+- Custom hooks for logic reuse
 
-**TypeScript/React-Specific**:
-- Unnecessary re-renders
-- Memoization opportunities (useMemo, useCallback)
-- React.memo usage
-- Bundle size considerations
-- Code splitting
-- Virtual scrolling for large lists
-- Event listener cleanup
+**Pattern evaluation**:
+- Is the pattern appropriate for the problem?
+- Is the pattern applied correctly?
+- Would a simpler approach work better?
+- Is there pattern overuse or misuse?
 
-**Output**:
-- Performance bottlenecks
-- Optimization suggestions
-- Complexity analysis
-- Before/after comparisons
+#### 2.7 Security & Best Practices
 
-#### Dimension 7: Design Patterns
-
-**Pattern Analysis**:
-
-**Creational Patterns**:
-- Factory/Builder usage appropriateness
-- Singleton detection (and whether appropriate)
-- Prototype pattern usage
-
-**Structural Patterns**:
-- Adapter/Facade usage
-- Decorator pattern (Python decorators)
-- Composite pattern
-- Proxy pattern
-
-**Behavioral Patterns**:
-- Strategy pattern
-- Observer pattern (event emitters, React hooks)
-- Command pattern
-- Chain of responsibility
-- Template method
-
-**React-Specific Patterns**:
-- Custom hooks
-- Higher-order components
-- Render props
-- Compound components
-- Context/Provider patterns
-
-**Output**:
-- Pattern usage assessment
-- Missing pattern opportunities
-- Anti-pattern detection
-- Pattern improvement suggestions
-
-#### Dimension 8: Security Considerations
-
-**Common Vulnerabilities**:
-- SQL injection (if database code)
-- XSS risks (frontend)
+**Security checks**:
+- SQL injection prevention (parameterized queries)
+- XSS prevention in web output
 - CSRF protection
-- Sensitive data exposure (passwords, API keys)
-- Input validation
-- Output encoding
-- Authentication/authorization issues
+- Input sanitization
+- Secrets not hardcoded
+- Dependency vulnerabilities
+- Authentication/authorization checks
+- Sensitive data logging prevention
 
-**Dependency Security**:
-- Known vulnerabilities in dependencies
-- Outdated packages
+**Python security**:
+- Use of `eval()` or `exec()` (should be avoided)
+- Shell injection risks in subprocess calls
+- Pickle deserialization risks
+- Tempfile security
 
-**Data Security**:
-- Sensitive data in logs
-- Hardcoded credentials
-- Insecure storage
-- Encryption needs
+**TypeScript security**:
+- `dangerouslySetInnerHTML` usage
+- User input in `href` attributes
+- Storage of sensitive data in localStorage
+- API key exposure in client code
 
-**Output**:
+### Phase 3: Issue Categorization
+
+Categorize all findings by severity:
+
+**Critical (🔴)**:
 - Security vulnerabilities
-- Severity ratings (Critical/High/Medium/Low)
-- Remediation steps
+- Data loss risks
+- Performance disasters
+- Breaking architectural violations
 
-### Phase 4: Issue Classification & Prioritization
+**Major (🟠)**:
+- SOLID principle violations
+- Excessive complexity (functions >150 lines)
+- Missing error handling on critical paths
+- Performance issues impacting UX
 
-For each identified issue, assign:
+**Minor (🟡)**:
+- Style violations
+- Functions >80 lines but <150 lines
+- Minor DRY violations
+- Missing documentation
+- Inconsistent naming
 
-**Severity Levels**:
-- **Critical**: Must fix (security vulnerabilities, data loss risks, severe performance issues)
-- **High**: Strongly recommended (design defects, code smells, potential bugs)
-- **Medium**: Recommended (code style, maintainability issues)
-- **Low**: Optional improvements (minor optimizations, suggestions)
+**Suggestions (🔵)**:
+- Design pattern opportunities
+- Refactoring suggestions
+- Modernization opportunities
+- Test coverage suggestions
 
-**Impact Scope**:
-- Single file
-- Module/package
-- Global/system-wide
+### Phase 4: Report Generation
 
-**Fix Difficulty**:
-- Simple: < 1 hour
-- Medium: 1-4 hours
-- Complex: > 4 hours or requires refactoring
+Generate a comprehensive markdown report at `./spec/reviews/<topic>-deep-code-review.md` where `<topic>` is:
+- For single file: filename without extension (e.g., `user-service-deep-code-review.md`)
+- For directory: directory name (e.g., `services-deep-code-review.md`)
+- For full repo: `full-repo-deep-code-review.md`
 
-**Output Format** for each issue:
-```markdown
-### [File Path]
-
-**Complexity**: [Rating]
-**Lines of Code**: [N]
-**Primary Issues**: [List]
-
-#### Findings
-
-1. **[Severity]** [Issue Title]
-   - **Location**: Line [N]
-   - **Problem**: [Detailed description]
-   - **Recommendation**: [Fix approach]
-   - **Example**:
-     ```python or typescript
-     # Current code
-     ...
-
-     # Suggested fix
-     ...
-     ```
-```
-
-### Phase 5: Report Generation
-
-1. **Create Report File**: `specs/reviews/{number}-deep-code-review/{topic}-report.md`
-
-2. **Report Structure**:
+**Report structure**:
 
 ```markdown
-# Deep Code Review Report
+# Deep Code Review: [Title]
 
-**Review Date**: [Date]
-**Target Path**: [Path]
-**Languages**: [Python/TypeScript/Mixed]
-**Files Reviewed**: [N]
-**Total Lines of Code**: [LOC]
-**Review Depth**: [quick/standard/deep]
+**Date**: [Current date]
+**Scope**: [Number] files ([Python/TS breakdown]
+**Reviewed by**: Claude Code
+**Repository**: [repo path]
 
 ## Executive Summary
 
-[Overall assessment, key findings, critical issues overview]
+[Brief overview of code health: 2-3 paragraphs]
+- Overall assessment
+- Key strengths
+- Primary concerns
+- Recommended priorities
 
-## Architecture Overview
-
-[Project structure analysis with Mermaid diagrams]
-
-### Architecture Diagram
-
-```mermaid
-graph TD
-    [Module relationships]
-```
-
-### Dependency Graph
-
-```mermaid
-graph LR
-    [Dependencies and couplings]
-```
-
-## Key Findings
-
-### Critical Issues ([N] found)
-
-[List all critical issues with severity ratings]
-
-### High Priority Issues ([N] found)
-
-[List all high priority issues]
-
-### Medium Priority Issues ([N] found)
-
-[Summary of medium priority issues]
-
-### Low Priority Suggestions ([N] found)
-
-[Summary of low priority suggestions]
-
-## Detailed Analysis
-
-### Architecture & Design
-
-[Detailed architectural assessment]
-
-### Code Quality Analysis
-
-[DRY, YAGNI, SOLID, function size, parameter count analysis]
-
-### Code Style
-
-[Style consistency, naming conventions, readability analysis]
-
-### Error Handling
-
-[Exception handling, resource management analysis]
-
-### Performance Optimization
-
-[Performance bottlenecks, optimization suggestions]
-
-### Design Patterns
-
-[Pattern usage assessment]
-
-### Security Considerations
-
-[Security vulnerabilities and risks]
-
-## File-Level Review
-
-### [File Path 1]
-
-[Detailed findings as per Phase 4 format]
-
-### [File Path 2]
-
-[Detailed findings as per Phase 4 format]
-
-...
-
-## Metrics
+## Metrics Overview
 
 | Metric | Value | Status |
 |--------|-------|--------|
-| Total Files | [N] | - |
-| Total LOC | [N] | - |
-| Avg Function Lines | [N] | [OK/Warning] |
-| Functions > 150 lines | [N] | [OK/Warning] |
-| Functions > 7 parameters | [N] | [OK/Warning] |
-| Code Duplication | [N]% | [OK/Warning] |
-| Cyclomatic Complexity (avg) | [N] | [OK/Warning] |
-| Test Coverage (if available) | [N]% | [OK/Warning] |
+| Total Files | N | - |
+| Total Lines of Code | N | - |
+| Functions Reviewed | N | - |
+| Functions > 150 lines | N | 🟢/🟠/🔴 |
+| Functions > 7 parameters | N | 🟢/🟠/🔴 |
+| Cyclomatic Complexity (avg) | N | 🟢/🟠/🔴 |
+| Type Coverage | N% | 🟢/🟠/🔴 |
+[Add relevant metrics]
 
-## Priority Fix Roadmap
+## Findings by Severity
 
-### Phase 1 (Immediate - Critical)
-[List with estimated fix time]
+### 🔴 Critical Issues ([Count])
 
-### Phase 2 (Urgent - High)
-[List with estimated fix time]
+[List each critical issue with:
+- File and line reference
+- Description
+- Impact
+- Recommended fix
+- Code example if helpful]
 
-### Phase 3 (Planned - Medium)
-[List with estimated fix time]
+### 🟠 Major Issues ([Count])
 
-### Phase 4 (Continuous - Low)
-[List with estimated fix time]
+[Same structure as critical]
 
-## Best Practice Recommendations
+### 🟡 Minor Issues ([Count])
 
-[Project-specific improvement suggestions]
+[Same structure]
 
-## Tool Recommendations
+### 🔵 Suggestions ([Count])
 
-[Automated tools: linters, formatters, static analysis]
+[Same structure]
 
-## Conclusion
+## Detailed Analysis by Dimension
 
-[Summary and next steps]
+### 1. Architecture & Design
+
+[Assessment with specific examples]
+
+#### Architecture Diagram
+
+[Use Mermaid diagram to show:
+- Module/package structure
+- Key dependencies
+- Data flow
+- Layer separation]
+
+```mermaid
+graph TB
+    subgraph "Presentation Layer"
+        A[API Routes]
+        B[UI Components]
+    end
+
+    subgraph "Business Logic Layer"
+        C[Services]
+        D[Validators]
+    end
+
+    subgraph "Data Layer"
+        E[Repositories]
+        F[(Database)]
+    end
+
+    A --> C
+    B --> C
+    C --> E
+    E --> F
 ```
 
-3. **Quality Check**:
-   - All issues have specific locations
-   - All issues have clear recommendations
-   - Code examples are accurate
-   - Severity assignments are justified
-   - Mermaid diagrams are valid
+#### Assessment
+- [ ] Clear layer separation
+- [ ] Loosely coupled modules
+- [ ] Extensible design
+- [ ] Proper abstraction levels
 
-### Phase 6: Output & Next Steps
+### 2. Code Quality
 
-Report completion with:
-- Review directory path
-- Report file path
-- Issue statistics summary
-- Top 3 most critical issues
-- Suggested next actions
+[Assessment with specific examples]
 
-## General Guidelines
+#### SOLID Analysis
+- **Single Responsibility**: [Findings]
+- **Open/Closed**: [Findings]
+- **Liskov Substitution**: [Findings]
+- **Interface Segregation**: [Findings]
+- **Dependency Inversion**: [Findings]
 
-### Review Principles
+#### KISS & DRY Assessment
+- [ ] Code is simple and straightforward
+- [ ] No code duplication
+- [ ] No premature abstractions
+- [ ] YAGNI principle followed
 
-- **Objectivity**: Base findings on facts and established best practices, not personal preferences
-- **Constructiveness**: Provide actionable improvements, not just point out problems
-- **Context Awareness**: Consider project size, team, business context
-- **Priority Clarity**: Help developers focus on most important issues
-- **Language Expertise**: Deep understanding of Python and TypeScript idioms
+### 3. Code Style & Conventions
 
-### Python-Specific Review Points
+[Language-specific assessment with examples]
 
-- Use type hints (Type Annotations)
-- Follow PEP 8, PEP 257 (docstrings)
-- Prefer dataclasses or Pydantic models
-- Use async/await correctly
-- Avoid global state
-- Use context managers for resources
-- Consider `__slots__` for memory optimization
-- Use protocols for duck typing
-- Leverage decorators appropriately
-- Use `dataclasses.field()` for configuration
+#### Naming Convention Analysis
+[List any violations or inconsistencies]
 
-### TypeScript-Specific Review Points
+#### Documentation Coverage
+- [ ] All public functions documented
+- [ ] Complex logic has comments
+- [ ] README/docs present
 
-- Avoid `any`, prefer `unknown`
-- Enable strict mode
-- Use union/intersection types correctly
-- Avoid type assertions, use type guards
-- React: proper hooks usage
-- Correct dependency arrays
-- Avoid unnecessary any and type assertions
-- Use enum vs const assertions appropriately
-- Handle null/undefined (optional chaining, nullish coalescing)
-- Proper async/await error handling
+### 4. Error Handling
 
-### Universal Review Points
+[Assessment with examples]
 
-- Single responsibility per function
-- Semantic naming
-- Avoid deep nesting
-- Early returns (guard clauses)
-- Comments explain "why" not "what"
-- Testability consideration
-- Correct dependency direction
+#### Error Handling Coverage
+- [ ] All I/O operations have error handling
+- [ ] Database operations handle failures
+- [ ] Network calls have timeouts and retry logic
+- [ ] User input is validated
+- [ ] Error messages are user-friendly
 
-### Severity Guidelines
+### 5. Performance
 
-**Critical**:
-- Security vulnerabilities (injection, XSS, sensitive data exposure)
-- Data loss or corruption risks
-- Severe performance issues (system unusability)
-- Resource leaks (memory, connections, file handles)
+[Assessment with specific optimizations]
 
-**High**:
-- Design defects causing maintainability issues
-- SOLID violations causing tight coupling
-- Code smells (god classes, long methods)
-- Potential runtime errors
-- Clear performance issues
+#### Performance Hotspots
+- [Identify bottlenecks with line references]
+- [Suggest specific optimizations]
 
-**Medium**:
-- Code style inconsistencies
-- Unclear naming
-- Missing documentation
-- Readability issues
-- Minor code duplication
+#### Optimization Opportunities
+[List opportunities with code examples]
 
-**Low**:
-- Minor optimization opportunities
-- Suggestive improvements
-- Non-critical best practice suggestions
+### 6. Design Patterns
 
-### Tool Integration Recommendations
+[Assessment of pattern usage]
 
-**Python**:
-- `mypy` - Static type checking
-- `ruff` - Fast linter and formatter
-- `pylint` - Code quality
-- `bandit` - Security vulnerability scanning
-- `pytest` + `pytest-cov` - Test coverage
-- `vulture` - Dead code detection
-- `radon` - Code complexity metrics
+#### Patterns Found
+[Document patterns in use with evaluation]
 
-**TypeScript**:
-- `ESLint` - Linting
-- `Prettier` - Formatting
-- `tsc` - Type checking (strict mode)
-- `SonarJS` - Code quality
-- `Jest` + `vitest` - Test coverage
-- `@typescript-eslint/eslint-plugin` - TypeScript-specific rules
+#### Pattern Recommendations
+[Suggest patterns where appropriate]
 
-### Handling Special Cases
+### 7. Security
 
-- **Legacy code**: More lenient, focus on Critical/High issues
-- **Quick prototypes**: Focus on critical issues only
-- **Critical systems**: Stricter, all High issues should be addressed
-- **Learning projects**: Educational focus, explain each issue
+[Security assessment]
 
-### Output Format Requirements
+#### Security Checklist
+- [ ] SQL injection prevention
+- [ ] XSS prevention
+- [ ] CSRF protection
+- [ ] Input validation
+- [ ] Secrets management
+- [ ] Dependency security
 
-- Use Markdown format
-- Code blocks with correct language syntax (` ```python ` or ` ```typescript `)
-- Tables for metrics and comparisons
-- Lists for issue enumeration
-- Clear heading hierarchy (max 4 levels)
-- Mermaid diagrams for architecture visualization
-- Use emoji sparingly for readability enhancement
+## File-by-File Analysis
 
-### Example Review Output Snippet
+### [File Path]
+
+[Detailed analysis for each file including:
+- Purpose
+- Key findings
+- Line-by-line issues if significant
+- Specific code examples with issues]
+```
+
+### Phase 5: Prioritized Action Plan
+
+Generate a prioritized list of actions:
 
 ```markdown
-### src/services/user_service.py
+## Prioritized Action Plan
 
-**Complexity**: Medium-High
-**Lines of Code**: 245
-**Primary Issues**: Long function, missing type hints, unclear responsibilities
+### Immediate (This Sprint)
+1. [Critical issue 1]
+2. [Critical issue 2]
 
-#### Findings
+### Short-term (Next Sprint)
+1. [Major issue 1]
+2. [Major issue 2]
+3. [Major issue 3]
 
-1. **[High]** Function too long with mixed responsibilities
-   - **Location**: Lines 45-189
-   - **Problem**: `process_user_data()` function has 145 lines and handles validation, transformation, database operations, and notifications
-   - **Recommendation**: Split into independent functions: `validate_user_data()`, `transform_user_data()`, `save_user_data()`, `send_notification()`
-   - **Example**:
-     ```python
-     # Current code (simplified)
-     def process_user_data(raw_data):
-         # 145 lines of mixed logic...
-         pass
+### Medium-term (Next Quarter)
+1. [Minor issue group 1]
+2. [Refactoring opportunity 1]
 
-     # Suggested refactoring
-     def process_user_data(raw_data: dict) -> User:
-         validated = validate_user_data(raw_data)
-         transformed = transform_user_data(validated)
-         user = save_user_data(transformed)
-         send_notification(user)
-         return user
-     ```
-
-2. **[Medium]** Missing type hints
-   - **Location**: Throughout file
-   - **Problem**: Function parameters and return values lack type annotations
-   - **Recommendation**: Add comprehensive type hints
-   - **Example**:
-     ```python
-     # Current
-     def get_user(user_id):
-         ...
-
-     # Suggested
-     def get_user(user_id: int) -> Optional[User]:
-         ...
-     ```
-
-3. **[Critical]** SQL injection vulnerability
-   - **Location**: Line 89
-   - **Problem**: Direct SQL string concatenation
-   - **Recommendation**: Use parameterized queries
-   - **Example**:
-     ```python
-     # Current (dangerous)
-     query = f"SELECT * FROM users WHERE name = '{user_name}'"
-
-     # Suggested (safe)
-     query = "SELECT * FROM users WHERE name = ?"
-     cursor.execute(query, (user_name,))
-     ```
+### Long-term (Technical Debt)
+1. [Architectural improvement]
+2. [Major refactoring]
 ```
 
-## Execution Notes
+## Execution Guidelines
 
-- Ensure code can be parsed (syntax check) before reviewing
-- For large projects, may need to focus on critical modules first
-- Prioritize business logic core over utility code
-- Consider using automated tools as pre-filter
-- Maintain communication with user to confirm review focus
-- Be respectful of existing codebase and team conventions
-- Provide context for issues (why it's a problem, not just that it is)
+### File Discovery
+
+- Use `Glob` tool to find files matching patterns
+- For Python: `**/*.py`
+- For TypeScript: `**/*.ts`, `**/*.tsx`
+- Exclude common directories: `node_modules/`, `venv/`, `.venv/`, `__pycache__/`, `dist/`, `build/`
+
+### Analysis Order
+
+1. **Architecture First**: Understand the big picture before details
+2. **Entry Points**: Start with main files (main.py, index.tsx, App.tsx)
+3. **Dependency Graph**: Follow imports/calls to understand relationships
+4. **Critical Paths**: Focus on user-facing and data-critical code
+
+### Reading Strategy
+
+- Use `Read` tool to examine files
+- Start with imports to understand dependencies
+- Look at exported/public members first
+- Pay attention to error handling
+- Check for TODO/FIXME comments
+
+### Issue Documentation
+
+For each issue found:
+1. **Quote the problematic code** (with file:line reference)
+2. **Explain why it's a problem** (reference the principle violated)
+3. **Show the impact** (what could go wrong)
+4. **Provide a concrete fix** (with code example)
+5. **Reference best practices** (with links if applicable)
+
+### Diagram Creation
+
+Use Mermaid diagrams for:
+- **System architecture**: Component relationships
+- **Data flow**: How data moves through the system
+- **Call graphs**: Function call relationships
+- **State machines**: State transitions if applicable
+- **Sequence diagrams**: Interaction flows
+
+### Quality Thresholds
+
+Set these quality gates:
+
+| Threshold | Good | Warning | Critical |
+|-----------|------|---------|----------|
+| Function length (lines) | ≤50 | 51-150 | >150 |
+| Function parameters | ≤4 | 5-7 | >7 |
+| Cyclomatic complexity | ≤5 | 6-10 | >10 |
+| Class length (lines) | ≤200 | 201-400 | >400 |
+| Duplicate code | <3% | 3-5% | >5% |
+| Type coverage | >90% | 70-90% | <70% |
+
+## Output
+
+After completing the review, report:
+
+1. **Review summary**: Number of files reviewed, total issues by severity
+2. **Report location**: Full path to generated markdown file
+3. **Top 3 priorities**: Most critical issues to address
+4. **Overall health score**: Letter grade (A-F) based on findings
+
+## Example Invocation
+
+```bash
+# Review entire codebase
+/deep-code-review
+
+# Review specific file
+/deep-code-review src/services/user.py
+
+# Review directory
+/deep-code-review backend/src/services/
+
+# Review all TypeScript files
+/deep-code-review frontend/src/**/*.ts
+```
+
+## Notes
+
+- Be thorough but pragmatic: Focus on issues that matter
+- Provide actionable feedback: Not just "fix this" but "here's how"
+- Recognize trade-offs: Sometimes complexity is justified
+- Context matters: A 200-line function might be appropriate for data migration
+- Be constructive: Frame feedback as improvement opportunities
+- Use specific examples: Quote actual code from the codebase
+- Prioritize ruthlessly: Not everything needs to be fixed immediately
