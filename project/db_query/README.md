@@ -33,9 +33,11 @@
 - **AI 智能查询**：基于智谱 AI (glm-4-flash) 实现自然语言转 SQL
 - **多数据库支持**：MySQL、PostgreSQL、SQLite
 - **实时架构浏览**：树形展示表/视图结构，点击自动生成查询
-- **查询历史管理**：记录所有查询，支持重新执行和批量删除
+- **查询历史管理**：记录所有查询，支持重新执行和批量删除，分页展示
 - **结果导出**：支持 CSV、JSON 格式导出
 - **连接池管理**：自动管理数据库连接，空闲超时清理
+- **速率限制**：API 级别速率限制，防止滥用
+- **结构化日志**：JSON 格式日志，便于分析和监控
 
 ---
 
@@ -52,6 +54,11 @@
 | sqlglot | 25.30.0+ | SQL 解析和验证 |
 | zai-sdk | 0.2.0+ | 智谱 AI 集成 |
 | uvicorn | 0.32.0+ | ASGI 服务器 |
+| aiosqlite | 0.20.0+ | 异步 SQLite |
+| pymysql | 1.1.2+ | MySQL 驱动 |
+| slowapi | 0.1.9+ | 速率限制 |
+| structlog | 24.0.0+ | 结构化日志 |
+| tenacity | 8.5.0+ | 重试机制 |
 
 ### 前端技术栈
 
@@ -63,6 +70,9 @@
 | Ant Design | 5.22.2+ | UI 组件库 |
 | Monaco Editor | 4.7.0+ | SQL 编辑器 |
 | Tailwind CSS | 3.4.17+ | 样式框架 |
+| React Router | 7.1.1+ | 路由管理 |
+| React Query | 5.90.17+ | 服务端状态管理 |
+| Refinedev | 4.57.0+ | 数据提供框架 |
 
 ---
 
@@ -151,63 +161,79 @@ sequenceDiagram
 graph LR
     subgraph src_api
         A[main.py / 应用入口]
-        B[v1_databases.py / 数据库API]
-        C[v1_queries.py / 查询API]
+        B[dependencies.py / 依赖注入]
+        C[errors.py / 错误处理]
+        D[v1/databases.py / 数据库API]
+        E[v1/queries.py / 查询API]
     end
 
     subgraph src_services
-        D[db_service.py / 数据库连接]
-        E[query_service.py / 查询执行]
-        F[llm_service.py / AI服务]
-        G[metadata_service.py / 元数据提取]
+        F[db_service.py / 数据库连接]
+        G[query_service.py / 查询执行]
+        H[llm_service.py / AI服务]
+        I[metadata_service.py / 元数据提取]
     end
 
     subgraph src_models
-        H[database.py / 数据库模型]
-        I[query.py / 查询模型]
-        J[metadata.py / 元数据模型]
+        J[database.py / 数据库模型]
+        K[query.py / 查询模型]
+        L[metadata.py / 元数据模型]
     end
 
     subgraph src_core
-        K[config.py / 配置管理]
-        L[sql_parser.py / SQL解析]
-        M[sqlite_db.py / SQLite连接]
+        M[config.py / 配置管理]
+        N[constants.py / 常量定义]
+        O[sql_parser.py / SQL解析]
+        P[sqlite_db.py / SQLite连接]
+        Q[logging.py / 日志配置]
     end
 
-    B --> D
-    B --> G
-    C --> E
-    C --> F
-    C --> G
+    subgraph src_lib
+        R[json_encoder.py / 驼峰命名]
+    end
 
-    D --> H
+    subgraph src_middleware
+        S[rate_limit.py / 速率限制]
+    end
+
+    D --> F
+    D --> I
+    E --> G
+    E --> H
     E --> I
+
     F --> J
-    G --> J
+    G --> K
+    H --> L
+    I --> L
 ```
 
 ### 前端组件架构
 
 ```mermaid
 graph TD
-    A[Dashboard.tsx / 主页面] --> B[DatabaseList / 数据库列表]
-    A --> C[Tree / 架构浏览器]
-    A --> D[Tabs / 功能标签页]
+    A[Dashboard/index.tsx / 主页面] --> B[Sidebar / 侧边栏]
+    A --> C[DatabaseInfo / 数据库信息]
+    A --> D[QueryTabs / 查询标签页]
 
-    D --> E[SQL查询Tab]
-    D --> F[AI查询Tab]
-    D --> G[历史记录Tab]
+    B --> E[DatabaseList / 数据库列表]
+    B --> F[SchemaTree / 架构树]
 
-    E --> H[SqlEditor]
-    E --> I[QueryResults]
+    D --> G[SQL查询Tab]
+    D --> H[AI查询Tab]
+    D --> I[历史记录Tab]
 
-    F --> J[NaturalQueryInput]
-    F --> K[SuggestedQueries]
+    G --> J[SqlEditor / SQL编辑器]
+    G --> K[QueryResults / 结果展示]
 
-    G --> L[QueryHistoryTab]
+    H --> L[NaturalQueryInput / 自然语言输入]
+    H --> M[SuggestedQueries / 建议查询]
 
-    B --> M[AddDatabaseForm]
-    B --> N[EditDatabaseForm]
+    I --> N[QueryHistoryTab / 历史记录]
+
+    E --> O[AddDatabaseForm / 添加表单]
+    E --> P[EditDatabaseForm / 编辑表单]
+    E --> Q[DatabaseDetail / 数据库详情]
 ```
 
 ---
@@ -370,13 +396,17 @@ db_query/
 │   ├── src/
 │   │   ├── api/                      # API 路由层
 │   │   │   ├── main.py              # FastAPI 应用入口
+│   │   │   ├── dependencies.py      # 依赖注入
+│   │   │   ├── errors.py            # 统一错误处理
 │   │   │   └── v1/                  # v1 API
 │   │   │       ├── databases.py     # 数据库管理端点
 │   │   │       └── queries.py       # 查询执行端点
 │   │   ├── core/                    # 核心模块
 │   │   │   ├── config.py            # 配置管理
+│   │   │   ├── constants.py         # 常量定义
 │   │   │   ├── sql_parser.py        # SQL 解析器
-│   │   │   └── sqlite_db.py         # SQLite 连接
+│   │   │   ├── sqlite_db.py         # SQLite 连接
+│   │   │   └── logging.py           # 日志配置
 │   │   ├── models/                  # 数据模型
 │   │   │   ├── database.py          # 数据库模型
 │   │   │   ├── metadata.py          # 元数据模型
@@ -386,30 +416,44 @@ db_query/
 │   │   │   ├── query_service.py     # 查询执行服务
 │   │   │   ├── llm_service.py       # LLM 服务
 │   │   │   └── metadata_service.py  # 元数据服务
-│   │   └── lib/                     # 工具库
-│   │       └── json_encoder.py      # JSON 编码器
+│   │   ├── lib/                     # 工具库
+│   │   │   └── json_encoder.py      # 驼峰命名编码器
+│   │   └── middleware/              # 中间件
+│   │       └── rate_limit.py        # 速率限制
 │   ├── tests/                       # 测试目录
 │   └── pyproject.toml              # Python 配置
 │
 ├── frontend/                         # TypeScript 前端
 │   ├── src/
+│   │   ├── pages/                   # 页面组件
+│   │   │   └── Dashboard/           # 主仪表板
+│   │   │       ├── index.tsx        # 主页面
+│   │   │       ├── Sidebar.tsx      # 侧边栏
+│   │   │       ├── DatabaseInfo.tsx # 数据库信息
+│   │   │       ├── QueryTabs.tsx    # 查询标签页
+│   │   │       ├── useDatabases.ts  # 数据库 Hook
+│   │   │       ├── useMetadata.ts   # 元数据 Hook
+│   │   │       └── useQueryExecution.ts # 查询执行 Hook
 │   │   ├── components/              # React 组件
 │   │   │   ├── database/            # 数据库组件
 │   │   │   │   ├── DatabaseList.tsx
 │   │   │   │   ├── AddDatabaseForm.tsx
-│   │   │   │   └── EditDatabaseForm.tsx
+│   │   │   │   ├── EditDatabaseForm.tsx
+│   │   │   │   └── DatabaseDetail.tsx
 │   │   │   ├── query/               # 查询组件
 │   │   │   │   ├── SqlEditor.tsx
 │   │   │   │   ├── NaturalQueryInput.tsx
 │   │   │   │   ├── QueryResults.tsx
 │   │   │   │   └── QueryHistoryTab.tsx
+│   │   │   ├── metadata/            # 元数据组件
+│   │   │   │   ├── TableList.tsx
+│   │   │   │   └── TableSchema.tsx
 │   │   │   └── shared/              # 共享组件
-│   │   │       └── SchemaTree.tsx
+│   │   │       ├── SchemaTree.tsx
+│   │   │       └── ErrorBoundary.tsx
 │   │   ├── hooks/                   # 自定义 Hooks
 │   │   │   ├── useDatabaseQuery.ts
-│   │   │   └── useTreeData.ts
-│   │   ├── pages/                   # 页面组件
-│   │   │   └── Dashboard.tsx
+│   │   │   └── useTreeData.tsx
 │   │   ├── services/                # API 服务
 │   │   │   └── api.ts
 │   │   ├── types/                   # 类型定义
@@ -679,9 +723,43 @@ CREATE TABLE query_history (
 
 ### 1. 后端技术要点
 
+#### 统一错误处理
+
+```python
+# 错误码定义
+class ErrorCode(str, Enum):
+    VALIDATION_ERROR = "VALIDATION_ERROR"
+    SQL_SYNTAX_ERROR = "SQL_SYNTAX_ERROR"
+    DATABASE_CONNECTION_ERROR = "DATABASE_CONNECTION_ERROR"
+    # ...
+
+# 错误处理中间件
+@app.exception_handler(APIError)
+async def api_error_handler(request: Request, exc: APIError):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"error": {"code": exc.code, "message": exc.message}}
+    )
+```
+
 #### FastAPI 依赖注入
 
 ```python
+# 服务工厂函数
+def get_db_service() -> DatabaseService:
+    return DatabaseService()
+
+def get_query_service() -> QueryService:
+    return QueryService()
+
+# 路由中使用
+@router.get("/{name}")
+async def get_database(
+    name: str,
+    db_service: DatabaseService = Depends(get_db_service)
+):
+    return await db_service.get_database(name)
+
 # 生命周期管理
 @app.on_event("startup")
 async def startup_event():
@@ -715,15 +793,57 @@ await asyncio.to_thread(self._test_connection, connection_url)
 engine = db_service.get_engine(database_id, connection_url)
 ```
 
+#### 结构化日志
+
+```python
+import structlog
+
+logger = structlog.get_logger()
+
+# 记录结构化日志
+logger.info(
+    "query_executed",
+    database_name=database_name,
+    query_type="sql",
+    row_count=len(result.rows),
+    execution_time_ms=result.execution_time_ms
+)
+```
+
+#### 速率限制
+
+```python
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+
+# 应用到路由
+@router.post("/{name}/query")
+@limiter.limit("30/minute")
+async def execute_query(...):
+    ...
+```
+
 ### 2. 前端技术要点
 
-#### React 状态管理
+#### React Query 状态管理
 
 ```typescript
-// 使用 useState 管理页面状态
-const [selectedDatabase, setSelectedDatabase] = useState<DatabaseDetail | null>(null);
-const [queryResult, setQueryResult] = useState<QueryResponse | null>(null);
-const [queryLoading, setQueryLoading] = useState(false);
+// 使用 React Query 管理服务端状态
+const { data: databases, isLoading } = useQuery({
+  queryKey: ['databases'],
+  queryFn: () => api.listDatabases(),
+});
+
+// 使用 Mutation 执行操作
+const queryMutation = useMutation({
+  mutationFn: ({ databaseName, sql }: QueryParams) =>
+    api.executeQuery(databaseName, sql),
+  onSuccess: (data) => {
+    setQueryResult(data);
+  },
+});
 ```
 
 #### 自定义 Hooks
@@ -843,9 +963,18 @@ npm run dev
 | POST | /api/v1/dbs/{name}/query | 执行 SQL 查询 |
 | POST | /api/v1/dbs/{name}/query/natural | AI 自然语言查询 |
 | POST | /api/v1/dbs/{name}/query/export | 导出查询结果 |
-| GET | /api/v1/dbs/{name}/history | 获取查询历史 |
+| GET | /api/v1/dbs/{name}/history | 获取查询历史（分页） |
+| GET | /api/v1/dbs/{name}/history/summary | 获取历史统计 |
 | DELETE | /api/v1/dbs/{name}/history | 删除查询历史 |
 | GET | /api/v1/dbs/{name}/suggested-queries | 获取查询建议 |
+
+### 速率限制
+
+| 端点类型 | 限制 |
+|----------|------|
+| 查询执行 | 30 次/分钟 |
+| 自然语言查询 | 10 次/分钟 |
+| 导出 | 20 次/分钟 |
 
 ### 请求/响应示例
 

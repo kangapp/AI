@@ -13,15 +13,18 @@
 **简介**: 一个基于 AI 的智能数据库查询工具，支持自然语言转 SQL、多数据库连接、查询历史管理等功能。
 
 **核心特性**:
-- AI 智能查询：基于智谱 AI (glm-4-flash) 实现自然语言转 SQL
-- 多数据库支持：MySQL、PostgreSQL、SQLite
-- 实时架构浏览：树形展示表/视图结构，点击自动生成查询
-- 查询历史管理：记录所有查询，支持重新执行和批量删除
-- 结果导出：支持 CSV、JSON 格式导出
+- **AI 智能查询**：基于智谱 AI (glm-4-flash) 实现自然语言转 SQL
+- **多数据库支持**：MySQL、PostgreSQL、SQLite
+- **实时架构浏览**：树形展示表/视图结构，点击自动生成查询
+- **查询历史管理**：记录所有查询，支持重新执行和批量删除，分页展示
+- **结果导出**：支持 CSV、JSON 格式导出
+- **连接池管理**：自动管理数据库连接，空闲超时清理
+- **速率限制**：API 级别速率限制，防止滥用
+- **结构化日志**：JSON 格式日志，便于分析和监控
 
 **技术栈**:
-- 后端：Python 3.14+ / FastAPI / SQLAlchemy / zai-sdk
-- 前端：TypeScript 5+ / React 18 / Vite / Ant Design / Monaco Editor
+- **后端**：Python 3.14+ / FastAPI / SQLAlchemy / aiosqlite / zai-sdk / slowapi / structlog / tenacity
+- **前端**：TypeScript 5+ / React 18 / Vite / Ant Design / Monaco Editor / React Query / Refinedev
 
 **快速开始**:
 ```bash
@@ -31,9 +34,9 @@ make dev        # 启动前后端服务
 ```
 
 访问：
-- 前端：http://localhost:5173
-- 后端 API：http://localhost:8000
-- API 文档：http://localhost:8000/docs
+- **前端**：http://localhost:5173
+- **后端 API**：http://localhost:8000
+- **API 文档**：http://localhost:8000/docs
 
 **详细文档**: [project/db_query/README.md](project/db_query/README.md)
 
@@ -46,10 +49,25 @@ AI/
 ├── project/                    # 项目目录
 │   └── db_query/              # 数据库查询工具
 │       ├── backend/           # Python 后端
+│       │   ├── src/
+│       │   │   ├── api/      # API 路由层
+│       │   │   ├── services/ # 业务逻辑层
+│       │   │   ├── models/   # 数据模型
+│       │   │   ├── core/     # 核心模块
+│       │   │   ├── lib/      # 工具库
+│       │   │   └── middleware/ # 中间件
+│       │   └── tests/        # 测试目录
 │       ├── frontend/          # TypeScript 前端
-│       └── Makefile           # 自动化脚本
-├── CLAUDE.md                   # Claude Code 项目配置
-└── README.md                   # 本文件
+│       │   ├── src/
+│       │   │   ├── pages/    # 页面组件
+│       │   │   ├── components/ # React 组件
+│       │   │   ├── hooks/    # 自定义 Hooks
+│       │   │   ├── services/ # API 服务
+│       │   │   └── types/    # 类型定义
+│       │   └── package.json
+│       └── Makefile          # 自动化脚本
+├── CLAUDE.md                  # Claude Code 项目配置
+└── README.md                  # 本文件
 ```
 
 ---
