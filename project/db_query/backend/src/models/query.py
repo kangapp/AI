@@ -5,6 +5,7 @@ from typing import Any
 
 from pydantic import Field
 
+from ..core.constants import Validation
 from ..lib.json_encoder import CamelModel
 from .metadata import ColumnMetadata
 
@@ -27,13 +28,23 @@ class ErrorResponse(CamelModel):
 class QueryRequest(CamelModel):
     """Request to execute a SQL query."""
 
-    sql: str = Field(..., description="SQL query to execute")
+    sql: str = Field(
+        ...,
+        min_length=Validation.SQL_QUERY_MIN_LENGTH,
+        max_length=Validation.SQL_QUERY_MAX_LENGTH,
+        description="SQL query to execute",
+    )
 
 
 class NaturalQueryRequest(CamelModel):
     """Request to generate SQL from natural language."""
 
-    prompt: str = Field(..., description="Natural language query description")
+    prompt: str = Field(
+        ...,
+        min_length=Validation.PROMPT_MIN_LENGTH,
+        max_length=Validation.PROMPT_MAX_LENGTH,
+        description="Natural language query description",
+    )
     execute_immediately: bool = Field(
         default=False, description="If true, execute without confirmation"
     )
@@ -95,7 +106,12 @@ class QueryHistoryResponse(CamelModel):
 class ExportRequest(CamelModel):
     """Request to export query results."""
 
-    sql: str = Field(..., description="SQL query to execute")
+    sql: str = Field(
+        ...,
+        min_length=Validation.SQL_QUERY_MIN_LENGTH,
+        max_length=Validation.SQL_QUERY_MAX_LENGTH,
+        description="SQL query to execute",
+    )
     format: str = Field(..., description="Export format: 'csv' or 'json'")
     include_headers: bool = Field(default=True, description="Include column headers")
 

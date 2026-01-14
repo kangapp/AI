@@ -3,14 +3,13 @@
  */
 
 import { Tree } from "antd";
-import { useTreeData, type DataNode } from "../../hooks";
+import { useTreeData } from "../../hooks";
 
 export interface SchemaTreeProps {
   tables: any[];
   views: any[];
   onSelect?: (selectedKeys: React.Key[], info: any) => void;
   selectedKeys?: React.Key[];
-  loading?: boolean;
   style?: React.CSSProperties;
   className?: string;
 }
@@ -20,7 +19,6 @@ export function SchemaTree({
   views,
   onSelect,
   selectedKeys,
-  loading = false,
   style,
   className,
 }: SchemaTreeProps) {
@@ -33,7 +31,6 @@ export function SchemaTree({
       treeData={treeData}
       onSelect={onSelect}
       selectedKeys={selectedKeys}
-      loading={loading}
       style={{ fontSize: "13px", ...style }}
       className={className}
     />

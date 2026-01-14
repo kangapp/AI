@@ -5,6 +5,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
+from ..core.constants import Validation
 from ..lib.json_encoder import CamelModel
 from .metadata import TableMetadata, ViewMetadata
 
@@ -12,15 +13,35 @@ from .metadata import TableMetadata, ViewMetadata
 class DatabaseCreateRequest(CamelModel):
     """Request to create a new database connection."""
 
-    name: str = Field(..., description="User-friendly name, must be unique")
-    url: str = Field(..., description="Full connection string")
+    name: str = Field(
+        ...,
+        min_length=Validation.DATABASE_NAME_MIN_LENGTH,
+        max_length=Validation.DATABASE_NAME_MAX_LENGTH,
+        description="User-friendly name, must be unique",
+    )
+    url: str = Field(
+        ...,
+        min_length=Validation.DATABASE_URL_MIN_LENGTH,
+        max_length=Validation.DATABASE_URL_MAX_LENGTH,
+        description="Full connection string",
+    )
 
 
 class DatabaseUpdateRequest(CamelModel):
     """Request to update a database connection."""
 
-    name: str | None = Field(None, description="New user-friendly name")
-    url: str | None = Field(None, description="New connection string")
+    name: str | None = Field(
+        None,
+        min_length=Validation.DATABASE_NAME_MIN_LENGTH,
+        max_length=Validation.DATABASE_NAME_MAX_LENGTH,
+        description="New user-friendly name",
+    )
+    url: str | None = Field(
+        None,
+        min_length=Validation.DATABASE_URL_MIN_LENGTH,
+        max_length=Validation.DATABASE_URL_MAX_LENGTH,
+        description="New connection string",
+    )
 
 
 class DatabaseConnection(CamelModel):
@@ -62,9 +83,24 @@ class ConnectionString(BaseModel):
     host: str | None = None
     port: int | None = None
     database: str | None = None
+    original: str | None = None  # Store original URL for correct redaction
 
     def redact(self) -> str:
         """Return a redacted version of the connection string."""
+        # For SQLite, return original URL if available (preserves correct slash count)
+        if self.scheme == "sqlite" and self.original:
+            return self.original
+        # For other databases, redact credentials
         if self.username:
             return f"{self.scheme}://***:***@{self.host}:{self.port}/{self.database}"
+        # Fallback for SQLite without original
+        if self.scheme == "sqlite":
+            # Determine if path is absolute (starts with / on Unix or drive letter on Windows)
+            is_absolute = self.database and (
+                self.database.startswith("/") or
+                (len(self.database) >= 2 and self.database[0].isalpha() and self.database[1] == ":")
+            )
+            if is_absolute:
+                return f"{self.scheme}////{self.database}"  # 4 slashes for absolute
+            return f"{self.scheme}///{self.database}"  # 3 slashes for relative
         return f"{self.scheme}://{self.database}"

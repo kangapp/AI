@@ -1,15 +1,15 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { ConfigProvider, App as AntdApp } from "antd";
-import { Dashboard } from "./pages/Dashboard";
+import { App } from "./App";
 import "./index.css";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ConfigProvider>
       <AntdApp>
-        <Dashboard />
+        <App />
       </AntdApp>
     </ConfigProvider>
-  </StrictMode>
+  </StrictMode>,
 );

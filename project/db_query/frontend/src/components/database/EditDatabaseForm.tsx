@@ -1,18 +1,69 @@
-import { useState, useEffect } from "react";
-import { Modal, Form, Input, Button, message, Space, Descriptions } from "antd";
+import { useState, useEffect, useMemo } from "react";
+import { Modal, Form, Input, Button, message, Space, Descriptions, Typography } from "antd";
 import { EditOutlined } from "@ant-design/icons";
 import type { DatabaseConnection, DatabaseUpdateRequest } from "../../types";
 import { api } from "../../services/api";
+
+const { Text, Paragraph } = Typography;
 
 interface EditDatabaseFormProps {
   database: DatabaseConnection;
   onDatabaseUpdated: () => void;
 }
 
+// Database connection examples by type
+const EXAMPLES = {
+  postgresql: [
+    { label: "标准连接", value: "postgresql://user:password@localhost:5432/mydatabase" },
+    { label: "使用主机名", value: "postgresql://user:password@db.example.com:5432/mydatabase" },
+  ],
+  mysql: [
+    { label: "标准连接", value: "mysql://user:password@localhost:3306/mydatabase" },
+    { label: "使用主机名", value: "mysql://user:password@db.example.com:3306/mydatabase" },
+  ],
+  sqlite: [
+    { label: "相对路径", value: "sqlite:///data/database.db" },
+    { label: "绝对路径", value: "sqlite:////Users/username/data/database.db" },
+    { label: "内存数据库", value: "sqlite:///:memory:" },
+  ],
+  general: [
+    { label: "PostgreSQL", value: "postgresql://user:password@localhost:5432/mydb" },
+    { label: "MySQL", value: "mysql://user:password@localhost:3306/mydb" },
+    { label: "SQLite (相对)", value: "sqlite:///path/to/database.db" },
+    { label: "SQLite (绝对)", value: "sqlite:////absolute/path/to/database.db" },
+  ],
+};
+
+// Detect database type from connection string
+function detectDatabaseType(url: string): "postgresql" | "mysql" | "sqlite" | "general" {
+  const lowerUrl = url.toLowerCase();
+  if (lowerUrl.startsWith("postgresql://") || lowerUrl.startsWith("postgres://")) {
+    return "postgresql";
+  }
+  if (lowerUrl.startsWith("mysql://")) {
+    return "mysql";
+  }
+  if (lowerUrl.startsWith("sqlite://")) {
+    return "sqlite";
+  }
+  return "general";
+}
+
 export function EditDatabaseForm({ database, onDatabaseUpdated }: EditDatabaseFormProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [urlInput, setUrlInput] = useState("");
+
+  // Detect current database type based on input
+  const detectedType = useMemo(() => {
+    return detectDatabaseType(urlInput || database.url);
+  }, [urlInput, database.url]);
+
+  // Get relevant examples based on detected type
+  const relevantExamples = useMemo(() => {
+    return EXAMPLES[detectedType] || EXAMPLES.general;
+  }, [detectedType]);
 
   useEffect(() => {
     if (isModalOpen) {
@@ -20,6 +71,7 @@ export function EditDatabaseForm({ database, onDatabaseUpdated }: EditDatabaseFo
         name: database.name,
         url: database.url,
       });
+      setUrlInput(database.url);
     }
   }, [isModalOpen, database, form]);
 
@@ -36,6 +88,10 @@ export function EditDatabaseForm({ database, onDatabaseUpdated }: EditDatabaseFo
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleUrlChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setUrlInput(e.target.value);
   };
 
   return (
@@ -71,7 +127,7 @@ export function EditDatabaseForm({ database, onDatabaseUpdated }: EditDatabaseFo
         open={isModalOpen}
         onCancel={() => setIsModalOpen(false)}
         footer={null}
-        width={500}
+        width={560}
       >
         <Descriptions
           column={1}
@@ -101,18 +157,83 @@ export function EditDatabaseForm({ database, onDatabaseUpdated }: EditDatabaseFo
           >
             <Input placeholder="输入新名称或留空" />
           </Form.Item>
+
           <Form.Item
-            label="新连接字符串"
+            label={
+              <Space>
+                <span>新连接字符串</span>
+                {detectedType !== "general" && (
+                  <Text type="secondary" style={{ fontSize: "12px" }}>
+                    (检测到: {detectedType.toUpperCase()})
+                  </Text>
+                )}
+              </Space>
+            }
             name="url"
             tooltip="留空则不修改连接"
-            extra="示例：postgresql://user:pass@localhost:5432/mydb, mysql://user:pass@localhost:3306/mydb, sqlite:///path/to/file.db"
           >
             <Input.TextArea
               rows={3}
               placeholder="输入新连接字符串或留空"
+              onChange={handleUrlChange}
             />
           </Form.Item>
-          <Form.Item>
+
+          {/* Dynamic Examples Section */}
+          <div
+            style={{
+              marginTop: "-12px",
+              marginBottom: "16px",
+              padding: "12px",
+              backgroundColor: "#f5f5f5",
+              borderRadius: "6px",
+              border: "1px solid #e8e8e8",
+            }}
+          >
+            <Text strong style={{ fontSize: "12px", display: "block", marginBottom: "8px" }}>
+              {detectedType === "general" ? "连接示例" : `${detectedType.toUpperCase()} 连接示例`}
+            </Text>
+            {relevantExamples.map((example, index) => (
+              <div key={index} style={{ marginBottom: index < relevantExamples.length - 1 ? "8px" : "0" }}>
+                <Text type="secondary" style={{ fontSize: "11px" }}>
+                  {example.label}:
+                </Text>
+                <div
+                  style={{
+                    marginTop: "4px",
+                    padding: "6px 8px",
+                    backgroundColor: "#fff",
+                    border: "1px solid #d9d9d9",
+                    borderRadius: "4px",
+                    fontFamily: "Monaco, Consolas, monospace",
+                    fontSize: "11px",
+                    color: "#1890ff",
+                    wordBreak: "break-all",
+                    cursor: "pointer",
+                    transition: "all 0.2s",
+                  }}
+                  onClick={() => {
+                    const currentValue = form.getFieldValue("url") || "";
+                    form.setFieldValue("url", example.value);
+                    setUrlInput(example.value);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#e6f7ff";
+                    e.currentTarget.style.borderColor = "#1890ff";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = "#fff";
+                    e.currentTarget.style.borderColor = "#d9d9d9";
+                  }}
+                  title="点击填入"
+                >
+                  {example.value}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <Form.Item style={{ marginBottom: 0 }}>
             <Space>
               <Button type="primary" htmlType="submit" loading={loading}>
                 更新数据库

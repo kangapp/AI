@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from pydantic import BaseModel, Field
+from pydantic import Field
 
 from ..lib.json_encoder import CamelModel
 

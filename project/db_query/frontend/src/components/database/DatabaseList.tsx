@@ -1,5 +1,5 @@
-import { List, Typography, Tag } from "antd";
-import { DeleteOutlined, EditOutlined, DatabaseOutlined } from "@ant-design/icons";
+import { Typography, Tag } from "antd";
+import { DeleteOutlined, DatabaseOutlined } from "@ant-design/icons";
 import type { DatabaseConnection } from "../../types";
 import { EditDatabaseForm } from "./EditDatabaseForm";
 

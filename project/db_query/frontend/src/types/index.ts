@@ -125,6 +125,7 @@ export interface QueryHistoryResponse {
 
 // Export types
 export interface ExportRequest {
+  sql: string;
   format: "csv" | "json";
   includeHeaders?: boolean;
 }

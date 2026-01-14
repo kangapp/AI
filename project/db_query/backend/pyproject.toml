@@ -15,6 +15,9 @@ dependencies = [
     "pymysql>=1.1.2",
     "zai-sdk>=0.2.0",
     "sniffio>=1.3.1",
+    "slowapi>=0.1.9",
+    "structlog>=24.0.0",
+    "tenacity>=8.5.0",
 ]
 
 [build-system]
@@ -48,6 +51,7 @@ warn_redundant_casts = true
 warn_unused_configs = true
 warn_unreachable = true
 no_error_summary = false
+mypy_path = "src"
 
 [[tool.mypy.overrides]]
 module = "src.*"

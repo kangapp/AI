@@ -4,7 +4,7 @@
 
 import { useMemo } from "react";
 import { TableOutlined, ColumnHeightOutlined, DatabaseOutlined } from "@ant-design/icons";
-import type { TableMetadata, ViewMetadata, ColumnMetadata } from "../types";
+import type { TableMetadata, ViewMetadata } from "../types";
 
 export interface DataNode {
   title: string;

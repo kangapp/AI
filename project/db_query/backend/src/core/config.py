@@ -18,10 +18,28 @@ class AppConfig(BaseSettings):
     )
 
     zai_api_key: str = Field(..., description="ZhipuAI API key (required)")
-    db_path: str = Field(default="~/.db_query/db_query.db", description="Path to the SQLite database file")
+    db_path: str = Field(
+        default="~/.db_query/db_query.db", description="Path to the SQLite database file"
+    )
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"] = Field(
         default="INFO",
         description="Logging level",
+    )
+    json_logs: bool = Field(
+        default=False,
+        description="Use JSON format for logs (default: readable text)",
+    )
+    log_file: str | None = Field(
+        default="logs/app.log",
+        description="Path to log file. If not set, logs only go to stdout.",
+    )
+    cors_origins: list[str] = Field(
+        default=["http://localhost:5173", "http://localhost:3000"],
+        description="Allowed CORS origins for API access",
+    )
+    max_request_size: int = Field(
+        default=1_000_000,
+        description="Maximum request size in bytes",
     )
 
     def get_resolved_db_path(self) -> Path:

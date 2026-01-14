@@ -1,12 +1,19 @@
 """LLM service for natural language to SQL generation using zai-sdk."""
 
-from typing import Any
-
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 from zai import ZhipuAiClient
 
 from ..core.config import get_config
+from ..core.logging import get_logger
 from ..core.sql_parser import get_parser
-from ..models.metadata import ColumnMetadata, TableMetadata, ViewMetadata
+from ..models.metadata import TableMetadata, ViewMetadata
+
+logger = get_logger(__name__)
 
 
 class LLMServiceError(Exception):
@@ -22,6 +29,12 @@ class LLMServiceError(Exception):
         self.message = message
         self.details = details
         super().__init__(message)
+
+
+class TransientLLMError(LLMServiceError):
+    """Exception raised for transient LLM errors that should be retried."""
+
+    pass
 
 
 class LLMService:
@@ -98,6 +111,11 @@ class LLMService:
 
         return "\n".join(lines)
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type(TransientLLMError),
+    )
     async def generate_sql(
         self,
         natural_query: str,
@@ -105,7 +123,7 @@ class LLMService:
         views: list[ViewMetadata],
         db_type: str,
     ) -> tuple[str, str | None]:
-        """Generate SQL from a natural language query.
+        """Generate SQL from a natural language query with retry logic.
 
         Args:
             natural_query: The natural language query.
@@ -117,8 +135,16 @@ class LLMService:
             A tuple of (generated_sql, explanation).
 
         Raises:
-            LLMServiceError: If the LLM service fails.
+            LLMServiceError: If the LLM service fails after retries.
         """
+        logger.info(
+            "llm_generate_sql_start",
+            query_length=len(natural_query),
+            tables_count=len(tables),
+            views_count=len(views),
+            db_type=db_type,
+        )
+
         # Format metadata as context
         metadata_context = self._format_metadata_context(tables, views, db_type)
 
@@ -141,16 +167,49 @@ class LLMService:
                 max_tokens=2000,
             )
             content = response.choices[0].message.content
+            logger.debug("llm_response_received", response_length=len(content))
         except Exception as e:
+            error_msg = str(e)
+            # Check for transient errors (network issues, rate limits, etc.)
+            if any(
+                keyword in error_msg.lower()
+                for keyword in ["timeout", "connection", "rate limit", "503", "502"]
+            ):
+                logger.warning(
+                    "llm_transient_error",
+                    error=error_msg,
+                    error_type=type(e).__name__,
+                )
+                raise TransientLLMError(
+                    "Transient error from LLM service",
+                    details=error_msg,
+                ) from e
+
+            logger.error(
+                "llm_service_error",
+                error=error_msg,
+                error_type=type(e).__name__,
+            )
             raise LLMServiceError(
                 "Failed to communicate with LLM service",
-                details=str(e),
+                details=error_msg,
             ) from e
 
         # Parse the response
         try:
-            return self._parse_llm_response(content)
+            sql, explanation = self._parse_llm_response(content)
+            logger.info(
+                "llm_generate_sql_success",
+                sql_length=len(sql),
+                has_explanation=explanation is not None,
+            )
+            return sql, explanation
         except Exception as e:
+            logger.error(
+                "llm_parse_error",
+                error=str(e),
+                response_preview=content[:200],
+            )
             raise LLMServiceError(
                 "Failed to parse LLM response",
                 details=str(e),
@@ -221,6 +280,7 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
                     sql_lines.append(line)
 
             if not sql_lines:
+                logger.error("llm_no_sql_found", response_preview=content[:200])
                 raise LLMServiceError(
                     "No SQL query found in LLM response",
                     details=content[:200],
@@ -234,7 +294,7 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
         if sql_end == -1:
             sql_end = len(content)
 
-        sql = content[sql_start + 6:sql_end].strip()
+        sql = content[sql_start + 6 : sql_end].strip()
 
         # Extract explanation (text before the code block)
         explanation = content[:sql_start].strip()
@@ -262,6 +322,8 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
         Raises:
             LLMServiceError: If the SQL cannot be validated.
         """
+        logger.debug("sql_validation_start", sql_length=len(sql))
+
         # Use sqlglot to validate the SQL
         parser = get_parser(db_type)
 
@@ -272,8 +334,10 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
             # Ensure LIMIT is present
             sql = parser.ensure_limit(sql, default_limit=1000)
 
+            logger.debug("sql_validation_success")
             return sql
         except ValueError as e:
+            logger.error("sql_validation_failed", error=str(e))
             raise LLMServiceError(
                 "Generated SQL validation failed",
                 details=str(e),
@@ -297,20 +361,31 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
         Returns:
             A tuple of (sql, explanation, is_valid, validation_message).
         """
+        logger.info("generate_and_validate_start", query=natural_query[:100])
+
         try:
             # Generate SQL
-            sql, explanation = await self.generate_sql(
-                natural_query, tables, views, db_type
-            )
+            sql, explanation = await self.generate_sql(natural_query, tables, views, db_type)
 
             # Validate SQL
             validated_sql = await self.validate_and_fix_sql(sql, tables, db_type)
 
+            logger.info("generate_and_validate_success")
             return validated_sql, explanation, True, None
 
         except LLMServiceError as e:
+            logger.warning(
+                "generate_and_validate_failed",
+                error_message=e.message,
+                error_details=e.details,
+            )
             return "", None, False, f"{e.message}: {e.details}" if e.details else e.message
 
+    @retry(
+        stop=stop_after_attempt(2),
+        wait=wait_exponential(multiplier=1, min=1, max=5),
+        retry=retry_if_exception_type(TransientLLMError),
+    )
     async def generate_suggested_queries(
         self,
         tables: list[TableMetadata],
@@ -321,7 +396,7 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
         exclude: list[str] | None = None,
         history: list[str] | None = None,
     ) -> list[str]:
-        """Generate suggested query descriptions based on database metadata.
+        """Generate suggested query descriptions based on database metadata with retry logic.
 
         Args:
             tables: List of table metadata.
@@ -336,8 +411,18 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
             A list of suggested query descriptions in Chinese.
 
         Raises:
-            LLMServiceError: If the LLM service fails.
+            LLMServiceError: If the LLM service fails after retries.
         """
+        logger.info(
+            "generate_suggested_queries_start",
+            tables_count=len(tables),
+            views_count=len(views),
+            limit=limit,
+            seed=seed,
+            exclude_count=len(exclude) if exclude else 0,
+            history_count=len(history) if history else 0,
+        )
+
         # Format metadata as context
         metadata_context = self._format_metadata_context(tables, views, db_type)
 
@@ -350,7 +435,7 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
 
         # Add history context if available
         if history:
-            prompt += f"\n用户历史查询（用于参考偏好）:\n"
+            prompt += "\n用户历史查询（用于参考偏好）:\n"
             for i, h in enumerate(history[:5], 1):
                 prompt += f"  {i}. {h}\n"
 
@@ -400,7 +485,25 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
             suggestions = [
                 line.strip()
                 for line in content.strip().split("\n")
-                if line.strip() and not line.strip().startswith(("```", "1.", "2.", "3.", "4.", "5.", "6.", "7.", "8.", "9.", "10.", "-", "*", "#"))
+                if line.strip()
+                and not line.strip().startswith(
+                    (
+                        "```",
+                        "1.",
+                        "2.",
+                        "3.",
+                        "4.",
+                        "5.",
+                        "6.",
+                        "7.",
+                        "8.",
+                        "9.",
+                        "10.",
+                        "-",
+                        "*",
+                        "#",
+                    )
+                )
             ]
 
             # Clean up common prefixes
@@ -408,18 +511,55 @@ SELECT id, name, email FROM users WHERE is_active = true LIMIT 1000;
             for suggestion in suggestions:
                 # Remove common prefixes like "查询:", "显示:", "统计:" etc.
                 cleaned = suggestion
-                for prefix in ["查询：", "显示：", "统计：", "查找：", "查询:", "显示:", "统计:", "查找:"]:
+                for prefix in [
+                    "查询：",
+                    "显示：",
+                    "统计：",
+                    "查找：",
+                    "查询:",
+                    "显示:",
+                    "统计:",
+                    "查找:",
+                ]:
                     if cleaned.startswith(prefix):
-                        cleaned = cleaned[len(prefix):]
+                        cleaned = cleaned[len(prefix) :]
                         break
                 # Check if suggestion should be excluded
                 if cleaned and (not exclude or cleaned not in exclude):
                     cleaned_suggestions.append(cleaned)
 
-            return cleaned_suggestions[:limit]
+            result = cleaned_suggestions[:limit]
+
+            logger.info(
+                "generate_suggested_queries_success",
+                suggestions_count=len(result),
+            )
+
+            return result
 
         except Exception as e:
+            error_msg = str(e)
+            # Check for transient errors
+            if any(
+                keyword in error_msg.lower()
+                for keyword in ["timeout", "connection", "rate limit", "503", "502"]
+            ):
+                logger.warning(
+                    "llm_suggestions_transient_error",
+                    error=error_msg,
+                    error_type=type(e).__name__,
+                )
+                raise TransientLLMError(
+                    "Transient error from LLM service",
+                    details=error_msg,
+                ) from e
+
+            logger.error(
+                "generate_suggested_queries_failed",
+                error=error_msg,
+                error_type=type(e).__name__,
+            )
             raise LLMServiceError(
                 "Failed to generate suggested queries",
-                details=str(e),
+                details=error_msg,
             ) from e

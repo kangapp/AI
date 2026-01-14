@@ -1,4 +1,4 @@
-import { Table, Collapse, Tag, Typography } from "antd";
+import { Table, Tag, Typography } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { TableMetadata, ViewMetadata, ColumnMetadata } from "../../types";
 
@@ -15,6 +15,7 @@ interface TableOrViewData {
   schema: string | null;
   type: "table" | "view";
   columnCount: number;
+  columns: ColumnMetadata[];
 }
 
 export function TableList({ tables, views }: TableListProps) {

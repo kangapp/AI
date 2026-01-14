@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useRef } from "react";
-import { Button, Input, Modal, Space, Typography, Alert, Spin, Card, Tag, message } from "antd";
+import { Button, Input, Modal, Typography, Alert, Spin, Card, Tag, message } from "antd";
 import { ThunderboltOutlined, CheckCircleOutlined, ExclamationCircleOutlined, BulbOutlined, FireOutlined, SyncOutlined } from "@ant-design/icons";
 import type { NaturalQueryResponse } from "../../types";
 import { api } from "../../services/api";

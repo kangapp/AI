@@ -10,18 +10,16 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
+from ..core.constants import Database
+from ..core.logging import get_logger
 from ..core.sqlite_db import get_db
 from ..models.database import (
     ConnectionString,
     DatabaseConnection,
     DatabaseCreateRequest,
-    DatabaseUpdateRequest,
     DatabaseDetail,
+    DatabaseUpdateRequest,
 )
-
-
-# Engine timeout: close engines idle for more than 1 hour
-ENGINE_IDLE_TIMEOUT = 3600  # seconds
 
 
 class DatabaseService:
@@ -29,6 +27,7 @@ class DatabaseService:
 
     def __init__(self) -> None:
         """Initialize the database service."""
+        self.logger = get_logger(__name__)
         self.db = get_db()
         self._engines: dict[int, Engine] = {}
         self._engine_last_used: dict[int, float] = {}
@@ -42,22 +41,26 @@ class DatabaseService:
 
     async def _cleanup_idle_engines(self) -> None:
         """Background task to clean up idle engines."""
+        self.logger.info("engine_cleanup_started")
         while True:
             try:
-                await asyncio.sleep(300)  # Check every 5 minutes
+                await asyncio.sleep(Database.CLEANUP_INTERVAL)  # Check every 5 minutes
                 now = time.time()
                 idle_engines = [
                     db_id
                     for db_id, last_used in self._engine_last_used.items()
-                    if now - last_used > ENGINE_IDLE_TIMEOUT
+                    if now - last_used > Database.ENGINE_IDLE_TIMEOUT
                 ]
+                if idle_engines:
+                    self.logger.info("cleaning_idle_engines", count=len(idle_engines))
                 for db_id in idle_engines:
                     await self._dispose_engine(db_id)
             except asyncio.CancelledError:
+                self.logger.info("engine_cleanup_cancelled")
                 break
-            except Exception:
+            except Exception as e:
                 # Log but don't stop the cleanup task
-                pass
+                self.logger.error("engine_cleanup_error", error=str(e))
 
     async def _dispose_engine(self, database_id: int) -> None:
         """Dispose of a database engine.
@@ -70,8 +73,9 @@ class DatabaseService:
                 self._engines[database_id].dispose()
                 del self._engines[database_id]
                 del self._engine_last_used[database_id]
-            except Exception:
-                pass
+                self.logger.debug("engine_disposed", database_id=database_id)
+            except Exception as e:
+                self.logger.warning("engine_dispose_failed", database_id=database_id, error=str(e))
 
     async def dispose_all(self) -> None:
         """Dispose of all database engines."""
@@ -144,6 +148,7 @@ class DatabaseService:
             return ConnectionString(
                 scheme="sqlite",
                 database=path,
+                original=url,  # Store original URL for correct redaction
             )
 
         return ConnectionString(
@@ -166,11 +171,11 @@ class DatabaseService:
             The connection URL with the appropriate driver.
         """
         # For MySQL, use pymysql driver
-        if db_type == "mysql" and not "+" in url:
+        if db_type == "mysql" and "+" not in url:
             # Replace mysql:// with mysql+pymysql://
             return url.replace("mysql://", "mysql+pymysql://", 1)
         # For PostgreSQL, use psycopg2 if available
-        if db_type == "postgresql" and not "+" in url:
+        if db_type == "postgresql" and "+" not in url:
             # Try postgresql+psycopg2://
             return url.replace("postgresql://", "postgresql+psycopg2://", 1)
         # For SQLite, ensure proper format for absolute paths
@@ -219,6 +224,7 @@ class DatabaseService:
         Raises:
             ValueError: If the name already exists or connection fails.
         """
+        self.logger.info("creating_database", name=request.name)
         # Check for duplicate name (only active databases)
         existing = await self.db.fetch_one(
             "SELECT id FROM databases WHERE name = :name AND is_active = 1", {"name": request.name}
@@ -228,6 +234,7 @@ class DatabaseService:
 
         # Detect database type
         db_type = self._detect_db_type(request.url)
+        self.logger.debug("database_type_detected", name=request.name, db_type=db_type)
 
         # Convert connection URL to use appropriate driver
         connection_url = self._add_driver_to_url(request.url, db_type)
@@ -235,7 +242,9 @@ class DatabaseService:
         # Test connection
         try:
             await asyncio.to_thread(self._test_connection, connection_url)
+            self.logger.info("connection_test_success", name=request.name)
         except SQLAlchemyError as e:
+            self.logger.error("connection_test_failed", name=request.name, error=str(e))
             raise ValueError(f"Failed to connect to database: {e}") from e
 
         # Insert into database (store original URL, not the one with driver)
@@ -254,6 +263,7 @@ class DatabaseService:
         )
 
         db_id = cursor.lastrowid or 0
+        self.logger.info("database_created", name=request.name, id=db_id)
         return await self.get_database_by_id(db_id)
 
     async def list_databases(self) -> list[DatabaseConnection]:
@@ -349,9 +359,7 @@ class DatabaseService:
         await self.get_database_by_name(name)
 
         # Hard delete (remove the record entirely)
-        await self.db.execute(
-            "DELETE FROM databases WHERE name = :name", {"name": name}
-        )
+        await self.db.execute("DELETE FROM databases WHERE name = :name", {"name": name})
 
     async def update_database(self, name: str, request: DatabaseUpdateRequest) -> DatabaseDetail:
         """Update a database connection.
@@ -377,7 +385,7 @@ class DatabaseService:
             # Check if new name already exists
             existing = await self.db.fetch_one(
                 "SELECT id FROM databases WHERE name = :new_name AND is_active = 1",
-                {"new_name": request.name}
+                {"new_name": request.name},
             )
             if existing:
                 raise ValueError(f"Database with name '{request.name}' already exists")
@@ -407,8 +415,7 @@ class DatabaseService:
 
         # Execute update
         await self.db.execute(
-            f"UPDATE databases SET {', '.join(updates)} WHERE name = :name",
-            params
+            f"UPDATE databases SET {', '.join(updates)} WHERE name = :name", params
         )
 
         # Return updated database (use new name if changed)
@@ -446,7 +453,8 @@ class DatabaseService:
             ValueError: If the database is not found.
         """
         row = await self.db.fetch_one(
-            "SELECT url, db_type FROM databases WHERE name = :name AND is_active = 1", {"name": name}
+            "SELECT url, db_type FROM databases WHERE name = :name AND is_active = 1",
+            {"name": name},
         )
         if not row:
             raise ValueError(f"Database '{name}' not found")

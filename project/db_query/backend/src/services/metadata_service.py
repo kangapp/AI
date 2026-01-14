@@ -8,6 +8,8 @@ from urllib.parse import urlparse
 from sqlalchemy import Engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
+from ..core.constants import Metadata
+from ..core.logging import get_logger
 from ..core.sqlite_db import get_db
 from ..models.database import DatabaseDetail
 from ..models.metadata import (
@@ -22,10 +24,11 @@ class MetadataService:
     """Service for extracting and caching database metadata."""
 
     # SQL identifier pattern - only alphanumeric, underscore, and $ allowed
-    _SQL_IDENTIFIER_PATTERN = re.compile(r'^[a-zA-Z_][a-zA-Z0-9_$]*$')
+    _SQL_IDENTIFIER_PATTERN = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_$]*$")
 
     def __init__(self) -> None:
         """Initialize the metadata service."""
+        self.logger = get_logger(__name__)
         self.db = get_db()
 
     @classmethod
@@ -63,12 +66,17 @@ class MetadataService:
         Returns:
             The metadata response.
         """
-        # Check if we have cached metadata
+        self.logger.info("fetching_metadata", database=database.name, force_refresh=force_refresh)
+
+        # Check if we have cached metadata and if it's still valid
         if not force_refresh and database.metadata_updated_at:
-            # Return cached metadata from database
-            if database.metadata_json:
+            # Check if cache is still within TTL
+            cache_age = datetime.now() - database.metadata_updated_at
+            if cache_age < Metadata.CACHE_TTL and database.metadata_json:
+                # Return cached metadata from database
                 import json
 
+                self.logger.debug("using_cached_metadata", database=database.name, cache_age_seconds=int(cache_age.total_seconds()))
                 cached = json.loads(database.metadata_json)
                 return MetadataResponse(
                     database_name=database.name,
@@ -88,6 +96,7 @@ class MetadataService:
                 # The URL stored in database is the original one without driver
                 # We need to get it from the service
                 from .db_service import DatabaseService
+
                 db_svc = DatabaseService()
                 original_url = await db_svc.get_original_url(database.name)
                 parsed = urlparse(original_url)
@@ -122,6 +131,13 @@ class MetadataService:
                 "metadata_json": metadata_json,
                 "now": datetime.now(),
             },
+        )
+
+        self.logger.info(
+            "metadata_fetched",
+            database=database.name,
+            tables_count=len(tables),
+            views_count=len(views),
         )
 
         return MetadataResponse(
@@ -267,12 +283,15 @@ class MetadataService:
 
             # Fetch columns grouped by schema (much faster)
             for schema, tables in schema_tables.items():
-                # Validate schema
-                schema = self._validate_identifier(schema) or "default"
-                tables_str = ", ".join([f"'{self._validate_identifier(t)}'" for t in tables])
+                # Double-validate schema to prevent injection (m-6)
+                validated_schema = self._validate_identifier(schema) or "default"
+                # Validate each table name and quote them properly
+                validated_table_names = [f"'{self._validate_identifier(t)}'" for t in tables]
+                tables_str = ", ".join(validated_table_names)
 
                 # Get all columns for tables in this schema
-                # Note: schema and table names are validated above, preventing injection
+                # Note: All identifiers are validated through _validate_identifier
+                # which only allows alphanumeric, underscore, and $ characters
                 columns_query = f"""
                     SELECT
                         c.table_name,
@@ -282,7 +301,7 @@ class MetadataService:
                         c.column_default,
                         c.ordinal_position
                     FROM information_schema.columns c
-                    WHERE c.table_schema = '{schema}'
+                    WHERE c.table_schema = '{validated_schema}'
                     AND c.table_name IN ({tables_str})
                     ORDER BY c.table_name, c.ordinal_position
                 """
@@ -295,15 +314,18 @@ class MetadataService:
                     table = row[0]
                     if table not in temp_columns:
                         temp_columns[table] = []
-                    temp_columns[table].append({
-                        "name": row[1],
-                        "data_type": row[2],
-                        "is_nullable": row[3].upper() == "YES",
-                        "default_value": row[4],
-                        "ordinal_position": row[5],
-                    })
+                    temp_columns[table].append(
+                        {
+                            "name": row[1],
+                            "data_type": row[2],
+                            "is_nullable": row[3].upper() == "YES",
+                            "default_value": row[4],
+                            "ordinal_position": row[5],
+                        }
+                    )
 
-                # Get primary keys for tables in this schema
+                # Get primary keys for tables in this schema (m-6)
+                # All identifiers are validated through _validate_identifier
                 if db_type == "mysql":
                     pk_query = f"""
                         SELECT
@@ -313,7 +335,7 @@ class MetadataService:
                         JOIN information_schema.key_column_usage kcu
                             ON tc.constraint_name = kcu.constraint_name
                             AND tc.table_schema = kcu.table_schema
-                        WHERE tc.table_schema = '{schema}'
+                        WHERE tc.table_schema = '{validated_schema}'
                         AND tc.table_name IN ({tables_str})
                         AND tc.constraint_type = 'PRIMARY KEY'
                     """
@@ -323,7 +345,7 @@ class MetadataService:
                             kcu.table_name,
                             kcu.column_name
                         FROM information_schema.key_column_usage kcu
-                        WHERE kcu.table_schema = '{schema}'
+                        WHERE kcu.table_schema = '{validated_schema}'
                         AND kcu.table_name IN ({tables_str})
                         AND kcu.constraint_type = 'PRIMARY KEY'
                     """
@@ -405,7 +427,9 @@ class MetadataService:
                 # Collect all view names and schemas
                 view_list = []
                 for row in result:
-                    view_list.append((row[0], row[1] if row[1] else None, row[2] if row[2] else None))
+                    view_list.append(
+                        (row[0], row[1] if row[1] else None, row[2] if row[2] else None)
+                    )
 
                 if not view_list:
                     return views

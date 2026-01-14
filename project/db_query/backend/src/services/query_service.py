@@ -7,6 +7,8 @@ from typing import Any
 
 from sqlalchemy import Engine, text
 
+from ..core.constants import Pagination, Query
+from ..core.logging import get_logger
 from ..core.sql_parser import get_parser
 from ..core.sqlite_db import get_db
 from ..models.database import DatabaseDetail
@@ -24,6 +26,7 @@ class QueryService:
 
     def __init__(self) -> None:
         """Initialize the query service."""
+        self.logger = get_logger(__name__)
         self.db = get_db()
 
     async def execute_query(
@@ -31,7 +34,7 @@ class QueryService:
         database: DatabaseDetail,
         engine: Engine,
         sql: str,
-        timeout: int = 30,
+        timeout: int = Query.QUERY_TIMEOUT,
         query_type: str = "sql",
         input_text: str | None = None,
     ) -> QueryResponse:
@@ -55,12 +58,18 @@ class QueryService:
         """
         # Use input_text for logging, default to sql if not provided
         log_input_text = input_text if input_text is not None else sql
+        self.logger.info(
+            "executing_query",
+            database=database.name,
+            query_type=query_type,
+            sql=sql[:100] if len(sql) > 100 else sql,  # Truncate long queries
+        )
         # Validate SQL
         parser = get_parser(database.db_type)
         parser.validate_select_only(sql)
 
         # Add LIMIT if not present
-        final_sql = parser.ensure_limit(sql, default_limit=1000)
+        final_sql = parser.ensure_limit(sql, default_limit=Query.DEFAULT_LIMIT)
         has_limit_after = "LIMIT" in final_sql.upper()
 
         # Extract limit value if present
@@ -82,6 +91,13 @@ class QueryService:
                 timeout=timeout,
             )
         except TimeoutError:
+            execution_time_ms = int((datetime.now() - start_time).total_seconds() * 1000)
+            self.logger.error(
+                "query_timeout",
+                database=database.name,
+                query_type=query_type,
+                execution_time_ms=execution_time_ms,
+            )
             # Log failed query
             await self._log_query(
                 database_id=database.id,
@@ -90,7 +106,7 @@ class QueryService:
                 input_text=log_input_text,
                 executed_sql=final_sql,
                 row_count=None,
-                execution_time_ms=int((datetime.now() - start_time).total_seconds() * 1000),
+                execution_time_ms=execution_time_ms,
                 status="error",
                 error_message="Query timeout",
             )
@@ -103,6 +119,13 @@ class QueryService:
         columns, rows = self._serialize_results(result)
 
         # Log successful query
+        self.logger.info(
+            "query_completed",
+            database=database.name,
+            query_type=query_type,
+            row_count=len(rows),
+            execution_time_ms=execution_time_ms,
+        )
         await self._log_query(
             database_id=database.id,
             database_name=database.name,
@@ -154,7 +177,9 @@ class QueryService:
             # Fetch all results and convert to list
             return list(result.fetchall())
 
-    def _serialize_results(self, result: list[Any], column_types: list[str] | None = None) -> tuple[list[ColumnMetadata], list[dict[str, Any]]]:
+    def _serialize_results(
+        self, result: list[Any], column_types: list[str] | None = None
+    ) -> tuple[list[ColumnMetadata], list[dict[str, Any]]]:
         """Serialize query results into columns and rows.
 
         Args:
@@ -187,7 +212,7 @@ class QueryService:
                 data_type = column_types[i].upper()
             else:
                 # Infer type from actual row values
-                for row in result[:100]:  # Check first 100 rows
+                for row in result[:Query.TYPE_INFERENCE_SAMPLE_ROWS]:
                     value = row[i] if i < len(row) else None
                     if value is not None:
                         if isinstance(value, bool):
@@ -280,7 +305,7 @@ class QueryService:
         )
 
     async def get_query_history(
-        self, database_name: str, page: int = 1, page_size: int = 20
+        self, database_name: str, page: int = 1, page_size: int = Pagination.DEFAULT_PAGE_SIZE
     ) -> list[QueryHistoryItem]:
         """Get query history for a database.
 
@@ -366,12 +391,12 @@ class QueryService:
         if not item_ids:
             return 0
 
-        placeholders = ",".join([f":id{i}" for i in range(len(item_ids))])
-        params = {f"id{i}": item_id for i, item_id in enumerate(item_ids)}
+        # Use question mark placeholders for better performance
+        placeholders = ",".join(["?" for _ in item_ids])
 
         result = await self.db.execute(
             f"DELETE FROM query_history WHERE id IN ({placeholders})",
-            params,
+            item_ids,
         )
         return result
 
@@ -461,9 +486,7 @@ class QueryService:
         # Write rows
         for row in query_response.rows:
             # Convert all values to strings
-            row_values = [
-                str(value) if value is not None else "" for value in row.values()
-            ]
+            row_values = [str(value) if value is not None else "" for value in row.values()]
             writer.writerow(row_values)
 
         return ExportResponse(

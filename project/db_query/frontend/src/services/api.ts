@@ -3,20 +3,12 @@
  */
 
 import type {
-  DatabaseConnection,
-  DatabaseCreateRequest,
   DatabaseUpdateRequest,
   DatabaseDetail,
   DatabaseListResponse,
-  ColumnMetadata,
-  TableMetadata,
-  ViewMetadata,
   MetadataResponse,
-  QueryRequest,
   QueryResponse,
-  NaturalQueryRequest,
   NaturalQueryResponse,
-  QueryHistoryItem,
   QueryHistoryResponse,
   ExportRequest,
   ErrorResponse,
@@ -49,8 +41,10 @@ class ApiClient {
     });
 
     if (!response.ok) {
-      const error = (await response.json()) as ErrorResponse;
-      throw new Error(error.error?.message || "Request failed");
+      const error = (await response.json()) as { detail?: { message?: string } } & ErrorResponse;
+      // Support both old format (error.error.message) and new format (detail.message)
+      const errorMessage = error.detail?.message || error.error?.message || "Request failed";
+      throw new Error(errorMessage);
     }
 
     // Handle 204 No Content responses (e.g., DELETE)
@@ -234,7 +228,7 @@ class ApiClient {
 // Export singleton instance
 export const api = new ApiClient(API_URL);
 
-// Re-export types
+// Re-export types from source module
 export type {
   DatabaseConnection,
   DatabaseCreateRequest,

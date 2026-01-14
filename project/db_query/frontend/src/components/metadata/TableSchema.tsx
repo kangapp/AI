@@ -2,7 +2,7 @@ import { Table, Tag, Typography, Descriptions } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import type { ColumnMetadata, TableMetadata } from "../../types";
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
 interface TableSchemaProps {
   table: TableMetadata;
