@@ -1161,7 +1161,7 @@ async def _cleanup_idle_engines(self):
 #### 元数据提取流程
 
 ```mermaid
-flowchart TD
+graph TD
     A[请求元数据] --> B{是否强制刷新?}
     B -->|否| C{有缓存?}
     C -->|是| D[返回缓存]
@@ -1248,7 +1248,7 @@ prompt = f"""根据以下自然语言请求生成 SQL 查询:
 #### SQL 验证与修复
 
 ```mermaid
-flowchart TD
+graph TD
     A[LLM生成SQL] --> B[sqlglot解析]
     B --> C{是否为SELECT?}
     C -->|否| D[抛出错误]
@@ -1354,7 +1354,7 @@ CREATE TABLE query_history (
 #### 前端组件依赖与状态流转
 
 ```mermaid
-flowchart TD
+graph TD
     subgraph "前端组件层级"
         A[Dashboard/index.tsx<br/>主仪表板]
         B[QueryTabs.tsx<br/>查询标签页容器]
@@ -1425,7 +1425,7 @@ sequenceDiagram
 #### 后端函数调用链路
 
 ```mermaid
-flowchart TD
+graph TD
     subgraph "API层 - queries.py"
         A[natural_query endpoint<br/>Line 212-348]
     end
@@ -1555,7 +1555,7 @@ sequenceDiagram
 #### 日志模块配合
 
 ```mermaid
-flowchart LR
+graph LR
     subgraph "日志记录点"
         A[请求开始<br/>llm_generate_sql_start]
         B[收到AI响应<br/>llm_response_received]
@@ -1625,7 +1625,7 @@ flowchart LR
 #### 底层数据流转
 
 ```mermaid
-flowchart TD
+graph TD
     subgraph "应用内部 SQLite (~/.db_query/db_query.db)"
         A[databases 表<br/>存储数据库连接配置]
         B[query_history 表<br/>存储查询历史]
@@ -1661,7 +1661,7 @@ flowchart TD
 **数据格式转换链路**：
 
 ```mermaid
-flowchart LR
+graph LR
     subgraph "数据库原始数据"
         A[RowProxy对象<br/>SQLAlchemy返回]
     end
@@ -1775,7 +1775,7 @@ sequenceDiagram
 ### 错误处理与重试机制
 
 ```mermaid
-flowchart TD
+graph TD
     A[LLM调用失败] --> B{错误类型判断}
     B -->|timeout/connection<br/>rate limit/503/502| C[TransientLLMError]
     B -->|其他错误| D[LLMServiceError]
@@ -2241,7 +2241,7 @@ graph TD
     G --> H[组件重新渲染]
 
     I[用户创建数据库] --> J[createDatabase]
-    J --> K[PUT /api/v1/dbs/{name}]
+    J --> K["PUT /api/v1/dbs/{name}"]
     K --> L[onSuccess 回调]
     L --> M[invalidateQueries]
     M --> N[自动重新获取列表]
@@ -2615,10 +2615,10 @@ sequenceDiagram
 **数据转换流程**：
 
 ```mermaid
-flowchart LR
+graph LR
     subgraph "输入数据"
-        A[TableMetadata[]]
-        B[ViewMetadata[]]
+        A["TableMetadata[]"]
+        B["ViewMetadata[]"]
     end
 
     subgraph "转换过程"
@@ -2628,7 +2628,7 @@ flowchart LR
     end
 
     subgraph "输出数据"
-        F[DataNode[]<br/>Ant Design Tree数据]
+        F["DataNode[]<br/>Ant Design Tree数据"]
     end
 
     A --> C
