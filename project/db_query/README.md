@@ -5,15 +5,17 @@
 ## 目录
 
 - [项目概述](#项目概述)
-- [技术栈](#技术栈)
-- [系统架构](#系统架构)
 - [快速开始](#快速开始)
 - [使用指南](#使用指南)
 - [项目结构](#项目结构)
-- [核心功能实现](#核心功能实现)
+- [技术栈](#技术栈)
+- [系统架构](#系统架构)
 - [技术要点](#技术要点)
+- [核心功能实现](#核心功能实现)
+- [完整调用链路详解](#完整调用链路详解)
 - [开发指南](#开发指南)
 - [API 文档](#api-文档)
+- [常见问题](#常见问题)
 
 ---
 
@@ -38,203 +40,6 @@
 - **连接池管理**：自动管理数据库连接，空闲超时清理
 - **速率限制**：API 级别速率限制，防止滥用
 - **结构化日志**：JSON 格式日志，便于分析和监控
-
----
-
-## 技术栈
-
-### 后端技术栈
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| Python | 3.14+ | 开发语言 |
-| FastAPI | 0.115.0+ | Web 框架 |
-| SQLAlchemy | 2.0.36+ | ORM 和数据库连接 |
-| Pydantic | 2.10.0+ | 数据验证 |
-| sqlglot | 25.30.0+ | SQL 解析和验证 |
-| zai-sdk | 0.2.0+ | 智谱 AI 集成 |
-| uvicorn | 0.32.0+ | ASGI 服务器 |
-| aiosqlite | 0.20.0+ | 异步 SQLite |
-| pymysql | 1.1.2+ | MySQL 驱动 |
-| slowapi | 0.1.9+ | 速率限制 |
-| structlog | 24.0.0+ | 结构化日志 |
-| tenacity | 8.5.0+ | 重试机制 |
-
-### 前端技术栈
-
-| 技术 | 版本 | 用途 |
-|------|------|------|
-| TypeScript | 5.6.2+ | 开发语言 |
-| React | 18.3.1+ | UI 框架 |
-| Vite | 6.0.1+ | 构建工具 |
-| Ant Design | 5.22.2+ | UI 组件库 |
-| Monaco Editor | 4.7.0+ | SQL 编辑器 |
-| Tailwind CSS | 3.4.17+ | 样式框架 |
-| React Router | 7.1.1+ | 路由管理 |
-| React Query | 5.90.17+ | 服务端状态管理 |
-| Refinedev | 4.57.0+ | 数据提供框架 |
-
----
-
-## 系统架构
-
-### 整体架构图
-
-```mermaid
-graph TB
-    subgraph 前端层
-        A[Dashboard.tsx / 主仪表板]
-        B[DatabaseList / 数据库列表]
-        C[SqlEditor / SQL编辑器]
-        D[NaturalQueryInput / AI查询输入]
-        E[QueryResults / 结果展示]
-        F[QueryHistoryTab / 查询历史]
-    end
-
-    subgraph API层
-        G[FastAPI Router]
-        H["/api/v1/dbs / 数据库管理"]
-        I["/api/v1/dbs/:name/query / 查询执行"]
-        J["/api/v1/dbs/:name/query/natural / AI查询"]
-        K["/api/v1/dbs/:name/history / 查询历史"]
-    end
-
-    subgraph 服务层
-        L[DatabaseService / 数据库连接管理]
-        M[QueryService / 查询执行]
-        N[LLMService / AI服务]
-        O[MetadataService / 元数据提取]
-    end
-
-    subgraph 数据层
-        P[(SQLite / 应用数据库)]
-        Q[(MySQL-PostgreSQL / 用户数据库)]
-        R[元数据缓存]
-    end
-
-    A --> G
-    B --> H
-    C --> I
-    D --> J
-    E --> I
-    F --> K
-
-    G --> L
-    I --> M
-    J --> N
-    K --> M
-    H --> O
-
-    L --> P
-    M --> P
-    M --> Q
-    O --> Q
-    O --> R
-```
-
-### 数据流图
-
-```mermaid
-sequenceDiagram
-    participant User as 用户
-    participant Frontend as 前端
-    participant API as API层
-    participant LLM as LLM服务
-    participant DB as 数据库服务
-
-    User->>Frontend: 输入自然语言查询
-    Frontend->>API: POST /dbs/:name/query/natural
-    API->>LLM: 生成SQL
-    LLM->>LLM: 构建Prompt（含元数据）
-    LLM->>LLM: 调用智谱AI API
-    LLM->>API: 返回生成的SQL
-    API->>API: SQL验证和修复
-    API->>DB: 执行查询
-    DB->>API: 返回结果
-    API->>Frontend: 返回结果
-    Frontend->>User: 展示查询结果
-```
-
-### 后端模块架构
-
-```mermaid
-graph LR
-    subgraph src_api
-        A[main.py / 应用入口]
-        B[dependencies.py / 依赖注入]
-        C[errors.py / 错误处理]
-        D[v1/databases.py / 数据库API]
-        E[v1/queries.py / 查询API]
-    end
-
-    subgraph src_services
-        F[db_service.py / 数据库连接]
-        G[query_service.py / 查询执行]
-        H[llm_service.py / AI服务]
-        I[metadata_service.py / 元数据提取]
-    end
-
-    subgraph src_models
-        J[database.py / 数据库模型]
-        K[query.py / 查询模型]
-        L[metadata.py / 元数据模型]
-    end
-
-    subgraph src_core
-        M[config.py / 配置管理]
-        N[constants.py / 常量定义]
-        O[sql_parser.py / SQL解析]
-        P[sqlite_db.py / SQLite连接]
-        Q[logging.py / 日志配置]
-    end
-
-    subgraph src_lib
-        R[json_encoder.py / 驼峰命名]
-    end
-
-    subgraph src_middleware
-        S[rate_limit.py / 速率限制]
-    end
-
-    D --> F
-    D --> I
-    E --> G
-    E --> H
-    E --> I
-
-    F --> J
-    G --> K
-    H --> L
-    I --> L
-```
-
-### 前端组件架构
-
-```mermaid
-graph TD
-    A[Dashboard/index.tsx / 主页面] --> B[Sidebar / 侧边栏]
-    A --> C[DatabaseInfo / 数据库信息]
-    A --> D[QueryTabs / 查询标签页]
-
-    B --> E[DatabaseList / 数据库列表]
-    B --> F[SchemaTree / 架构树]
-
-    D --> G[SQL查询Tab]
-    D --> H[AI查询Tab]
-    D --> I[历史记录Tab]
-
-    G --> J[SqlEditor / SQL编辑器]
-    G --> K[QueryResults / 结果展示]
-
-    H --> L[NaturalQueryInput / 自然语言输入]
-    H --> M[SuggestedQueries / 建议查询]
-
-    I --> N[QueryHistoryTab / 历史记录]
-
-    E --> O[AddDatabaseForm / 添加表单]
-    E --> P[EditDatabaseForm / 编辑表单]
-    E --> Q[DatabaseDetail / 数据库详情]
-```
 
 ---
 
@@ -466,6 +271,384 @@ db_query/
 │   └── tailwind.config.js
 │
 └── Makefile                          # 自动化脚本
+```
+
+---
+
+## 技术栈
+
+### 后端技术栈
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| Python | 3.14+ | 开发语言 |
+| FastAPI | 0.115.0+ | Web 框架 |
+| SQLAlchemy | 2.0.36+ | ORM 和数据库连接 |
+| Pydantic | 2.10.0+ | 数据验证 |
+| sqlglot | 25.30.0+ | SQL 解析和验证 |
+| zai-sdk | 0.2.0+ | 智谱 AI 集成 |
+| uvicorn | 0.32.0+ | ASGI 服务器 |
+| aiosqlite | 0.20.0+ | 异步 SQLite |
+| pymysql | 1.1.2+ | MySQL 驱动 |
+| slowapi | 0.1.9+ | 速率限制 |
+| structlog | 24.0.0+ | 结构化日志 |
+| tenacity | 8.5.0+ | 重试机制 |
+
+### 前端技术栈
+
+| 技术 | 版本 | 用途 |
+|------|------|------|
+| TypeScript | 5.6.2+ | 开发语言 |
+| React | 18.3.1+ | UI 框架 |
+| Vite | 6.0.1+ | 构建工具 |
+| Ant Design | 5.22.2+ | UI 组件库 |
+| Monaco Editor | 4.7.0+ | SQL 编辑器 |
+| Tailwind CSS | 3.4.17+ | 样式框架 |
+| React Router | 7.1.1+ | 路由管理 |
+| React Query | 5.90.17+ | 服务端状态管理 |
+| Refinedev | 4.57.0+ | 数据提供框架 |
+
+---
+
+## 系统架构
+
+### 整体架构图
+
+```mermaid
+graph TB
+    subgraph 前端层
+        A[Dashboard.tsx / 主仪表板]
+        B[DatabaseList / 数据库列表]
+        C[SqlEditor / SQL编辑器]
+        D[NaturalQueryInput / AI查询输入]
+        E[QueryResults / 结果展示]
+        F[QueryHistoryTab / 查询历史]
+    end
+
+    subgraph API层
+        G[FastAPI Router]
+        H["/api/v1/dbs / 数据库管理"]
+        I["/api/v1/dbs/:name/query / 查询执行"]
+        J["/api/v1/dbs/:name/query/natural / AI查询"]
+        K["/api/v1/dbs/:name/history / 查询历史"]
+    end
+
+    subgraph 服务层
+        L[DatabaseService / 数据库连接管理]
+        M[QueryService / 查询执行]
+        N[LLMService / AI服务]
+        O[MetadataService / 元数据提取]
+    end
+
+    subgraph 数据层
+        P[(SQLite / 应用数据库)]
+        Q[(MySQL-PostgreSQL / 用户数据库)]
+        R[元数据缓存]
+    end
+
+    A --> G
+    B --> H
+    C --> I
+    D --> J
+    E --> I
+    F --> K
+
+    G --> L
+    I --> M
+    J --> N
+    K --> M
+    H --> O
+
+    L --> P
+    M --> P
+    M --> Q
+    O --> Q
+    O --> R
+```
+
+### 数据流图
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Frontend as 前端
+    participant API as API层
+    participant LLM as LLM服务
+    participant DB as 数据库服务
+
+    User->>Frontend: 输入自然语言查询
+    Frontend->>API: POST /dbs/:name/query/natural
+    API->>LLM: 生成SQL
+    LLM->>LLM: 构建Prompt（含元数据）
+    LLM->>LLM: 调用智谱AI API
+    LLM->>API: 返回生成的SQL
+    API->>API: SQL验证和修复
+    API->>DB: 执行查询
+    DB->>API: 返回结果
+    API->>Frontend: 返回结果
+    Frontend->>User: 展示查询结果
+```
+
+### 后端模块架构
+
+```mermaid
+graph LR
+    subgraph src_api
+        A[main.py / 应用入口]
+        B[dependencies.py / 依赖注入]
+        C[errors.py / 错误处理]
+        D[v1/databases.py / 数据库API]
+        E[v1/queries.py / 查询API]
+    end
+
+    subgraph src_services
+        F[db_service.py / 数据库连接]
+        G[query_service.py / 查询执行]
+        H[llm_service.py / AI服务]
+        I[metadata_service.py / 元数据提取]
+    end
+
+    subgraph src_models
+        J[database.py / 数据库模型]
+        K[query.py / 查询模型]
+        L[metadata.py / 元数据模型]
+    end
+
+    subgraph src_core
+        M[config.py / 配置管理]
+        N[constants.py / 常量定义]
+        O[sql_parser.py / SQL解析]
+        P[sqlite_db.py / SQLite连接]
+        Q[logging.py / 日志配置]
+    end
+
+    subgraph src_lib
+        R[json_encoder.py / 驼峰命名]
+    end
+
+    subgraph src_middleware
+        S[rate_limit.py / 速率限制]
+    end
+
+    D --> F
+    D --> I
+    E --> G
+    E --> H
+    E --> I
+
+    F --> J
+    G --> K
+    H --> L
+    I --> L
+```
+
+### 前端组件架构
+
+```mermaid
+graph TD
+    A[Dashboard/index.tsx / 主页面] --> B[Sidebar / 侧边栏]
+    A --> C[DatabaseInfo / 数据库信息]
+    A --> D[QueryTabs / 查询标签页]
+
+    B --> E[DatabaseList / 数据库列表]
+    B --> F[SchemaTree / 架构树]
+
+    D --> G[SQL查询Tab]
+    D --> H[AI查询Tab]
+    D --> I[历史记录Tab]
+
+    G --> J[SqlEditor / SQL编辑器]
+    G --> K[QueryResults / 结果展示]
+
+    H --> L[NaturalQueryInput / 自然语言输入]
+    H --> M[SuggestedQueries / 建议查询]
+
+    I --> N[QueryHistoryTab / 历史记录]
+
+    E --> O[AddDatabaseForm / 添加表单]
+    E --> P[EditDatabaseForm / 编辑表单]
+    E --> Q[DatabaseDetail / 数据库详情]
+```
+
+---
+
+## 技术要点
+
+### 后端技术要点
+
+#### 统一错误处理
+
+```python
+# 错误码定义
+class ErrorCode(str, Enum):
+    VALIDATION_ERROR = "VALIDATION_ERROR"
+    SQL_SYNTAX_ERROR = "SQL_SYNTAX_ERROR"
+    DATABASE_CONNECTION_ERROR = "DATABASE_CONNECTION_ERROR"
+    # ...
+
+# 错误处理中间件
+@app.exception_handler(APIError)
+async def api_error_handler(request: Request, exc: APIError):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"code": exc.code, "message": exc.message}
+    )
+```
+
+#### FastAPI 依赖注入
+
+```python
+# 服务工厂函数
+def get_db_service() -> DatabaseService:
+    return DatabaseService()
+
+def get_query_service() -> QueryService:
+    return QueryService()
+
+# 路由中使用
+@router.get("/{name}")
+async def get_database(
+    name: str,
+    db_service: DatabaseService = Depends(get_db_service)
+):
+    return await db_service.get_database(name)
+
+# 生命周期管理
+@app.on_event("startup")
+async def startup_event():
+    # 启动时初始化
+    pass
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    # 关闭时清理资源
+    await db_service.close()
+```
+
+#### Pydantic 数据验证
+
+```python
+class QueryRequest(CamelModel):
+    """使用 CamelCase API 命名"""
+    sql: str = Field(..., description="SQL查询语句")
+
+# 自动转换为 camelCase JSON
+# {"sql": "SELECT * FROM users"} -> {"executedSql": "..."}
+```
+
+#### 异步编程
+
+```python
+# 使用 asyncio.to_thread 执行阻塞操作
+await asyncio.to_thread(self._test_connection, connection_url)
+
+# 使用 SQLAlchemy 引池管理连接
+engine = db_service.get_engine(database_id, connection_url)
+```
+
+#### 结构化日志
+
+```python
+import structlog
+
+logger = structlog.get_logger()
+
+# 记录结构化日志
+logger.info(
+    "query_executed",
+    database_name=database_name,
+    query_type="sql",
+    row_count=len(result.rows),
+    execution_time_ms=result.execution_time_ms
+)
+```
+
+#### 速率限制
+
+```python
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+
+limiter = Limiter(key_func=get_remote_address)
+
+# 应用到路由
+@router.post("/{name}/query")
+@limiter.limit("30/minute")
+async def execute_query(...):
+    ...
+```
+
+### 前端技术要点
+
+#### React Query 状态管理
+
+```typescript
+// 使用 React Query 管理服务端状态
+const { data: databases, isLoading } = useQuery({
+  queryKey: ['databases'],
+  queryFn: () => api.listDatabases(),
+});
+
+// 使用 Mutation 执行操作
+const queryMutation = useMutation({
+  mutationFn: ({ databaseName, sql }: QueryParams) =>
+    api.executeQuery(databaseName, sql),
+  onSuccess: (data) => {
+    setQueryResult(data);
+  },
+});
+```
+
+#### 自定义 Hooks
+
+```typescript
+// useDatabaseQuery.ts - 封装数据库查询逻辑
+export function useDatabaseQuery() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const executeQuery = async (databaseName: string, sql: string) => {
+    // ...
+  };
+
+  return { executeQuery, loading, error };
+}
+```
+
+#### Monaco Editor 集成
+
+```typescript
+<Editor
+  height="300px"
+  language="sql"
+  theme="vs-dark"
+  value={sql}
+  onChange={(value) => setSql(value || "")}
+  options={{
+    minimap: { enabled: false },
+    fontSize: 14,
+    lineNumbers: "on",
+    automaticLayout: true,
+  }}
+/>
+```
+
+### 安全要点
+
+#### SQL 注入防护
+
+1. **标识符验证**：只允许合法的 SQL 标识符
+2. **参数化查询**：使用 SQLAlchemy 的参数绑定
+3. **查询类型限制**：只允许 SELECT 查询
+
+#### 连接字符串安全
+
+```python
+def redact(self) -> str:
+    """密码脱敏"""
+    if self.password:
+        return f"{self.scheme}://{self.username}:****@{self.host}:{self.port}/{self.database}"
+    return str(self)
 ```
 
 ---
@@ -719,184 +902,478 @@ CREATE TABLE query_history (
 
 ---
 
-## 技术要点
+## 完整调用链路详解
 
-### 1. 后端技术要点
+本节通过具体案例详细描绘从用户输入自然语言到获得查询结果的完整调用链路，包括前端组件依赖、状态流转、后端函数调用链路以及底层数据流转。
 
-#### 统一错误处理
+### 案例场景：用户查询"显示价格最高的10个商品"
 
-```python
-# 错误码定义
-class ErrorCode(str, Enum):
-    VALIDATION_ERROR = "VALIDATION_ERROR"
-    SQL_SYNTAX_ERROR = "SQL_SYNTAX_ERROR"
-    DATABASE_CONNECTION_ERROR = "DATABASE_CONNECTION_ERROR"
-    # ...
+#### 前端组件依赖与状态流转
 
-# 错误处理中间件
-@app.exception_handler(APIError)
-async def api_error_handler(request: Request, exc: APIError):
-    return JSONResponse(
-        status_code=exc.status_code,
-        content={"error": {"code": exc.code, "message": exc.message}}
-    )
+```mermaid
+flowchart TD
+    subgraph "前端组件层级"
+        A[Dashboard/index.tsx<br/>主仪表板]
+        B[QueryTabs.tsx<br/>查询标签页容器]
+        C[NaturalQueryInput.tsx<br/>AI查询输入组件]
+        D[SqlEditor.tsx<br/>SQL编辑器]
+        E[QueryResults.tsx<br/>结果展示组件]
+    end
+
+    subgraph "React Hooks状态管理"
+        F[useQueryExecution.ts<br/>查询执行状态Hook]
+        G[useMetadata.ts<br/>元数据管理Hook]
+        H[useDatabases.ts<br/>数据库列表Hook]
+    end
+
+    subgraph "API服务层"
+        I[api.ts<br/>API客户端单例]
+    end
+
+    A --> B
+    B --> C
+    B --> D
+    B --> E
+    A --> F
+    A --> G
+    A --> H
+    F --> I
+    G --> I
+    H --> I
+
+    style A fill:#e1f5ff
+    style C fill:#fff4e6
+    style F fill:#f0f0f0
+    style I fill:#f5f5f5
 ```
 
-#### FastAPI 依赖注入
+**前端状态流转时序图**：
 
-```python
-# 服务工厂函数
-def get_db_service() -> DatabaseService:
-    return DatabaseService()
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant UI as NaturalQueryInput
+    participant Hook as useQueryExecution
+    participant API as api.ts
+    participant Msg as message反馈
 
-def get_query_service() -> QueryService:
-    return QueryService()
+    User->>UI: 输入："显示价格最高的10个商品"
+    User->>UI: 按下 Enter
+    UI->>UI: setPrompt("显示价格最高的10个商品")
+    UI->>UI: handleGenerate()
+    UI->>API: naturalQuery("mydb", prompt, false)
+    API->>API: fetch POST /api/v1/dbs/mydb/query/natural
+    API-->>UI: NaturalQueryResponse {success, generatedSql, ...}
+    UI->>UI: setShowConfirmModal(true)
+    UI->>UI: 显示成功弹窗
 
-# 路由中使用
-@router.get("/{name}")
-async def get_database(
-    name: str,
-    db_service: DatabaseService = Depends(get_db_service)
-):
-    return await db_service.get_database(name)
-
-# 生命周期管理
-@app.on_event("startup")
-async def startup_event():
-    # 启动时初始化
-    pass
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    # 关闭时清理资源
-    await db_service.close()
+    User->>UI: 点击"立即执行"
+    UI->>UI: handleConfirmExecute()
+    UI->>API: naturalQuery("mydb", prompt, true)
+    API->>API: fetch POST /api/v1/dbs/mydb/query/natural
+    API-->>Hook: NaturalQueryResponse {with results}
+    Hook->>Hook: naturalQueryMutation.onSuccess
+    Hook->>Hook: setSql(generatedSql)
+    Hook->>Hook: setActiveTab("sql")
+    Hook->>Hook: setQueryResult(results)
+    Hook->>Msg: message.success("AI 查询返回 10 行，耗时 45ms")
 ```
 
-#### Pydantic 数据验证
+#### 后端函数调用链路
 
-```python
-class QueryRequest(CamelModel):
-    """使用 CamelCase API 命名"""
-    sql: str = Field(..., description="SQL查询语句")
+```mermaid
+flowchart TD
+    subgraph "API层 - queries.py"
+        A[natural_query endpoint<br/>Line 212-348]
+    end
 
-# 自动转换为 camelCase JSON
-# {"sql": "SELECT * FROM users"} -> {"executedSql": "..."}
+    subgraph "服务层"
+        B[DatabaseService<br/>get_database_by_name]
+        C[DatabaseService<br/>get_connection_url_with_driver]
+        D[DatabaseService<br/>get_engine]
+        E[MetadataService<br/>fetch_metadata]
+        F[LLMService<br/>generate_and_validate]
+        G[QueryService<br/>execute_query]
+    end
+
+    subgraph "核心模块"
+        H[SQLParser<br/>validate_select_only]
+        I[SQLParser<br/>ensure_limit]
+        J[Logger<br/>structlog]
+    end
+
+    subgraph "外部服务"
+        K[智谱AI API<br/>glm-4-flash]
+        L[用户数据库<br/>MySQL/PostgreSQL/SQLite]
+    end
+
+    A --> B
+    A --> C
+    A --> D
+    A --> E
+    A --> F
+    A --> G
+
+    F --> F
+    F --> K
+    F --> H
+    F --> I
+
+    G --> G
+    G --> H
+    G --> I
+    G --> L
+    G --> J
+
+    style A fill:#e1f5ff
+    style F fill:#fff4e6
+    style G fill:#f0f0f0
+    style K fill:#ffcccc
+    style L fill:#ccffcc
 ```
 
-#### 异步编程
+**完整后端调用时序图**：
 
-```python
-# 使用 asyncio.to_thread 执行阻塞操作
-await asyncio.to_thread(self._test_connection, connection_url)
+```mermaid
+sequenceDiagram
+    participant API as queries.py<br/>natural_query
+    participant DBService as DatabaseService
+    participant MetaService as MetadataService
+    participant LLMService as LLMService
+    participant QueryService as QueryService
+    participant Logger as structlog
+    participant ZhipuAI as 智谱AI API
+    participant UserDB as 用户数据库
+    participant AppDB as 应用SQLite
 
-# 使用 SQLAlchemy 引池管理连接
-engine = db_service.get_engine(database_id, connection_url)
+    API->>Logger: info("natural_query_start", query=prompt)
+    API->>DBService: get_database_by_name("mydb")
+    DBService-->>API: DatabaseDetail
+
+    API->>DBService: get_connection_url_with_driver("mydb")
+    DBService->>AppDB: SELECT FROM databases WHERE name=?
+    DBService-->>API: connection_url
+
+    API->>DBService: get_engine(database_id, url)
+    DBService-->>API: SQLAlchemy Engine
+
+    API->>MetaService: fetch_metadata(database, engine)
+    MetaService->>UserDB: 查询表/视图元数据
+    MetaService->>AppDB: 检查缓存
+    MetaService-->>API: MetadataResponse {tables, views}
+
+    API->>LLMService: generate_and_validate(prompt, tables, views)
+
+    LLMService->>Logger: info("llm_generate_sql_start", query_length=...)
+    LLMService->>LLMService: _format_metadata_context(tables, views)
+    LLMService->>LLMService: _build_prompt(prompt, context)
+
+    LLMService->>ZhipuAI: chat.completions.create(model="glm-4-flash")
+    Note over ZhipuAI: 包含元数据上下文和自然语言请求
+
+    ZhipuAI-->>LLMService: content {SQL + 说明}
+    LLMService->>Logger: debug("llm_response_received")
+
+    LLMService->>LLMService: _parse_llm_response(content)
+    LLMService-->>LLMService: (sql, explanation)
+
+    LLMService->>LLMService: validate_and_fix_sql(sql, tables)
+    LLMService->>LLMService: get_parser(db_type).validate_select_only(sql)
+    LLMService->>LLMService: parser.ensure_limit(sql, 1000)
+    LLMService->>Logger: debug("sql_validation_success")
+
+    LLMService-->>API: (generated_sql, explanation, is_valid=True)
+
+    API->>QueryService: execute_query(database, engine, generated_sql, "natural", prompt)
+
+    QueryService->>Logger: info("executing_query", database, query_type="natural")
+    QueryService->>QueryService: validate_select_only(generated_sql)
+    QueryService->>QueryService: ensure_limit(generated_sql, 1000)
+
+    QueryService->>UserDB: 执行SQL查询
+    Note over UserDB: SELECT name, price FROM products<br/>ORDER BY price DESC LIMIT 10
+
+    UserDB-->>QueryService: ResultProxy
+
+    QueryService->>QueryService: _serialize_results(result)
+    QueryService->>QueryService: _infer_type(values) for each column
+    QueryService-->>QueryService: (columns, rows)
+
+    QueryService->>Logger: info("query_completed", row_count=10, execution_time_ms=45)
+    QueryService->>AppDB: INSERT INTO query_history (...)
+    Note over AppDB: query_type="natural"<br/>input_text=prompt<br/>executed_sql=generated_sql
+
+    QueryService-->>API: QueryResponse {success, executed_sql, rows=10, ...}
+
+    API->>Logger: info("natural_query_completed", success=true)
+    API-->>前端: NaturalQueryResponse
 ```
 
-#### 结构化日志
+#### 日志模块配合
 
-```python
-import structlog
+```mermaid
+flowchart LR
+    subgraph "日志记录点"
+        A[请求开始<br/>llm_generate_sql_start]
+        B[收到AI响应<br/>llm_response_received]
+        C[SQL验证成功<br/>sql_validation_success]
+        D[查询执行开始<br/>executing_query]
+        E[查询完成<br/>query_completed]
+        F[历史记录保存<br/>_log_query]
+    end
 
-logger = structlog.get_logger()
+    subgraph "日志字段"
+        G[query_length<br/>tables_count<br/>views_count<br/>db_type]
+        H[response_length<br/>sql_length<br/>has_explanation]
+        I[database<br/>query_type<br/>row_count<br/>execution_time_ms]
+    end
 
-# 记录结构化日志
-logger.info(
-    "query_executed",
-    database_name=database_name,
-    query_type="sql",
-    row_count=len(result.rows),
-    execution_time_ms=result.execution_time_ms
-)
+    A --> G
+    B --> H
+    C --> H
+    D --> I
+    E --> I
+    F --> I
+
+    style A fill:#e1f5ff
+    style E fill:#d4edda
 ```
 
-#### 速率限制
+**实际日志输出示例** (JSON格式):
 
-```python
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+```json
+// 1. LLM生成开始
+{
+  "event": "llm_generate_sql_start",
+  "query_length": 32,
+  "tables_count": 5,
+  "views_count": 2,
+  "db_type": "mysql",
+  "timestamp": "2024-01-15T10:30:00.123Z"
+}
 
-limiter = Limiter(key_func=get_remote_address)
+// 2. LLM响应
+{
+  "event": "llm_response_received",
+  "response_length": 256,
+  "timestamp": "2024-01-15T10:30:01.456Z"
+}
 
-# 应用到路由
-@router.post("/{name}/query")
-@limiter.limit("30/minute")
-async def execute_query(...):
-    ...
-```
+// 3. 查询执行
+{
+  "event": "executing_query",
+  "database": "mydb",
+  "query_type": "natural",
+  "sql": "SELECT name, price FROM products ORDER BY price DESC LIMIT 10",
+  "timestamp": "2024-01-15T10:30:01.789Z"
+}
 
-### 2. 前端技术要点
-
-#### React Query 状态管理
-
-```typescript
-// 使用 React Query 管理服务端状态
-const { data: databases, isLoading } = useQuery({
-  queryKey: ['databases'],
-  queryFn: () => api.listDatabases(),
-});
-
-// 使用 Mutation 执行操作
-const queryMutation = useMutation({
-  mutationFn: ({ databaseName, sql }: QueryParams) =>
-    api.executeQuery(databaseName, sql),
-  onSuccess: (data) => {
-    setQueryResult(data);
-  },
-});
-```
-
-#### 自定义 Hooks
-
-```typescript
-// useDatabaseQuery.ts - 封装数据库查询逻辑
-export function useDatabaseQuery() {
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const executeQuery = async (databaseName: string, sql: string) => {
-    // ...
-  };
-
-  return { executeQuery, loading, error };
+// 4. 查询完成
+{
+  "event": "query_completed",
+  "database": "mydb",
+  "query_type": "natural",
+  "row_count": 10,
+  "execution_time_ms": 45,
+  "timestamp": "2024-01-15T10:30:01.834Z"
 }
 ```
 
-#### Monaco Editor 集成
+#### 底层数据流转
 
-```typescript
-<Editor
-  height="300px"
-  language="sql"
-  theme="vs-dark"
-  value={sql}
-  onChange={(value) => setSql(value || "")}
-  options={{
-    minimap: { enabled: false },
-    fontSize: 14,
-    lineNumbers: "on",
-    automaticLayout: true,
-  }}
-/>
+```mermaid
+flowchart TD
+    subgraph "应用内部 SQLite (~/.db_query/db_query.db)"
+        A[databases 表<br/>存储数据库连接配置]
+        B[query_history 表<br/>存储查询历史]
+    end
+
+    subgraph "用户数据库"
+        C[products 表<br/>name, price, ...]
+        D[其他业务表...]
+    end
+
+    subgraph "数据流转"
+        E[读取连接配置<br/>SELECT * FROM databases<br/>WHERE name = 'mydb']
+        F[记录查询历史<br/>INSERT INTO query_history]
+        G[执行业务查询<br/>SELECT ... FROM products]
+    end
+
+    A --> E
+    E --> H[建立连接<br/>SQLAlchemy Engine]
+    H --> G
+    G --> C
+    C --> I[返回结果集<br/>ResultSet]
+    I --> J[序列化为JSON<br/>ColumnMetadata + rows]
+    J --> F
+    F --> B
+
+    style A fill:#ffe6e6
+    style B fill:#ffe6e6
+    style C fill:#e6f7ff
+    style H fill:#fff4e6
+    style J fill:#f0f0f0
 ```
 
-### 3. 安全要点
+**数据格式转换链路**：
 
-#### SQL 注入防护
+```mermaid
+flowchart LR
+    subgraph "数据库原始数据"
+        A[RowProxy对象<br/>SQLAlchemy返回]
+    end
 
-1. **标识符验证**：只允许合法的 SQL 标识符
-2. **参数化查询**：使用 SQLAlchemy 的参数绑定
-3. **查询类型限制**：只允许 SELECT 查询
+    subgraph "类型推断"
+        B[_infer_type value]
+        C[确定列类型<br/>INTEGER/FLOAT/TEXT/...]
+    end
 
-#### 连接字符串安全
+    subgraph "序列化"
+        D[ColumnMetadata]
+        E[dict rows]
+    end
+
+    subgraph "JSON响应"
+        F[CamelModel自动转换<br/>snake_case → camelCase]
+        G[HTTP Response<br/>application/json]
+    end
+
+    A --> B
+    B --> C
+    C --> D
+    A --> E
+    D --> F
+    E --> F
+    F --> G
+
+    style A fill:#e1f5ff
+    style C fill:#fff4e6
+    style F fill:#f0f0f0
+    style G fill:#d4edda
+```
+
+#### AI查询建议生成链路
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Frontend as NaturalQueryInput
+    participant API as GET /suggested-queries
+    participant LLM as LLMService
+    participant Meta as MetadataService
+    participant AI as 智谱AI
+
+    Frontend->>Frontend: useEffect监听databaseName变化
+    Frontend->>API: getSuggestedQueries("mydb", 6, {seed, exclude})
+
+    API->>Meta: fetch_metadata(database, engine)
+    Meta-->>API: {tables, views}
+
+    API->>API: get_query_history(database, page=1, pageSize=10)
+    API-->>API: history_context
+
+    API->>LLM: generate_suggested_queries(tables, views, db_type, limit, seed, exclude, history)
+
+    LLM->>LLM: _format_metadata_context(tables, views)
+    LLM->>LLM: 构建prompt (包含历史查询上下文)
+
+    Note over LLM,AI: temperature=0.9 (高随机性)<br/>使用seed影响生成结果
+
+    LLM->>AI: chat.completions.create()
+    AI-->>LLM: 建议列表 (6条中文描述)
+
+    LLM->>LLM: 清理前缀 ("查询：", "显示："等)
+    LLM-->>API: {suggestions}
+    API-->>Frontend: {suggestions: [...]}
+
+    Frontend->>Frontend: setSuggestedQueries(suggestions)
+    Frontend->>User: 显示"猜你想搜"标签
+
+    Note over User: 点击建议标签<br/>自动填充到输入框
+```
+
+#### 导出功能链路
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Frontend as QueryResults
+    participant API as POST /query/export
+    participant QuerySVC as QueryService
+    participant DB as 用户数据库
+
+    User->>Frontend: 点击"导出CSV"按钮
+    Frontend->>API: exportQueryResults("mydb", sql, "csv", true)
+
+    API->>QuerySVC: execute_query(database, engine, sql)
+    QuerySVC->>DB: 执行查询
+    DB-->>QuerySVC: 结果集
+    QuerySVC-->>API: QueryResponse {columns, rows}
+
+    API->>API: 生成CSV格式
+    Note over API: 1. 写入列标题 (if include_headers)<br/>2. 写入数据行<br/>3. 处理NULL值为空字符串
+
+    API-->>Frontend: Response with Content-Disposition header
+
+    Frontend->>Frontend: 创建Blob URL
+    Frontend->>Frontend: 创建<a>元素触发下载
+    Frontend->>User: 下载 mydb_query_20240115_103000.csv
+
+    Note over User: 文件内容示例:<br/>name,price,category<br/>商品A,99.99,电子产品<br/>商品B,89.99,电子产品
+```
+
+**导出格式对比**：
+
+| 格式 | Content-Type | 文件结构 | 特点 |
+|------|--------------|----------|------|
+| CSV | text/csv | 纯文本，逗号分隔 | Excel可直接打开，体积小 |
+| JSON | application/json | {metadata, columns, rows} | 包含完整元数据，结构化 |
+
+### 错误处理与重试机制
+
+```mermaid
+flowchart TD
+    A[LLM调用失败] --> B{错误类型判断}
+    B -->|timeout/connection<br/>rate limit/503/502| C[TransientLLMError]
+    B -->|其他错误| D[LLMServiceError]
+
+    C --> E[tenacity重试<br/>max=3次, exponential_backoff]
+    E --> F{重试成功?}
+    F -->|是| G[返回SQL结果]
+    F -->|否| H[返回失败响应]
+
+    D --> H
+
+    H --> I[前端显示错误提示<br/>message.error]
+
+    style C fill:#fff3cd
+    style E fill:#d1ecf1
+    style G fill:#d4edda
+    style H fill:#f8d7da
+```
+
+**重试机制配置** (`llm_service.py:114-118`):
 
 ```python
-def redact(self) -> str:
-    """密码脱敏"""
-    if self.password:
-        return f"{self.scheme}://{self.username}:****@{self.host}:{self.port}/{self.database}"
-    return str(self)
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=2, max=10),
+    retry=retry_if_exception_type(TransientLLMError),
+)
+async def generate_sql(...):
+    # LLM调用逻辑
 ```
+
+### 性能优化点
+
+| 优化点 | 实现位置 | 说明 |
+|--------|----------|------|
+| 元数据缓存 | MetadataService | TTL=1小时，避免重复查询information_schema |
+| 连接池管理 | DatabaseService | 引擎缓存，1小时超时自动清理 |
+| 批量列查询 | MetadataService | 按Schema分组批量获取列信息 |
+| 类型推断采样 | QueryService | 只检查前100行推断列类型 |
+| React Query缓存 | 前端 | queryKey自动管理缓存失效 |
+| 速率限制 | middleware/rate_limit.py | 防止API滥用 |
 
 ---
 
