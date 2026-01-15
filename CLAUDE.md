@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 全栈数据库查询工具，支持 MySQL、PostgreSQL、SQLite，具备自然语言转SQL的AI功能。
 
-**技术栈**: Python 3.14+ (FastAPI) + React 18 (TypeScript + Vite + Ant Design)
+**技术栈**: Python 3.14+ (FastAPI) + React 18 (TypeScript + Vite + Ant Design + React Query)
 
 ## 开发命令
 
@@ -31,6 +31,7 @@ uv run mypy src                            # 类型检查（strict模式）
 uv run ruff check src                      # 代码检查
 uv run ruff format src                     # 格式化（100字符行宽）
 uv run pytest                              # 运行测试
+uv run pytest tests/test_query_service.py  # 运行单个测试文件
 ```
 
 ### 前端 (frontend/)
@@ -50,11 +51,14 @@ npm run preview      # 预览生产构建
 - `DatabaseService` - 数据库连接池管理，支持连接缓存和超时清理
 - `MetadataService` - 元数据提取和缓存，SQL注入防护（标识符验证）
 - `QueryService` - SQL执行、历史记录、结果导出
-- `LLMService` - 自然语言转SQL（智谱AI glm-4-flash）
+- `LLMService` - 自然语言转SQL（智谱AI glm-4-flash），支持重试机制（tenacity）
 
-**API层** (`backend/src/api/v1/`):
-- `databases.py` - 数据库CRUD操作
-- `queries.py` - 查询执行、自然语言查询、历史记录、导出
+**API层** (`backend/src/api/`):
+- `main.py` - FastAPI应用入口，生命周期管理，CORS配置
+- `dependencies.py` - 依赖注入工厂函数（get_db_service、get_query_service等）
+- `errors.py` - 统一错误处理（ErrorCode枚举，APIError基类，handle_api_error转换函数）
+- `v1/databases.py` - 数据库CRUD操作
+- `v1/queries.py` - 查询执行、自然语言查询、历史记录、导出
 
 **数据模型** (`backend/src/models/`):
 - 使用 Pydantic，所有模型继承 `CamelModel`（驼峰命名响应）
@@ -63,24 +67,38 @@ npm run preview      # 预览生产构建
 - `metadata.py` - 元数据模型
 
 **核心功能** (`backend/src/core/`):
+- `config.py` - Pydantic Settings配置管理
+- `constants.py` - 应用常量（Database、Query、Pagination、Metadata、Validation类）
 - `sqlite_db.py` - 应用内部SQLite（存储连接信息和历史）
 - `sql_parser.py` - SQL解析器包装（sqlglot，只允许SELECT）
-- `config.py` - Pydantic Settings配置管理
+- `logging.py` - 结构化日志配置（structlog）
+
+**工具库** (`backend/src/lib/`):
+- `json_encoder.py` - CamelModel基类，自动转换snake_case到camelCase
+
+**中间件** (`backend/src/middleware/`):
+- `rate_limit.py` - 基于slowapi的速率限制（IP级别）
 
 ### 前端架构
 
-**主页面** (`frontend/src/pages/Dashboard.tsx`):
-- 侧边栏：数据库列表 + 架构浏览器（树形展示表/列）
-- 主内容区：三个Tab（SQL查询、AI查询、历史记录）
-- 只在SQL查询Tab下显示结果栏
+**主页面** (`frontend/src/pages/Dashboard/`):
+- `index.tsx` - 主仪表板，协调数据库选择、查询执行、结果展示
+- `Sidebar.tsx` - 侧边栏（数据库列表 + 架构浏览器）
+- `DatabaseInfo.tsx` - 数据库信息展示
+- `QueryTabs.tsx` - 查询标签页容器
+- `hooks/useDatabases.ts` - React Query数据库列表管理
+- `hooks/useMetadata.ts` - 元数据管理（选择、删除）
+- `hooks/useQueryExecution.ts` - 查询执行状态管理
 
 **组件** (`frontend/src/components/`):
-- `database/` - 数据库管理组件
+- `database/` - 数据库管理（DatabaseList、AddDatabaseForm、EditDatabaseForm、DatabaseDetail）
 - `query/` - 查询相关（SqlEditor使用Monaco、NaturalQueryInput、QueryResults、QueryHistoryTab）
-- `shared/` - 共享组件（SchemaTree）
+- `metadata/` - 元数据组件（TableList、TableSchema）
+- `shared/` - 共享组件（SchemaTree、ErrorBoundary）
 
 **状态管理**:
-- 使用React hooks进行本地状态管理
+- React Query（@tanstack/react-query）管理服务端状态
+- 自定义Hooks封装业务逻辑
 - API客户端单例 (`frontend/src/services/api.ts`)
 
 ## 关键约定
@@ -92,11 +110,15 @@ npm run preview      # 预览生产构建
 - **SQL注入防护**: 标识符验证（仅允许字母、数字、下划线）
 - **只读查询**: 仅允许SELECT，自动添加LIMIT 1000
 - **连接池**: 引擎缓存，1小时超时自动清理
+- **错误处理**: 使用APIError异常和ErrorCode枚举，统一错误响应格式
+- **速率限制**: 查询30/分钟，AI查询10/分钟，导出20/分钟
+- **结构化日志**: 使用structlog记录JSON格式日志
 
 ### 前端
 - **TypeScript严格模式**: 启用所有严格检查
 - **路径别名**: `@/*` 映射到 `src/*`
 - **中文优先**: UI文本使用中文
+- **React Query**: 使用queryKey管理缓存，mutation执行操作
 
 ## 环境配置
 
@@ -125,11 +147,11 @@ VITE_API_URL=http://localhost:8000
 - `GET /api/v1/dbs` - 列出数据库
 - `PUT /api/v1/dbs/{name}` - 创建数据库连接
 - `GET /api/v1/dbs/{name}` - 获取数据库详情和元数据
-- `PATCH /api/v1/dbs/{name}` - 更新数据库
+- `PATCH / /api/v1/dbs/{name}` - 更新数据库
 - `DELETE /api/v1/dbs/{name}` - 删除数据库
 - `POST /api/v1/dbs/{name}/query` - 执行SQL
 - `POST /api/v1/dbs/{name}/query/natural` - 自然语言转SQL
-- `GET /api/v1/dbs/{name}/history` - 查询历史
+- `GET /api/v1/dbs/{name}/history` - 查询历史（分页）
 - `DELETE /api/v1/dbs/{name}/history` - 删除历史记录
 - `GET /api/v1/dbs/{name}/history/summary` - 历史统计
 - `POST /api/v1/dbs/{name}/query/export` - 导出结果（CSV/JSON）
@@ -145,3 +167,5 @@ VITE_API_URL=http://localhost:8000
 4. **历史记录**: 记录所有查询，包含输入、执行SQL、行数、耗时、状态
 5. **密码脱敏**: API响应中连接字符串密码会被隐藏
 6. **CORS**: 当前允许所有来源（`allow_origins=["*"]`）
+7. **错误响应格式**: `{"code": "ERROR_CODE", "message": "错误描述"}`
+8. **常量定义**: 所有配置常量在 `backend/src/core/constants.py` 中统一管理
