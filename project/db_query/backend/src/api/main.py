@@ -2,6 +2,7 @@
 
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,6 +20,9 @@ configure_logging(
 )
 logger = get_logger(__name__)
 
+# Global reference to metrics service
+_metrics_service: Any | None = None
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
@@ -30,9 +34,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     Yields:
         None
     """
+    global _metrics_service
+
     # Startup
     logger.info("application_starting", log_level=config.log_level)
     await initialize_database()
+
+    # Start metrics collection service
+    from ..services.metrics_service import MetricsService
+
+    _metrics_service = MetricsService()
+    await _metrics_service.start_collection()
     logger.info("application_started")
     yield
     # Shutdown - cleanup database connections (M-5)
@@ -41,6 +53,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     db_service = DatabaseService()
     await db_service.close()
+
+    # Stop metrics collection
+    if _metrics_service:
+        await _metrics_service.stop_collection()
     logger.info("database_connections_closed")
 
 app = FastAPI(
@@ -61,14 +77,21 @@ app.add_middleware(
     allow_headers=["Content-Type", "Authorization"],
 )
 
+# Add performance monitoring middleware
+from ..middleware.performance import PerformanceMiddleware  # noqa: E402
+
+app.add_middleware(PerformanceMiddleware)
+
 # Import routers after app creation to avoid circular imports
 from .v1 import (  # noqa: E402
     databases,
+    metrics,
     queries,
 )
 
 app.include_router(databases.router, prefix="/api/v1", tags=["databases"])
 app.include_router(queries.router, prefix="/api/v1", tags=["queries"])
+app.include_router(metrics.router, prefix="/api/v1", tags=["metrics"])
 
 
 @app.get("/")
@@ -82,10 +105,21 @@ async def root() -> dict[str, str]:
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
-    """Health check endpoint.
+async def health() -> dict[str, Any]:
+    """Enhanced health check endpoint with system metrics.
 
     Returns:
-        Health status.
+        Health status including system metrics and any detected issues.
     """
-    return {"status": "healthy"}
+    if _metrics_service:
+        return _metrics_service.get_health_status()
+    return {"status": "healthy", "timestamp": "unknown"}
+
+
+def get_metrics_service() -> Any:
+    """Get the global metrics service instance.
+
+    Returns:
+        The metrics service instance or None if not initialized.
+    """
+    return _metrics_service

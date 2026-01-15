@@ -7,7 +7,7 @@ from typing import Any
 
 from sqlalchemy import Engine, text
 
-from ..core.constants import Pagination, Query
+from ..core.constants import Pagination, Performance, Query
 from ..core.logging import get_logger
 from ..core.sql_parser import get_parser
 from ..core.sqlite_db import get_db
@@ -24,10 +24,32 @@ from ..models.query import (
 class QueryService:
     """Service for executing SQL queries."""
 
+    # Class-level singleton instance
+    _metrics_service_singleton: Any | None = None
+
     def __init__(self) -> None:
         """Initialize the query service."""
         self.logger = get_logger(__name__)
         self.db = get_db()
+        self._metrics_service: Any | None = None
+
+    def _get_metrics_service(self) -> Any:
+        """Get or create the metrics service instance.
+
+        Returns:
+            The metrics service instance.
+        """
+        if self._metrics_service is None:
+            try:
+                from ..services.metrics_service import MetricsService
+
+                # Create a singleton instance
+                if QueryService._metrics_service_singleton is None:
+                    QueryService._metrics_service_singleton = MetricsService()
+                self._metrics_service = QueryService._metrics_service_singleton
+            except Exception as e:
+                self.logger.warning("metrics_service_unavailable", error=str(e))
+        return self._metrics_service
 
     async def execute_query(
         self,
@@ -137,6 +159,18 @@ class QueryService:
             status="success",
             error_message=None,
         )
+
+        # Record slow query if execution time exceeds threshold
+        if execution_time_ms >= Performance.SLOW_QUERY_THRESHOLD:
+            metrics_service = self._get_metrics_service()
+            if metrics_service:
+                await metrics_service.record_slow_query(
+                    database_name=database.name,
+                    query_type=query_type,
+                    sql=final_sql,
+                    execution_time_ms=execution_time_ms,
+                    row_count=len(rows),
+                )
 
         return QueryResponse(
             success=True,
@@ -373,11 +407,11 @@ class QueryService:
         Returns:
             True if deleted successfully, False otherwise.
         """
-        result = await self.db.execute(
+        cursor = await self.db.execute(
             "DELETE FROM query_history WHERE id = :id",
             {"id": item_id},
         )
-        return result > 0
+        return cursor.rowcount > 0
 
     async def delete_query_history_batch(self, item_ids: list[int]) -> int:
         """Delete multiple query history items.

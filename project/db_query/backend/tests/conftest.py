@@ -13,8 +13,8 @@ from sqlalchemy import Engine, create_engine, text
 
 # Set test environment variables before importing any application code
 os.environ["ZAI_API_KEY"] = "test_api_key"
-os.environ["DB_PATH"] = ":memory:"
 os.environ["LOG_LEVEL"] = "WARNING"
+# DB_PATH will be set per-test using temp files to avoid :memory: isolation issues
 
 
 @pytest.fixture(scope="session")
@@ -46,17 +46,12 @@ async def temp_db_path() -> AsyncIterator[Path]:
 def mock_engine() -> Engine:
     """Create a mock SQLAlchemy engine for testing.
 
+    Each test gets its own in-memory database to avoid table conflicts.
+
     Returns:
-        A mock engine.
+        A mock engine with test tables.
     """
     engine = create_engine("sqlite:///:memory:")
-
-    # Create a test table
-    with engine.connect() as conn:
-        conn.execute(text("CREATE TABLE test_users (id INTEGER PRIMARY KEY, name TEXT, email TEXT)"))
-        conn.execute(text("INSERT INTO test_users VALUES (1, 'Alice', 'alice@example.com')"))
-        conn.execute(text("INSERT INTO test_users VALUES (2, 'Bob', 'bob@example.com')"))
-        conn.commit()
 
     return engine
 
@@ -79,7 +74,7 @@ def mock_database() -> MagicMock:
 
 
 @pytest.fixture(autouse=True)
-async def initialize_test_db() -> AsyncIterator[None]:
+async def initialize_test_db(temp_db_path: Path) -> AsyncIterator[None]:
     """Initialize the application database for testing.
 
     This fixture is auto-used for all tests.
@@ -87,14 +82,22 @@ async def initialize_test_db() -> AsyncIterator[None]:
     Yields:
         None
     """
-    from src.core.sqlite_db import get_db, initialize_database
+    from src.core import sqlite_db
+    from src.core.sqlite_db import SQLiteDB
 
-    # Initialize database
-    await initialize_database()
+    # Set DB_PATH for this test
+    os.environ["DB_PATH"] = str(temp_db_path)
+
+    # Reset global database instance to use temp path
+    sqlite_db._db = SQLiteDB(db_path=temp_db_path)
+
+    # Initialize database schema
+    db = sqlite_db.get_db()
+    await db.initialize_schema()
 
     yield
 
-    # Note: Cleanup not needed for :memory: database
+    # Cleanup is handled by temp_db_path fixture
 
 
 @pytest.fixture

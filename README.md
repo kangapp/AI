@@ -18,13 +18,16 @@
 - **实时架构浏览**：树形展示表/视图结构，点击自动生成查询
 - **查询历史管理**：记录所有查询，支持重新执行和批量删除，分页展示
 - **结果导出**：支持 CSV、JSON 格式导出
+- **性能监控**：实时系统指标监控、慢查询跟踪、HTTP 请求性能分析
+- **Web 性能监控**：Core Web Vitals 收集、性能评分和评级
 - **连接池管理**：自动管理数据库连接，空闲超时清理
 - **速率限制**：API 级别速率限制，防止滥用
 - **结构化日志**：JSON 格式日志，便于分析和监控
+- **完整测试覆盖**：单元测试、集成测试、性能测试
 
 **技术栈**:
-- **后端**：Python 3.14+ / FastAPI / SQLAlchemy / aiosqlite / zai-sdk / slowapi / structlog / tenacity
-- **前端**：TypeScript 5+ / React 18 / Vite / Ant Design / Monaco Editor / React Query / Refinedev
+- **后端**：Python 3.14+ / FastAPI / SQLAlchemy / aiosqlite / zai-sdk / slowapi / structlog / tenacity / psutil / pytest
+- **前端**：TypeScript 5+ / React 18 / Vite / Ant Design / Monaco Editor / React Query / Refinedev / web-vitals / @playwright/test
 
 **快速开始**:
 ```bash

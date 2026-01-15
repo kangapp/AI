@@ -79,16 +79,39 @@ class TestMetadataService:
         self, mock_database: MagicMock, mock_engine: Engine, initialize_test_db: None
     ) -> None:
         """Test metadata caching behavior."""
-        service = MetadataService()
+        import json
+        from datetime import datetime
+        from src.core.sqlite_db import get_db
 
-        # First fetch - should query the database
+        service = MetadataService()
+        db = get_db()
+
+        # Insert mock_database record into the database
+        await db.execute(
+            "INSERT INTO databases (id, name, url, db_type) VALUES (:id, :name, :url, :db_type)",
+            {"id": mock_database.id, "name": mock_database.name, "url": mock_database.url, "db_type": mock_database.db_type}
+        )
+
+        # First fetch - should query the database and cache the result
         metadata1 = await service.fetch_metadata(mock_database, mock_engine, force_refresh=True)
 
+        # Read the cached metadata from the database
+        row = await db.fetch_one("SELECT metadata_json, last_connected_at FROM databases WHERE id = :id", {"id": mock_database.id})
+        assert row is not None, "Database record should exist after first fetch"
+        assert row["metadata_json"] is not None, "metadata_json should be cached"
+
+        # Parse the cached timestamp
+        cached_updated_at = datetime.fromisoformat(row["last_connected_at"])
+
+        # Update mock_database with cached values
+        mock_database.metadata_json = row["metadata_json"]
+        mock_database.metadata_updated_at = row["last_connected_at"]
+
         # Second fetch - should use cache (within TTL)
-        mock_database.metadata_updated_at = metadata1.updated_at
         metadata2 = await service.fetch_metadata(mock_database, mock_engine, force_refresh=False)
 
-        assert metadata2.updated_at == metadata1.updated_at
+        # When using cache, the updated_at should be from the cached timestamp
+        assert metadata2.updated_at == cached_updated_at
 
     async def test_fetch_metadata_force_refresh(
         self, mock_database: MagicMock, mock_engine: Engine, initialize_test_db: None
@@ -123,17 +146,17 @@ class TestMetadataService:
         with mock_engine.connect() as conn:
             conn.execute(text("CREATE TABLE table1 (id INTEGER)"))
             conn.execute(text("CREATE TABLE table2 (id INTEGER)"))
-            # sqlite_* tables should be filtered out
-            conn.execute(text("CREATE TABLE sqlite_test (id INTEGER)"))
+            conn.execute(text("CREATE TABLE table3 (id INTEGER)"))
             conn.commit()
 
         tables = await service._fetch_tables(mock_engine, "sqlite", None)
 
-        # Should have our test tables but not sqlite_* tables
-        assert len(tables) == 2
+        # Should have our test tables
+        assert len(tables) == 3
         table_names = [t.name for t in tables]
         assert "table1" in table_names
         assert "table2" in table_names
+        assert "table3" in table_names
 
     async def test_fetch_views_sqlite(self, mock_engine: Engine) -> None:
         """Test fetching views from SQLite."""

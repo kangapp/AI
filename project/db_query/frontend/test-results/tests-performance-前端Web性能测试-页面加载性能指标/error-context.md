@@ -1,0 +1,47 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e4]:
+  - banner [ref=e5]:
+    - heading "数据库查询工具" [level=3] [ref=e6]
+  - generic [ref=e7]:
+    - complementary [ref=e8]:
+      - generic [ref=e10]:
+        - strong [ref=e12]: 您的数据库
+        - generic [ref=e13]:
+          - generic [ref=e14] [cursor=pointer]:
+            - img "database" [ref=e15]:
+              - img [ref=e16]
+            - generic [ref=e18]:
+              - strong [ref=e20]: ticket_db
+              - generic [ref=e21]: MYSQL
+            - generic [ref=e22]:
+              - button "edit" [ref=e23]:
+                - img "edit" [ref=e24]:
+                  - img [ref=e25]
+              - button "delete" [ref=e27]:
+                - img "delete" [ref=e28]:
+                  - img [ref=e29]
+          - generic [ref=e31] [cursor=pointer]:
+            - img "database" [ref=e32]:
+              - img [ref=e33]
+            - generic [ref=e35]:
+              - strong [ref=e37]: db_query
+              - generic [ref=e38]: SQLITE
+            - generic [ref=e39]:
+              - button "edit" [ref=e40]:
+                - img "edit" [ref=e41]:
+                  - img [ref=e42]
+              - button "delete" [ref=e44]:
+                - img "delete" [ref=e45]:
+                  - img [ref=e46]
+    - main [ref=e48]:
+      - generic [ref=e49]:
+        - generic [ref=e51]:
+          - heading "SQL 查询" [level=4] [ref=e52]
+          - button "plus 添加数据库" [ref=e53] [cursor=pointer]:
+            - img "plus" [ref=e55]:
+              - img [ref=e56]
+            - generic [ref=e59]: 添加数据库
+        - paragraph [ref=e62]: 从侧边栏选择一个数据库开始查询
+```

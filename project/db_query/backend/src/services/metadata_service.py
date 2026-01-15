@@ -70,21 +70,32 @@ class MetadataService:
 
         # Check if we have cached metadata and if it's still valid
         if not force_refresh and database.metadata_updated_at:
-            # Check if cache is still within TTL
-            cache_age = datetime.now() - database.metadata_updated_at
-            if cache_age < Metadata.CACHE_TTL and database.metadata_json:
-                # Return cached metadata from database
-                import json
+            # Convert metadata_updated_at to datetime if it's a string
+            updated_at = database.metadata_updated_at
+            if isinstance(updated_at, str):
+                # Try to parse ISO format string
+                try:
+                    updated_at = datetime.fromisoformat(updated_at)
+                except (ValueError, TypeError):
+                    # If parsing fails, treat as no cache
+                    updated_at = None
 
-                self.logger.debug("using_cached_metadata", database=database.name, cache_age_seconds=int(cache_age.total_seconds()))
-                cached = json.loads(database.metadata_json)
-                return MetadataResponse(
-                    database_name=database.name,
-                    db_type=database.db_type,
-                    tables=[TableMetadata(**t) for t in cached.get("tables", [])],
-                    views=[ViewMetadata(**v) for v in cached.get("views", [])],
-                    updated_at=database.metadata_updated_at,
-                )
+            if updated_at is not None:
+                # Check if cache is still within TTL
+                cache_age = datetime.now() - updated_at
+                if cache_age < Metadata.CACHE_TTL and database.metadata_json:
+                    # Return cached metadata from database
+                    import json
+
+                    self.logger.debug("using_cached_metadata", database=database.name, cache_age_seconds=int(cache_age.total_seconds()))
+                    cached = json.loads(database.metadata_json)
+                    return MetadataResponse(
+                        database_name=database.name,
+                        db_type=database.db_type,
+                        tables=[TableMetadata(**t) for t in cached.get("tables", [])],
+                        views=[ViewMetadata(**v) for v in cached.get("views", [])],
+                        updated_at=updated_at,
+                    )
 
         # Extract database name from connection URL
         # For MySQL/PostgreSQL, the database name is in the URL path

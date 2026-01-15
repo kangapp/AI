@@ -92,7 +92,8 @@ class ConnectionString(BaseModel):
             return self.original
         # For other databases, redact credentials
         if self.username:
-            return f"{self.scheme}://***:***@{self.host}:{self.port}/{self.database}"
+            host_port = f"{self.host}:{self.port}" if self.port is not None else self.host
+            return f"{self.scheme}://***:***@{host_port}/{self.database}"
         # Fallback for SQLite without original
         if self.scheme == "sqlite":
             # Determine if path is absolute (starts with / on Unix or drive letter on Windows)

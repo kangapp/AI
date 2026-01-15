@@ -128,23 +128,23 @@ class DatabaseService:
 
         # Handle sqlite: URLs
         # For sqlite, we need to extract the actual file path
-        # Formats: sqlite:///path/to/db.db (3 slashes for absolute), sqlite:///path/to/db.db (4 slashes also valid)
+        # Formats: sqlite:///path/to/db.db (3 slashes for relative), sqlite:////path/to/db.db (4 slashes for absolute)
         if parsed.scheme == "sqlite":
             # Extract path after sqlite:/ or sqlite:///
             # Remove sqlite:/ prefix and get the actual path
             path = url
-            if path.startswith("sqlite:///"):
-                # Absolute path format: sqlite:///Users/path/to/db.db
-                path = path[11:]  # Remove "sqlite:///"
+            if path.startswith("sqlite:////"):
+                # Absolute path format: sqlite:////Users/path/to/db.db
+                path = path[11:]  # Remove "sqlite:////" (length is 11)
+            elif path.startswith("sqlite:///"):
+                # Relative path format: sqlite:///path/to/db.db
+                path = path[10:]  # Remove "sqlite:///" (length is 10)
             elif path.startswith("sqlite://"):
-                # Relative or other format: sqlite://path/to/db.db
-                path = path[10:]  # Remove "sqlite://"
+                # Two slash format
+                path = path[9:]  # Remove "sqlite://" (length is 9)
             elif path.startswith("sqlite:/"):
                 # Single slash format
-                path = path[9:]  # Remove "sqlite:/"
-            # Remove leading slash if present (from the netloc part in URL parsing)
-            if path.startswith("/"):
-                path = path[1:]
+                path = path[8:]  # Remove "sqlite:/" (length is 8)
             return ConnectionString(
                 scheme="sqlite",
                 database=path,

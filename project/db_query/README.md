@@ -6,16 +6,19 @@
 
 - [项目概述](#项目概述)
 - [快速开始](#快速开始)
-- [使用指南](#使用指南)
 - [项目结构](#项目结构)
 - [技术栈](#技术栈)
 - [系统架构](#系统架构)
+- [性能监控模块](#性能监控模块)
+- [测试模块](#测试模块)
 - [技术要点](#技术要点)
 - [核心功能实现](#核心功能实现)
 - [完整调用链路详解](#完整调用链路详解)
 - [开发指南](#开发指南)
 - [API 文档](#api-文档)
+- [Hooks 机制详解](#hooks-机制详解)
 - [常见问题](#常见问题)
+- [许可证](#许可证)
 
 ---
 
@@ -37,9 +40,12 @@
 - **实时架构浏览**：树形展示表/视图结构，点击自动生成查询
 - **查询历史管理**：记录所有查询，支持重新执行和批量删除，分页展示
 - **结果导出**：支持 CSV、JSON 格式导出
+- **性能监控**：实时系统指标监控（CPU、内存、磁盘）、慢查询跟踪、HTTP 请求性能分析
+- **Web 性能监控**：Core Web Vitals 收集（LCP、FID、CLS、FCP）、性能评分和评级
 - **连接池管理**：自动管理数据库连接，空闲超时清理
 - **速率限制**：API 级别速率限制，防止滥用
 - **结构化日志**：JSON 格式日志，便于分析和监控
+- **完整测试覆盖**：单元测试、集成测试、性能测试、E2E 测试
 
 ---
 
@@ -86,113 +92,6 @@ make frontend-run # 前端 http://localhost:5173
 
 ---
 
-## 使用指南
-
-### 1. 首页概览
-
-打开应用后，您将看到简洁的主界面：
-
-![首页](docs/screenshots/01-homepage.png)
-
-- **左侧侧边栏**：显示已配置的数据库列表
-- **主内容区**：SQL 查询编辑器和结果展示
-- **添加数据库按钮**：点击右上角"+"按钮添加新的数据库连接
-
-### 2. 添加数据库连接
-
-点击"添加数据库"按钮，弹出连接配置表单：
-
-**连接字符串格式**：
-```bash
-# MySQL
-mysql://username:password@localhost:3306/database_name
-
-# PostgreSQL
-postgresql://username:password@localhost:5432/database_name
-
-# SQLite (相对路径)
-sqlite:///path/to/database.db
-
-# SQLite (绝对路径)
-sqlite:////Users/username/path/to/database.db
-```
-
-填写数据库名称和连接字符串后，点击"添加数据库"完成配置。
-
-### 3. 浏览数据库架构
-
-选择数据库后，左侧将显示完整的数据库架构：
-
-![数据库选中状态](docs/screenshots/02-database-selected.png)
-
-**架构浏览器功能**：
-- **表列表**：显示所有表和视图
-- **列信息**：展开表/视图查看列详情（类型、是否可空、主键等）
-- **快速查询**：点击表名自动生成 SELECT 查询语句
-
-### 4. SQL 查询
-
-**SQL 编辑器功能**：
-- 基于 Monaco Editor，提供语法高亮和自动补全
-- 快捷键：`Ctrl + Enter` 执行查询
-- 工具栏：格式化 SQL、执行查询
-
-**执行查询**：
-1. 在左侧选择数据库
-2. 在 SQL 编辑器中输入查询语句
-3. 点击"执行"按钮或按 `Ctrl + Enter`
-4. 查询结果将显示在下方表格中
-
-### 5. AI 智能查询
-
-使用自然语言描述您的需求，AI 自动生成 SQL 查询：
-
-![AI 查询界面](docs/screenshots/03-ai-query-tab.png)
-
-**使用步骤**：
-1. 切换到"AI 查询"标签页
-2. 在输入框中用自然语言描述查询需求
-3. 按 `Enter` 生成 SQL，或 `Shift + Enter` 换行
-4. 查看生成的 SQL，可选择：
-   - **生成 SQL**：仅生成不执行
-   - **立即运行**：生成并直接执行查询
-
-**AI 查询示例**：
-```
-显示所有活跃用户
-查询价格最高的10个商品
-统计每个客户的订单数量
-查找最近7天的注册用户
-```
-
-### 6. 查询历史管理
-
-所有查询（SQL 和 AI）都会自动记录到历史中：
-
-![查询历史](docs/screenshots/04-query-history.png)
-
-**历史记录功能**：
-- **统计信息**：总查询数、成功/失败数
-- **筛选功能**：按查询类型（SQL/AI）和状态筛选
-- **重新执行**：点击"运行"按钮重新执行历史查询
-- **编辑 SQL**：点击"编辑"将历史查询加载到编辑器
-- **批量删除**：选中多条记录后批量删除
-- **清空全部**：清空当前数据库的所有历史记录
-
-### 7. 查询结果操作
-
-**结果展示**：
-- 表格形式展示查询结果
-- 显示列类型信息
-- 显示执行统计（行数、耗时）
-
-**导出功能**：
-- 支持导出为 CSV 格式
-- 支持导出为 JSON 格式
-- 可选择是否包含列标题
-
----
-
 ## 项目结构
 
 ```
@@ -205,10 +104,11 @@ db_query/
 │   │   │   ├── errors.py            # 统一错误处理
 │   │   │   └── v1/                  # v1 API
 │   │   │       ├── databases.py     # 数据库管理端点
-│   │   │       └── queries.py       # 查询执行端点
+│   │   │       ├── queries.py       # 查询执行端点
+│   │   │       └── metrics.py       # 性能监控端点
 │   │   ├── core/                    # 核心模块
 │   │   │   ├── config.py            # 配置管理
-│   │   │   ├── constants.py         # 常量定义
+│   │   │   ├── constants.py         # 常量定义（含性能阈值）
 │   │   │   ├── sql_parser.py        # SQL 解析器
 │   │   │   ├── sqlite_db.py         # SQLite 连接
 │   │   │   └── logging.py           # 日志配置
@@ -220,12 +120,24 @@ db_query/
 │   │   │   ├── db_service.py        # 数据库连接服务
 │   │   │   ├── query_service.py     # 查询执行服务
 │   │   │   ├── llm_service.py       # LLM 服务
-│   │   │   └── metadata_service.py  # 元数据服务
+│   │   │   ├── metadata_service.py  # 元数据服务
+│   │   │   └── metrics_service.py   # 性能监控服务
 │   │   ├── lib/                     # 工具库
 │   │   │   └── json_encoder.py      # 驼峰命名编码器
 │   │   └── middleware/              # 中间件
-│   │       └── rate_limit.py        # 速率限制
+│   │       ├── rate_limit.py        # 速率限制
+│   │       └── performance.py       # 性能监控中间件
 │   ├── tests/                       # 测试目录
+│   │   ├── api/                     # API 测试
+│   │   │   ├── test_dependencies.py
+│   │   │   └── test_errors.py
+│   │   ├── services/                # 服务测试
+│   │   │   ├── test_services_basic.py
+│   │   │   ├── test_query_service_simple.py
+│   │   │   ├── test_database_service_simple.py
+│   │   │   └── test_metadata_service.py
+│   │   ├── conftest.py              # Pytest 配置
+│   │   └── test_utils.py            # 测试工具
 │   └── pyproject.toml              # Python 配置
 │
 ├── frontend/                         # TypeScript 前端
@@ -236,9 +148,14 @@ db_query/
 │   │   │       ├── Sidebar.tsx      # 侧边栏
 │   │   │       ├── DatabaseInfo.tsx # 数据库信息
 │   │   │       ├── QueryTabs.tsx    # 查询标签页
-│   │   │       ├── useDatabases.ts  # 数据库 Hook
-│   │   │       ├── useMetadata.ts   # 元数据 Hook
-│   │   │       └── useQueryExecution.ts # 查询执行 Hook
+│   │   │       ├── hooks/
+│   │   │       │   ├── useDatabases.ts    # 数据库 Hook
+│   │   │       │   ├── useMetadata.ts     # 元数据 Hook
+│   │   │       │   ├── useQueryExecution.ts # 查询执行 Hook
+│   │   │       │   └── usePerformance.ts  # 性能监控 Hook
+│   │   │       ├── Dashboard.tsx     # 仪表板组件
+│   │   │       ├── DatabaseList.tsx # 数据库列表
+│   │   │       └── QueryTabs.tsx    # 查询标签页
 │   │   ├── components/              # React 组件
 │   │   │   ├── database/            # 数据库组件
 │   │   │   │   ├── DatabaseList.tsx
@@ -253,6 +170,9 @@ db_query/
 │   │   │   ├── metadata/            # 元数据组件
 │   │   │   │   ├── TableList.tsx
 │   │   │   │   └── TableSchema.tsx
+│   │   │   ├── performance/         # 性能监控组件
+│   │   │   │   ├── PerformanceDashboard.tsx # 性能仪表盘
+│   │   │   │   └── PerformanceMonitor.tsx   # Web 性能监控
 │   │   │   └── shared/              # 共享组件
 │   │   │       ├── SchemaTree.tsx
 │   │   │       └── ErrorBoundary.tsx
@@ -260,11 +180,16 @@ db_query/
 │   │   │   ├── useDatabaseQuery.ts
 │   │   │   └── useTreeData.tsx
 │   │   ├── services/                # API 服务
-│   │   │   └── api.ts
+│   │   │   ├── api.ts               # 主 API 客户端
+│   │   │   └── performanceApi.ts    # 性能监控 API
+│   │   ├── utils/                   # 工具函数
+│   │   │   └── performance.ts       # Web 性能监控工具
 │   │   ├── types/                   # 类型定义
 │   │   │   └── index.ts
 │   │   ├── App.tsx                  # 应用根组件
 │   │   └── main.tsx                 # 应用入口
+│   ├── tests/                       # 前端测试
+│   │   └── performance.spec.ts      # 性能测试
 │   ├── index.html
 │   ├── package.json
 │   ├── vite.config.ts
@@ -293,6 +218,8 @@ db_query/
 | slowapi | 0.1.9+ | 速率限制 |
 | structlog | 24.0.0+ | 结构化日志 |
 | tenacity | 8.5.0+ | 重试机制 |
+| psutil | 6.1.0+ | 系统指标收集 |
+| pytest | 8.3.0+ | 测试框架 |
 
 ### 前端技术栈
 
@@ -307,6 +234,8 @@ db_query/
 | React Router | 7.1.1+ | 路由管理 |
 | React Query | 5.90.17+ | 服务端状态管理 |
 | Refinedev | 4.57.0+ | 数据提供框架 |
+| web-vitals | 5.1.0+ | Web 性能监控 |
+| @playwright/test | 1.57.0+ | E2E 测试 |
 
 ---
 
@@ -469,6 +398,520 @@ graph TD
     E --> P[EditDatabaseForm / 编辑表单]
     E --> Q[DatabaseDetail / 数据库详情]
 ```
+
+---
+
+## 性能监控模块
+
+### 后端性能监控
+
+#### MetricsService - 核心指标服务
+
+**路径**: `backend/src/services/metrics_service.py`
+
+**主要功能**:
+- **系统指标收集**: CPU、内存、磁盘、进程资源监控
+- **慢查询监控**: 自动记录执行时间超过阈值的查询
+- **查询性能统计**: 按数据库和时间范围统计查询性能
+- **健康状态检查**: 综合评估系统健康状况
+- **历史数据清理**: 自动清理过期的监控数据
+
+**关键方法**:
+```python
+class MetricsService:
+    async def start_collection(self) -> None
+    async def stop_collection(self) -> None
+    async def record_slow_query(
+        database_name: str,
+        sql: str,
+        execution_time_ms: int,
+        row_count: int
+    ) -> None
+    async def get_slow_queries(
+        min_execution_time_ms: int = 1000,
+        limit: int = 100
+    ) -> List[SlowQueryRecord]
+    async def get_query_performance_stats(
+        database_name: str | None = None,
+        hours: int = 24
+    ) -> QueryPerformanceStats
+    async def get_current_system_metrics(self) -> SystemMetrics
+    async def get_system_metrics(self, limit: int = 100) -> List[SystemMetrics]
+    async def get_health_status(self) -> HealthStatus
+    async def cleanup_old_metrics(self, days: int = 30) -> int
+```
+
+**性能阈值配置** (`backend/src/core/constants.py`):
+```python
+class Performance:
+    # 慢查询阈值（毫秒）
+    SLOW_QUERY_THRESHOLD = 1000  # 1秒
+    VERY_SLOW_QUERY_THRESHOLD = 5000  # 5秒
+    CRITICAL_SLOW_QUERY_THRESHOLD = 10000  # 10秒
+
+    # 请求性能阈值（毫秒）
+    FAST_REQUEST_THRESHOLD = 100  # <100ms为快速
+    NORMAL_REQUEST_THRESHOLD = 500  # <500ms为正常
+    SLOW_REQUEST_THRESHOLD = 1000  # >=1s为慢
+
+    # 内存监控
+    MEMORY_WARNING_THRESHOLD = 80  # 80%内存使用警告
+    MEMORY_CRITICAL_THRESHOLD = 90  # 90%内存使用危急
+
+    # 性能指标保留
+    METRICS_RETENTION_DAYS = 30  # 保留30天
+    PERFORMANCE_HISTORY_LIMIT = 1000  # 内存中最多保留1000条记录
+
+    # 告警阈值
+    HIGH_ERROR_RATE_THRESHOLD = 0.05  # 5%错误率
+    HIGH_LATENCY_P95_THRESHOLD = 2000  # P95延迟>2秒
+
+    # 监控间隔
+    SYSTEM_METRICS_INTERVAL = 60  # 每60秒收集系统指标
+    PERFORMANCE_STATS_INTERVAL = 300  # 每5分钟计算性能统计
+```
+
+#### PerformanceMiddleware - HTTP 请求性能监控
+
+**路径**: `backend/src/middleware/performance.py`
+
+**主要功能**:
+- 跟踪所有 HTTP 请求的性能指标
+- 记录请求延迟、状态码、路径
+- 计算百分位数（P50、P95、P99）
+- 识别慢请求
+
+**跟踪的指标**:
+- 总请求数
+- 按路径统计的请求
+- 按方法统计的请求
+- 按状态码统计的请求
+- 延迟百分位数（P50、P95、P99）
+- 平均延迟
+- 最近 100 条请求历史
+
+#### 性能监控 API 端点
+
+**路径**: `backend/src/api/v1/metrics.py`
+
+| 端点 | 方法 | 功能 |
+|------|------|------|
+| `/api/v1/metrics/performance` | GET | 获取 HTTP 请求性能指标 |
+| `/api/v1/metrics/slow-queries` | GET | 获取慢查询列表 |
+| `/api/v1/metrics/query-performance` | GET | 获取查询性能统计 |
+| `/api/v1/metrics/system` | GET | 获取当前系统指标 |
+| `/api/v1/metrics/system/history` | GET | 获取历史系统指标 |
+| `/api/v1/metrics/health-detailed` | GET | 获取详细健康状态 |
+| `/api/v1/metrics/cleanup` | POST | 清理历史指标数据 |
+| `/api/v1/metrics/thresholds` | GET | 获取性能阈值配置 |
+
+### 前端性能监控
+
+#### Web 性能监控工具
+
+**路径**: `frontend/src/utils/performance.ts`
+
+**主要功能**:
+- 使用 `web-vitals` 库收集核心 Web 指标
+- 计算性能评分和评级
+- 提供性能指标回调机制
+
+**收集的指标**:
+- **LCP** (Largest Contentful Paint) - 最大内容绘制
+- **FID** (First Input Delay) - 首次输入延迟
+- **CLS** (Cumulative Layout Shift) - 累积布局偏移
+- **FCP** (First Contentful Paint) - 首次内容绘制
+- **TTFB** (Time to First Byte) - 首字节时间
+- 页面加载时间
+- DOM 内容加载完成时间
+- 内存使用情况
+
+**性能评分**:
+- 总分范围：0-100 分
+- 评级：优秀（90+）、良好（75-89）、一般（60-74）、较差（<60）
+
+#### 性能监控 API 客户端
+
+**路径**: `frontend/src/services/performanceApi.ts`
+
+**TypeScript 类型定义**:
+```typescript
+interface SystemMetrics {
+  cpuPercent: number;
+  memory: MemoryMetrics;
+  disk: DiskMetrics;
+  process: ProcessMetrics;
+  timestamp: string;
+}
+
+interface SlowQuery {
+  id: number;
+  databaseName: string;
+  sql: string;
+  executionTimeMs: number;
+  rowCount: number;
+  createdAt: string;
+}
+
+interface QueryPerformanceStats {
+  totalQueries: number;
+  successfulQueries: number;
+  failedQueries: number;
+  successRate: number;
+  avgExecutionTimeMs: number;
+  slowQueries: number;
+  verySlowQueries: number;
+  criticalSlowQueries: number;
+}
+
+interface HealthStatus {
+  status: 'healthy' | 'warning' | 'critical';
+  issues: string[];
+  systemMetrics: SystemMetrics;
+  slowQueriesCount: number;
+  timestamp: string;
+}
+```
+
+**API 方法**:
+- `getSystemMetrics()` - 获取当前系统指标
+- `getSystemMetricsHistory(limit)` - 获取系统指标历史
+- `getSlowQueries(params)` - 获取慢查询列表
+- `getQueryPerformanceStats(params)` - 获取查询性能统计
+- `getHealthDetailed()` - 获取详细健康状态
+- `getPerformanceThresholds()` - 获取性能阈值配置
+- `getPerformanceMetrics()` - 获取 HTTP 请求性能统计
+- `cleanupMetrics(days)` - 清理历史数据
+
+#### 性能监控 React Hooks
+
+**路径**: `frontend/src/pages/Dashboard/hooks/usePerformance.ts`
+
+**自定义 Hooks**:
+```typescript
+// 获取系统指标（默认5秒刷新）
+const { data: systemMetrics, isLoading } = useSystemMetrics(refetchInterval);
+
+// 获取系统指标历史（默认30秒刷新）
+const { data: history } = useSystemMetricsHistory(limit);
+
+// 获取慢查询列表（默认10秒刷新）
+const { data: slowQueries } = useSlowQueries(params, refetchInterval);
+
+// 获取查询性能统计（默认15秒刷新）
+const { data: stats } = useQueryPerformanceStats(params, refetchInterval);
+
+// 获取健康状态（默认10秒刷新）
+const { data: health } = useHealthDetailed(refetchInterval);
+
+// 获取性能阈值配置
+const { data: thresholds } = usePerformanceThresholds();
+
+// 获取HTTP请求性能统计（默认5秒刷新）
+const { data: perfMetrics } = usePerformanceMetrics(refetchInterval);
+
+// 清理历史数据（mutation）
+const cleanupMutation = useCleanupMetrics();
+
+// 组合hook，获取所有性能监控数据
+const { systemMetrics, slowQueries, stats, health } = usePerformanceDashboard();
+```
+
+#### 性能监控组件
+
+**PerformanceDashboard** - 性能仪表盘
+
+**路径**: `frontend/src/components/performance/PerformanceDashboard.tsx`
+
+**组件结构**:
+- 头部状态栏（显示健康状态标签）
+- 系统资源指标卡片（CPU、内存、磁盘、进程内存）
+- 查询性能统计卡片（总查询数、成功率、平均执行时间、慢查询数）
+- 慢查询记录列表
+- 性能阈值配置说明
+
+**PerformanceMonitor** - Web 性能监控
+
+**路径**: `frontend/src/components/performance/PerformanceMonitor.tsx`
+
+**组件结构**:
+- 性能评分总分（0-100 分）
+- Core Web Vitals 指标卡片（LCP、FID、CLS、FCP）
+- 其他性能指标（TTFB、页面加载时间、DOM 加载完成、内存使用）
+- 系统资源指标（CPU、内存、磁盘）
+- 性能指标说明
+
+### 性能监控数据流
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Dashboard as 性能仪表盘
+    participant API as 性能API
+    participant Metrics as MetricsService
+    participant System as 系统资源
+    participant DB as 应用数据库
+
+    User->>Dashboard: 访问性能监控页面
+    Dashboard->>API: GET /metrics/system
+    API->>Metrics: get_current_system_metrics()
+    Metrics->>System: 读取 CPU、内存、磁盘
+    System-->>Metrics: 系统指标
+    Metrics-->>API: SystemMetrics
+    API-->>Dashboard: 实时系统指标
+
+    Dashboard->>API: GET /metrics/slow-queries
+    API->>Metrics: get_slow_queries()
+    Metrics->>DB: 查询慢查询记录
+    DB-->>Metrics: 慢查询列表
+    Metrics-->>API: SlowQuery[]
+    API-->>Dashboard: 慢查询数据
+
+    Dashboard->>API: GET /metrics/query-performance
+    API->>Metrics: get_query_performance_stats()
+    Metrics->>DB: 统计查询性能
+    DB-->>Metrics: 性能统计数据
+    Metrics-->>API: QueryPerformanceStats
+    API-->>Dashboard: 查询性能统计
+
+    Dashboard->>API: GET /metrics/health-detailed
+    API->>Metrics: get_health_status()
+    Metrics->>Metrics: 评估系统健康状态
+    Metrics-->>API: HealthStatus
+    API-->>Dashboard: 健康状态
+```
+
+---
+
+## 测试模块
+
+### 后端测试
+
+#### 测试目录结构
+
+```
+backend/tests/
+├── api/                              # API 测试
+│   ├── test_dependencies.py          # 依赖注入测试
+│   └── test_errors.py                # 错误处理测试
+├── services/                         # 服务测试
+│   ├── test_services_basic.py        # 基础服务测试
+│   ├── test_query_service_simple.py  # 查询服务测试
+│   ├── test_database_service_simple.py # 数据库服务测试
+│   └── test_metadata_service.py      # 元数据服务测试
+├── conftest.py                       # Pytest 配置和 Fixtures
+└── test_utils.py                     # 测试辅助工具
+```
+
+#### Pytest 配置
+
+**路径**: `backend/tests/conftest.py`
+
+**Fixtures**:
+- `temp_db_path` - 临时数据库文件路径
+- `mock_engine` - 模拟 SQLAlchemy 引擎
+- `mock_database` - 模拟数据库对象
+- `initialize_test_db` - 初始化应用数据库（自动使用）
+- `reset_database` - 测试间重置数据库
+- `mock_llm_response` - 模拟 LLM 响应
+- `sample_query_response` - 示例查询响应
+- `sample_metadata` - 示例元数据
+
+**环境变量设置**:
+```python
+import os
+os.environ["ZAI_API_KEY"] = "test_api_key"
+os.environ["LOG_LEVEL"] = "WARNING"
+```
+
+#### 测试辅助工具
+
+**路径**: `backend/tests/test_utils.py`
+
+**辅助类**:
+```python
+class DatabaseTestHelper:
+    @staticmethod
+    def create_in_memory_database() -> aiosqlite.Connection
+    @staticmethod
+    def create_sample_query_result() -> List[Dict[str, Any]]
+
+class APITestHelper:
+    @staticmethod
+    def create_mock_request(
+        method: str = "GET",
+        path: str = "/",
+        headers: dict = None
+    ) -> Request
+    @staticmethod
+    def assert_error_response(
+        response: Response,
+        expected_code: str,
+        expected_status: int
+    ) -> None
+
+class DateTimeTestHelper:
+    @staticmethod
+    def assert_datetime_close(
+        actual: datetime,
+        expected: datetime,
+        delta_seconds: int = 1
+    ) -> None
+```
+
+#### 测试用例示例
+
+**API 测试** (`test_dependencies.py`):
+```python
+async def test_get_db_service():
+    service = get_db_service()
+    assert isinstance(service, DatabaseService)
+
+async def test_get_query_service():
+    service = get_query_service()
+    assert isinstance(service, QueryService)
+```
+
+**服务测试** (`test_metadata_service.py`):
+```python
+async def test_validate_identifier_valid():
+    result = MetadataService._validate_identifier("valid_name")
+    assert result == "valid_name"
+
+async def test_validate_identifier_invalid():
+    with pytest.raises(ValueError):
+        MetadataService._validate_identifier("123_invalid")
+
+async def test_fetch_metadata_with_cache(
+    mock_engine,
+    initialize_test_db,
+    sample_metadata
+):
+    # 测试元数据缓存
+    service = MetadataService()
+    metadata1 = await service.fetch_metadata(
+        sample_metadata,
+        mock_engine,
+        force_refresh=False
+    )
+    metadata2 = await service.fetch_metadata(
+        sample_metadata,
+        mock_engine,
+        force_refresh=False
+    )
+    # 第二次调用应该返回缓存
+    assert metadata1 == metadata2
+```
+
+### 前端测试
+
+#### 测试文件
+
+**路径**: `frontend/tests/performance.spec.ts`
+
+**测试套件**:
+
+1. **后端性能监控 API 测试**:
+   - 健康检查端点返回系统状态
+   - 获取性能阈值配置
+   - 获取系统指标
+   - 获取慢查询列表
+   - 获取查询性能统计
+   - 详细健康状态检查
+
+2. **前端 Web 性能测试**:
+   - 页面加载性能指标
+   - Core Web Vitals 收集
+   - API 响应时间测试
+   - 多次请求验证性能监控中间件
+
+3. **性能监控集成测试**:
+   - 完整性能监控流程测试
+   - 性能监控中间件记录请求
+
+**测试框架**: Playwright Test
+
+**示例测试用例**:
+```typescript
+test('should return health status with system metrics', async ({ request }) => {
+  const response = await request.get('/api/v1/metrics/health-detailed');
+  expect(response.status()).toBe(200);
+
+  const health = await response.json();
+  expect(health).toHaveProperty('status');
+  expect(health).toHaveProperty('systemMetrics');
+  expect(health).toHaveProperty('issues');
+  expect(health.systemMetrics).toHaveProperty('cpuPercent');
+  expect(health.systemMetrics).toHaveProperty('memory');
+});
+
+test('should collect Core Web Vitals', async ({ page }) => {
+  const metrics = await page.evaluate(() => {
+    return new Promise((resolve) => {
+      // 模拟 web-vitals 收集
+      const vitals = {
+        LCP: 1200,
+        FID: 45,
+        CLS: 0.05,
+        FCP: 800
+      };
+      resolve(vitals);
+    });
+  });
+
+  expect(metrics.LCP).toBeLessThan(2500); // LCP < 2.5s
+  expect(metrics.FID).toBeLessThan(100);  // FID < 100ms
+  expect(metrics.CLS).toBeLessThan(0.1);  // CLS < 0.1
+});
+```
+
+### 运行测试
+
+**后端测试**:
+```bash
+cd backend
+
+# 运行所有测试
+uv run pytest
+
+# 运行特定测试文件
+uv run pytest tests/services/test_metadata_service.py
+
+# 运行带标记的测试
+uv run pytest -m "unit"
+
+# 生成覆盖率报告
+uv run pytest --cov=src --cov-report=html
+
+# 详细输出
+uv run pytest -v
+```
+
+**前端测试**:
+```bash
+cd frontend
+
+# 运行所有测试
+npm run test
+
+# 运行性能测试
+npx playwright test tests/performance.spec.ts
+
+# 运行测试并查看报告
+npx playwright test --reporter=html
+
+# 调试模式
+npx playwright test --debug
+```
+
+### 测试覆盖范围
+
+| 模块 | 测试文件 | 覆盖内容 |
+|------|----------|----------|
+| API 层 | test_dependencies.py, test_errors.py | 依赖注入、错误处理 |
+| 服务层 | test_services_*.py | 数据库、查询、元数据服务 |
+| 性能监控 | performance.spec.ts | 系统指标、慢查询、健康检查 |
+| Web 性能 | performance.spec.ts | Core Web Vitals、页面加载 |
 
 ---
 
@@ -1445,6 +1888,105 @@ npm run dev
 | DELETE | /api/v1/dbs/{name}/history | 删除查询历史 |
 | GET | /api/v1/dbs/{name}/suggested-queries | 获取查询建议 |
 
+### 性能监控 API
+
+| 方法 | 路径 | 说明 |
+|------|------|------|
+| GET | /api/v1/metrics/performance | 获取 HTTP 请求性能指标 |
+| GET | /api/v1/metrics/slow-queries | 获取慢查询列表 |
+| GET | /api/v1/metrics/query-performance | 获取查询性能统计 |
+| GET | /api/v1/metrics/system | 获取当前系统指标 |
+| GET | /api/v1/metrics/system/history | 获取历史系统指标 |
+| GET | /api/v1/metrics/health-detailed | 获取详细健康状态 |
+| POST | /api/v1/metrics/cleanup | 清理历史指标数据 |
+| GET | /api/v1/metrics/thresholds | 获取性能阈值配置 |
+| GET | /health | 增强的健康检查端点 |
+
+**性能监控 API 请求示例**:
+
+获取系统指标：
+```json
+GET /api/v1/metrics/system
+
+响应：
+{
+  "cpuPercent": 45.2,
+  "memory": {
+    "total": 17179869184,
+    "available": 8589934592,
+    "percent": 50.0,
+    "used": 8589934592
+  },
+  "disk": {
+    "total": 500000000000,
+    "used": 200000000000,
+    "percent": 40.0
+  },
+  "process": {
+    "memoryMb": 256,
+    "cpuPercent": 12.5,
+    "numThreads": 8,
+    "numFds": 32
+  },
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
+获取慢查询列表：
+```json
+GET /api/v1/metrics/slow-queries?min_execution_time_ms=1000&limit=10
+
+响应：
+{
+  "slowQueries": [
+    {
+      "id": 1,
+      "databaseName": "mydb",
+      "sql": "SELECT * FROM large_table JOIN another_table...",
+      "executionTimeMs": 5234,
+      "rowCount": 15000,
+      "createdAt": "2024-01-15T10:25:00Z"
+    }
+  ],
+  "total": 1
+}
+```
+
+获取查询性能统计：
+```json
+GET /api/v1/metrics/query-performance?database_name=mydb&hours=24
+
+响应：
+{
+  "totalQueries": 1234,
+  "successfulQueries": 1200,
+  "failedQueries": 34,
+  "successRate": 0.972,
+  "avgExecutionTimeMs": 245,
+  "slowQueries": 23,
+  "verySlowQueries": 5,
+  "criticalSlowQueries": 1
+}
+```
+
+获取健康状态：
+```json
+GET /api/v1/metrics/health-detailed
+
+响应：
+{
+  "status": "healthy",
+  "issues": [],
+  "systemMetrics": {
+    "cpuPercent": 45.2,
+    "memory": { "percent": 50.0 },
+    "disk": { "percent": 40.0 }
+  },
+  "slowQueriesCount": 3,
+  "timestamp": "2024-01-15T10:30:00Z"
+}
+```
+
 ### 速率限制
 
 | 端点类型 | 限制 |
@@ -1477,6 +2019,1224 @@ POST /api/v1/dbs/mydb/query/natural
   "columns": [...],
   "rows": [...]
 }
+```
+
+---
+
+## Hooks 机制详解
+
+### 目录
+
+- [概述](#hooks-概述)
+- [前端 React Hooks](#前端-react-hooks)
+    - [核心原理](#核心原理)
+    - [useDatabases](#usedatabases-数据库列表管理)
+    - [useMetadata](#usemetadata-元数据管理)
+    - [useQueryExecution](#usequeryexecution-查询执行状态管理)
+    - [usePerformance](#useperformance-性能监控)
+    - [useTreeData](#usetreedata-架构树数据转换)
+- [后端依赖注入钩子](#后端依赖注入钩子)
+    - [FastAPI 依赖注入原理](#fastapi-依赖注入原理)
+    - [服务工厂函数](#服务工厂函数)
+- [生命周期钩子](#生命周期钩子)
+- [Hook 联动机制](#hook-联动机制)
+- [Hooks 最佳实践](#hooks-最佳实践)
+
+---
+
+### Hooks 概述
+
+本项目中的 **Hooks** 是指两类机制：
+
+1. **前端 React Hooks**：基于 React Query (TanStack Query) 的自定义 Hooks，封装了服务端状态管理
+2. **后端依赖注入钩子**：FastAPI 的依赖注入系统，用于服务实例的创建和生命周期管理
+
+```mermaid
+graph TB
+    subgraph "前端层 - React Hooks"
+        A[useDatabases<br/>数据库列表管理]
+        B[useMetadata<br/>元数据管理]
+        C[useQueryExecution<br/>查询执行状态]
+        D[usePerformance<br/>性能监控]
+        E[useTreeData<br/>树形数据转换]
+    end
+
+    subgraph "状态管理层"
+        F[React Query<br/>QueryClient]
+        G[本地 useState<br/>UI特定状态]
+    end
+
+    subgraph "API层"
+        H[api.ts<br/>API客户端单例]
+        I[performanceApi.ts<br/>性能监控API]
+    end
+
+    subgraph "后端层 - 依赖注入"
+        J[get_db_service<br/>数据库服务工厂]
+        K[get_query_service<br/>查询服务工厂]
+        L[get_metadata_service<br/>元数据服务工厂]
+        M[get_llm_service<br/>LLM服务工厂]
+    end
+
+    subgraph "生命周期钩子"
+        N[lifespan<br/>启动/关闭管理]
+        O[MetricsService<br/>性能收集启动]
+    end
+
+    A --> F
+    B --> F
+    C --> F
+    D --> F
+    E --> G
+    F --> H
+    D --> I
+
+    J --> L
+    K --> J
+
+    N --> O
+```
+
+---
+
+### 前端 React Hooks
+
+#### 核心原理
+
+**React Query 状态管理模式**：
+
+```mermaid
+sequenceDiagram
+    participant Component as 组件
+    participant Hook as 自定义Hook
+    participant QueryClient as QueryClient
+    participant API as API客户端
+    participant Backend as 后端服务
+
+    Component->>Hook: const { data, isLoading } = useXxx()
+    Hook->>QueryClient: useQuery({ queryKey, queryFn })
+    QueryClient->>QueryClient: 检查缓存
+
+    alt 缓存有效且未过期
+        QueryClient-->>Component: 返回缓存数据
+    else 缓存无效或不存在
+        QueryClient->>API: 调用 queryFn
+        API->>Backend: fetch 请求
+        Backend-->>API: JSON响应
+        API-->>QueryClient: 数据
+        QueryClient->>QueryClient: 更新缓存
+        QueryClient-->>Component: 返回新数据
+    end
+
+    Note over Component: 触发重新渲染
+```
+
+**Query Key 设计模式**：
+
+```typescript
+// 层级化 Query Key 结构
+const databaseKeys = {
+  all: ["databases"] as const,                          // 基础层级
+  lists: () => [...databaseKeys.all, "list"] as const, // 列表层级
+  list: () => [...databaseKeys.lists()] as const,      // 具体列表
+  details: () => [...databaseKeys.all, "detail"] as const,
+  detail: (name: string) => [...databaseKeys.details(), name] as const,
+};
+
+// 使用场景
+queryKey: databaseKeys.list()           // ["databases", "list"]
+queryKey: databaseKeys.detail("mydb")   // ["databases", "detail", "mydb"]
+```
+
+---
+
+#### useDatabases - 数据库列表管理
+
+**路径**: `frontend/src/pages/Dashboard/hooks/useDatabases.ts`
+
+**功能职责**：
+- 管理数据库连接列表的状态
+- 提供 CRUD 操作的封装
+- 自动缓存失效和刷新
+
+**代码结构**：
+
+```typescript
+export function useDatabases() {
+  const queryClient = useQueryClient();
+
+  // 1. 数据列表查询
+  const query = useQuery({
+    queryKey: databaseKeys.list(),
+    queryFn: async () => {
+      const response = await api.listDatabases();
+      return response.databases;
+    },
+    staleTime: 2 * 60 * 1000, // 2分钟缓存
+  });
+
+  // 2. 创建数据库 Mutation
+  const createDatabaseMutation = useMutation({
+    mutationFn: async (request: DatabaseCreateRequest) => {
+      return await api.createDatabase(request.name, request.url);
+    },
+    onSuccess: () => {
+      // 自动失效相关查询，触发重新获取
+      queryClient.invalidateQueries({ queryKey: databaseKeys.list() });
+      message.success("数据库创建成功");
+    },
+    onError: (error: Error) => {
+      message.error(error.message || "创建数据库失败");
+    },
+  });
+
+  // 3. 删除数据库 Mutation
+  const deleteDatabaseMutation = useMutation({
+    mutationFn: async (name: string) => {
+      return await api.deleteDatabase(name);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: databaseKeys.list() });
+      message.success("数据库删除成功");
+    },
+  });
+
+  // 4. 更新数据库 Mutation
+  const updateDatabaseMutation = useMutation({
+    mutationFn: async ({ name, request }: { name: string; request: { name?: string; url?: string } }) => {
+      return await api.updateDatabase(name, request);
+    },
+    onSuccess: (_, variables) => {
+      // 失效列表和详情缓存
+      queryClient.invalidateQueries({ queryKey: databaseKeys.list() });
+      queryClient.invalidateQueries({ queryKey: databaseKeys.detail(variables.name) });
+      message.success("数据库更新成功");
+    },
+  });
+
+  return {
+    databases: query.data ?? [],
+    loading: query.isLoading,
+    createDatabase: createDatabaseMutation.mutateAsync,
+    deleteDatabase: deleteDatabaseMutation.mutateAsync,
+    updateDatabase: updateDatabaseMutation.mutateAsync,
+    refreshDatabases: () => queryClient.invalidateQueries({ queryKey: databaseKeys.list() }),
+    isCreating: createDatabaseMutation.isPending,
+    isDeleting: deleteDatabaseMutation.isPending,
+    isUpdating: updateDatabaseMutation.isPending,
+  };
+}
+```
+
+**触发机制**：
+
+```mermaid
+graph TD
+    A[组件挂载] --> B[useQuery 触发]
+    B --> C{检查缓存}
+    C -->|有效且未过期| D[返回缓存数据]
+    C -->|无效或不存在| E[调用 api.listDatabases]
+    E --> F[GET /api/v1/dbs]
+    F --> G[更新缓存]
+    G --> H[组件重新渲染]
+
+    I[用户创建数据库] --> J[createDatabase]
+    J --> K[PUT /api/v1/dbs/{name}]
+    K --> L[onSuccess 回调]
+    L --> M[invalidateQueries]
+    M --> N[自动重新获取列表]
+    N --> H
+```
+
+**使用示例**：
+
+```typescript
+// 在组件中使用
+function DatabaseList() {
+  const {
+    databases,
+    loading,
+    createDatabase,
+    deleteDatabase,
+    isCreating,
+    isDeleting,
+  } = useDatabases();
+
+  if (loading) return <Spin />;
+
+  return (
+    <List
+      dataSource={databases}
+      renderItem={(db) => (
+        <List.Item
+          actions={[
+            <Button
+              danger
+              loading={isDeleting}
+              onClick={() => deleteDatabase(db.name)}
+            >
+              删除
+            </Button>,
+          ]}
+        >
+          {db.name}
+        </List.Item>
+      )}
+    />
+  );
+}
+```
+
+---
+
+#### useMetadata - 元数据管理
+
+**路径**: `frontend/src/pages/Dashboard/hooks/useMetadata.ts`
+
+**功能职责**：
+- 管理选中数据库的元数据状态
+- 提供数据库选择和切换功能
+- 处理元数据缓存和刷新
+
+**关键特性**：
+
+1. **条件查询 (Conditional Querying)**
+
+```typescript
+const metadataQuery = useQuery({
+  queryKey: selectedDatabaseName
+    ? metadataKeys.detail(selectedDatabaseName)
+    : ["metadata", "none"],
+  queryFn: async () => {
+    if (!selectedDatabaseName) {
+      throw new Error("No database selected");
+    }
+    return await api.getDatabase(selectedDatabaseName);
+  },
+  enabled: !!selectedDatabaseName,  // 只有选中数据库时才执行查询
+  staleTime: 10 * 60 * 1000,        // 10分钟缓存（元数据变化较少）
+  retry: 1,
+});
+```
+
+2. **乐观更新 (Optimistic Updates)**
+
+```typescript
+const deleteDatabaseMutation = useMutation({
+  mutationFn: async (name: string) => {
+    return await api.deleteDatabase(name);
+  },
+  onMutate: async (name) => {
+    // 1. 取消相关查询
+    await queryClient.cancelQueries({ queryKey: metadataKeys.detail(name) });
+
+    // 2. 保存当前值（快照）
+    const previousDatabase = queryClient.getQueryData(metadataKeys.detail(name));
+
+    return { previousDatabase };
+  },
+  onSuccess: (_, name) => {
+    // 3. 失效元数据查询
+    queryClient.invalidateQueries({ queryKey: metadataKeys.detail(name) });
+    queryClient.invalidateQueries({ queryKey: ["databases", "list"] });
+
+    // 4. 如果删除的是当前选中数据库，清空选择
+    if (selectedDatabaseName === name) {
+      setSelectedDatabaseName(null);
+    }
+  },
+  onError: (error: Error, _, context) => {
+    // 5. 出错时恢复快照
+    if (context?.previousDatabase) {
+      queryClient.setQueryData(
+        metadataKeys.detail(selectedDatabaseName || ""),
+        context.previousDatabase
+      );
+    }
+    message.error(error.message || "删除数据库失败");
+  },
+});
+```
+
+**状态流转**：
+
+```mermaid
+stateDiagram-v2
+    [*] --> 未选择数据库
+    未选择数据库 --> 已选择数据库: selectDatabase(name)
+    已选择数据库 --> 加载中: enabled=true, 触发查询
+    加载中 --> 已选择数据库: 查询成功
+    加载中 --> 错误状态: 查询失败
+    已选择数据库 --> 已选择数据库: refreshMetadata()
+    已选择数据库 --> 未选择数据库: clearDatabase() 或删除当前库
+    错误状态 --> 已选择数据库: 重试成功
+    错误状态 --> 未选择数据库: clearDatabase()
+```
+
+---
+
+#### useQueryExecution - 查询执行状态管理
+
+**路径**: `frontend/src/pages/Dashboard/hooks/useQueryExecution.ts`
+
+**功能职责**：
+- 管理 SQL 查询和 AI 查询的执行状态
+- 维护查询结果和错误信息
+- 处理查询历史失效
+
+**混合状态管理**：
+
+```typescript
+export function useQueryExecution() {
+  // React Query 管理服务端状态（Mutation）
+  const executeQueryMutation = useMutation({
+    mutationFn: async ({ databaseName, sql }: { databaseName: string; sql: string }) => {
+      return await api.executeQuery(databaseName, sql);
+    },
+    onMutate: () => {
+      setError(null);
+      setQueryResult(null);
+    },
+    onSuccess: (result) => {
+      setQueryResult(result);
+      message.success(`查询返回 ${result.rowCount} 行，耗时 ${result.executionTimeMs}ms`);
+    },
+    onError: (err: Error) => {
+      const errorMsg = err.message || "查询执行失败";
+      setError(errorMsg);
+      message.error(errorMsg);
+    },
+  });
+
+  // 本地 useState 管理 UI 特定状态
+  const [sql, setSql] = useState("");
+  const [queryResult, setQueryResult] = useState<QueryResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState("sql");
+
+  return {
+    sql,
+    setSql,
+    queryResult,
+    setQueryResult,
+    loading: executeQueryMutation.isPending || naturalQueryMutation.isPending,
+    error,
+    activeTab,
+    setActiveTab,
+    executeQuery,
+    handleQueryGenerated,
+    clearQuery,
+    invalidateQueryHistory,
+  };
+}
+```
+
+**为什么使用混合状态管理？**
+
+| 状态类型 | 管理方式 | 原因 |
+|---------|---------|------|
+| 查询结果 (服务端) | Mutation | 需要发送请求，管理加载/错误状态 |
+| SQL 输入值 | useState | 纯 UI 状态，不需要持久化 |
+| 活动标签 | useState | 纯 UI 状态，组件内部使用 |
+| 查询历史 | QueryClient | 多组件共享，需要缓存失效 |
+
+**AI 查询执行流程**：
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant Hook as useQueryExecution
+    participant Mutation as naturalQueryMutation
+    participant API as api.naturalQuery
+    participant Backend as 后端 AI 服务
+
+    User->>Hook: 输入自然语言查询
+    Hook->>Mutation: mutateAsync({ databaseName, prompt })
+    Mutation->>API: POST /api/v1/dbs/{name}/query/natural
+    API->>Backend: 发送 prompt
+    Backend->>Backend: LLM 生成 SQL
+    Backend-->>API: 返回 generatedSql + results
+    API-->>Mutation: NaturalQueryResponse
+    Mutation->>Hook: onSuccess 回调
+
+    Hook->>Hook: setSql(generatedSql)
+    Hook->>Hook: setActiveTab("sql")
+    Hook->>Hook: setQueryResult(results)
+    Hook->>User: 显示成功消息
+```
+
+---
+
+#### usePerformance - 性能监控
+
+**路径**: `frontend/src/pages/Dashboard/hooks/usePerformance.ts`
+
+**功能职责**：
+- 提供多个性能监控相关的 React Query Hooks
+- 支持自动轮询 (Polling) 获取实时数据
+- 组合多个 Hook 聚合数据
+
+**核心 Hooks 列表**：
+
+```typescript
+// 1. 系统指标（默认5秒刷新）
+export function useSystemMetrics(refetchInterval = 5000) {
+  return useQuery({
+    queryKey: ['performance', 'system-metrics'],
+    queryFn: () => performanceApi.getSystemMetrics(),
+    refetchInterval,  // 自动轮询
+    staleTime: 1000,
+  });
+}
+
+// 2. 系统指标历史（默认30秒刷新）
+export function useSystemMetricsHistory(limit = 100) {
+  return useQuery({
+    queryKey: ['performance', 'system-metrics-history', limit],
+    queryFn: () => performanceApi.getSystemMetricsHistory(limit),
+    refetchInterval: 30000,
+    staleTime: 10000,
+  });
+}
+
+// 3. 慢查询列表（默认10秒刷新）
+export function useSlowQueries(params?: {...}, refetchInterval = 10000) {
+  return useQuery({
+    queryKey: ['performance', 'slow-queries', params],
+    queryFn: () => performanceApi.getSlowQueries(params),
+    refetchInterval,
+    staleTime: 5000,
+  });
+}
+
+// 4. 查询性能统计（默认15秒刷新）
+export function useQueryPerformanceStats(params?: {...}, refetchInterval = 15000) {
+  return useQuery({
+    queryKey: ['performance', 'query-stats', params],
+    queryFn: () => performanceApi.getQueryPerformanceStats(params),
+    refetchInterval,
+    staleTime: 10000,
+  });
+}
+
+// 5. 健康状态（默认10秒刷新）
+export function useHealthDetailed(refetchInterval = 10000) {
+  return useQuery({
+    queryKey: ['performance', 'health-detailed'],
+    queryFn: () => performanceApi.getHealthDetailed(),
+    refetchInterval,
+    staleTime: 5000,
+  });
+}
+
+// 6. 性能阈值（很少变化，不自动刷新）
+export function usePerformanceThresholds() {
+  return useQuery({
+    queryKey: ['performance', 'thresholds'],
+    queryFn: () => performanceApi.getPerformanceThresholds(),
+    staleTime: Infinity,  // 永久有效
+  });
+}
+```
+
+**组合 Hook 模式**：
+
+```typescript
+// 组合 hook: 获取所有性能监控数据
+export function usePerformanceDashboard() {
+  const systemMetrics = useSystemMetrics();
+  const healthStatus = useHealthDetailed();
+  const slowQueries = useSlowQueries();
+  const queryStats = useQueryPerformanceStats();
+  const performanceMetrics = usePerformanceMetrics();
+  const thresholds = usePerformanceThresholds();
+
+  // 聚合加载状态
+  const isLoading =
+    systemMetrics.isLoading ||
+    healthStatus.isLoading ||
+    slowQueries.isLoading ||
+    queryStats.isLoading ||
+    performanceMetrics.isLoading ||
+    thresholds.isLoading;
+
+  return {
+    data: {
+      systemMetrics: systemMetrics.data,
+      healthStatus: healthStatus.data,
+      slowQueries: slowQueries.data || [],
+      queryStats: queryStats.data,
+      performanceMetrics: performanceMetrics.data,
+      thresholds: thresholds.data,
+    },
+    isLoading,
+    refetch: () => {
+      systemMetrics.refetch();
+      healthStatus.refetch();
+      slowQueries.refetch();
+      queryStats.refetch();
+      performanceMetrics.refetch();
+    },
+  };
+}
+```
+
+**自动轮询机制**：
+
+```mermaid
+sequenceDiagram
+    participant Component as 组件
+    participant Hook as useSystemMetrics
+    participant QueryClient as QueryClient
+    participant API as Backend API
+
+    Component->>Hook: 调用 useSystemMetrics(5000)
+    Hook->>QueryClient: useQuery({ refetchInterval: 5000 })
+
+    loop 每5秒
+        QueryClient->>API: GET /api/v1/metrics/system
+        API-->>QueryClient: 系统指标数据
+        QueryClient->>QueryClient: 更新缓存
+        QueryClient-->>Component: 触发重新渲染
+    end
+```
+
+---
+
+#### useTreeData - 架构树数据转换
+
+**路径**: `frontend/src/hooks/useTreeData.tsx`
+
+**功能职责**：
+- 将元数据转换为 Ant Design Tree 组件所需的数据结构
+- 按 Schema 分组表和视图
+- 使用 useMemo 优化性能
+
+**数据转换流程**：
+
+```mermaid
+flowchart LR
+    subgraph "输入数据"
+        A[TableMetadata[]]
+        B[ViewMetadata[]]
+    end
+
+    subgraph "转换过程"
+        C[groupBySchema<br/>按schema分组]
+        D[buildObjectNode<br/>构建表/视图节点]
+        E[buildSchemaGroupNodes<br/>构建schema分组节点]
+    end
+
+    subgraph "输出数据"
+        F[DataNode[]<br/>Ant Design Tree数据]
+    end
+
+    A --> C
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+
+    style F fill:#d4edda
+```
+
+**核心实现**：
+
+```typescript
+export function useTreeData(
+  tables: TableMetadata[],
+  views: ViewMetadata[]
+): DataNode[] {
+  return useMemo(() => {
+    const nodes: DataNode[] = [];
+    const { tablesBySchema, viewsBySchema } = groupBySchema(tables, views);
+
+    // 构建表节点
+    if (tables.length > 0) {
+      const tableEntries = Object.entries(tablesBySchema);
+      nodes.push(...buildSchemaGroupNodes(tableEntries, "table", "Tables"));
+    }
+
+    // 构建视图节点
+    if (views.length > 0) {
+      const viewEntries = Object.entries(viewsBySchema);
+      nodes.push(...buildSchemaGroupNodes(viewEntries, "view", "Views"));
+    }
+
+    return nodes;
+  }, [tables, views]);  // 依赖 tables 和 views
+}
+```
+
+**数据结构示例**：
+
+```typescript
+// 输入
+tables = [
+  { name: "users", schema: "public", columns: [...] },
+  { name: "orders", schema: "public", columns: [...] },
+]
+
+views = [
+  { name: "user_orders", schema: "public", columns: [...] }
+]
+
+// 输出
+treeData = [
+  {
+    title: "Tables (2)",
+    key: "tables",
+    icon: <DatabaseOutlined />,
+    children: [
+      {
+        title: "users",
+        key: "table-public-users",
+        icon: <TableOutlined />,
+        children: [
+          { title: "id: INTEGER", key: "...", icon: <ColumnHeightOutlined /> },
+          { title: "name: TEXT", key: "...", icon: <ColumnHeightOutlined /> },
+        ]
+      },
+      // ... 更多表
+    ]
+  },
+  {
+    title: "Views (1)",
+    key: "views",
+    icon: <DatabaseOutlined />,
+    children: [
+      // ... 视图节点
+    ]
+  }
+]
+```
+
+---
+
+### 后端依赖注入钩子
+
+#### FastAPI 依赖注入原理
+
+**核心概念**：FastAPI 的依赖注入系统允许将函数作为依赖项注入到路由处理函数中。
+
+```mermaid
+sequenceDiagram
+    participant Client as 客户端
+    participant Router as 路由
+    participant Depends as Depends()
+    participant Factory as 服务工厂函数
+    participant Service as 服务实例
+
+    Client->>Router: POST /api/v1/dbs/{name}/query
+    Router->>Depends: 执行依赖注入
+    Depends->>Factory: get_query_service()
+    Factory->>Service: new QueryService()
+    Service-->>Factory: 返回实例
+    Factory-->>Router: 注入 query_service 参数
+    Router->>Service: query_service.execute_query(...)
+    Service-->>Router: 返回结果
+    Router-->>Client: HTTP Response
+```
+
+**依赖注入流程**：
+
+```python
+# 1. 定义服务工厂函数
+def get_query_service() -> QueryService:
+    """Get a QueryService instance.
+
+    Returns:
+        A QueryService instance.
+    """
+    return QueryService()
+
+# 2. 在路由中使用 Depends 注入
+from fastapi import Depends
+
+@router.post("/{name}/query")
+async def execute_query(
+    name: str,
+    request: QueryRequest,
+    query_service: QueryService = Depends(get_query_service)
+):
+    """Execute a SQL query on the specified database."""
+    # query_service 已自动注入
+    return await query_service.execute_query(...)
+```
+
+---
+
+#### 服务工厂函数
+
+**路径**: `backend/src/api/dependencies.py`
+
+**完整代码**：
+
+```python
+"""Dependency injection for service instances."""
+
+from ..services.db_service import DatabaseService
+from ..services.llm_service import LLMService
+from ..services.metadata_service import MetadataService
+from ..services.query_service import QueryService
+
+
+def get_db_service() -> DatabaseService:
+    """Get a DatabaseService instance.
+
+    Returns:
+        A DatabaseService instance.
+    """
+    return DatabaseService()
+
+
+def get_query_service() -> QueryService:
+    """Get a QueryService instance.
+
+    Returns:
+        A QueryService instance.
+    """
+    return QueryService()
+
+
+def get_llm_service() -> LLMService:
+    """Get an LLMService instance.
+
+    Returns:
+        An LLMService instance.
+    """
+    return LLMService()
+
+
+def get_metadata_service() -> MetadataService:
+    """Get a MetadataService instance.
+
+    Returns:
+        A MetadataService instance.
+    """
+    return MetadataService()
+
+
+# Type aliases for dependency injection
+DatabaseServiceDep = DatabaseService
+QueryServiceDep = QueryService
+LLMServiceDep = LLMService
+MetadataServiceDep = MetadataService
+```
+
+**类型别名的作用**：
+
+```python
+# 类型别名提供更清晰的类型注解
+async def execute_query(
+    query_service: QueryServiceDep = Depends(get_query_service)
+):
+    # QueryServiceDep 等同于 QueryService
+    # 但语义上明确表示这是一个依赖注入类型
+    pass
+```
+
+**依赖注入的优势**：
+
+| 优势 | 说明 |
+|------|------|
+| 解耦 | 路由处理函数不需要创建服务实例 |
+| 测试友好 | 可以轻松注入 Mock 服务进行测试 |
+| 单例模式 | 每次请求返回新实例，避免共享状态 |
+| 类型安全 | 完整的类型注解支持 |
+
+**使用示例**：
+
+```python
+# 单个依赖注入
+@router.get("/{name}")
+async def get_database(
+    name: str,
+    db_service: DatabaseService = Depends(get_db_service)
+):
+    return await db_service.get_database(name)
+
+# 多个依赖注入
+@router.post("/{name}/query/natural")
+async def natural_query(
+    name: str,
+    request: NaturalQueryRequest,
+    db_service: DatabaseService = Depends(get_db_service),
+    metadata_service: MetadataService = Depends(get_metadata_service),
+    llm_service: LLMService = Depends(get_llm_service),
+    query_service: QueryService = Depends(get_query_service),
+):
+    # 使用多个服务协作完成请求
+    database = await db_service.get_database_by_name(name)
+    engine = db_service.get_engine(database.id, database.connection_url)
+    metadata = await metadata_service.fetch_metadata(database, engine)
+    generated_sql = await llm_service.generate_sql(request.prompt, metadata.tables)
+    result = await query_service.execute_query(database, engine, generated_sql)
+    return result
+```
+
+---
+
+### 生命周期钩子
+
+**路径**: `backend/src/api/main.py`
+
+FastAPI 使用 `lifespan` 上下文管理器处理应用的启动和关闭事件。
+
+```mermaid
+stateDiagram-v2
+    [*] --> 启动中: lifespan 开始
+    启动中 --> 配置日志: configure_logging
+    配置日志 --> 初始化数据库: initialize_database
+    初始化数据库 --> 启动指标收集: MetricsService.start_collection
+    启动指标收集 --> 运行中: yield
+
+    运行中 --> 关闭中: 应用关闭
+    关闭中 --> 关闭数据库连接: db_service.close
+    关闭数据库连接 --> 停止指标收集: MetricsService.stop_collection
+    停止指标收集 --> [*]: lifespan 结束
+```
+
+**完整代码**：
+
+```python
+from collections.abc import AsyncIterator
+from contextlib import asynccontextmanager
+from typing import Any
+
+from fastapi import FastAPI
+
+# Global reference to metrics service
+_metrics_service: Any | None = None
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncIterator[None]:
+    """Lifespan context manager for startup and shutdown events.
+
+    Args:
+        app: The FastAPI application instance.
+
+    Yields:
+        None
+    """
+    global _metrics_service
+
+    # ========== 启动阶段 ==========
+    logger.info("application_starting", log_level=config.log_level)
+
+    # 1. 初始化应用数据库
+    await initialize_database()
+
+    # 2. 启动性能监控服务
+    from ..services.metrics_service import MetricsService
+
+    _metrics_service = MetricsService()
+    await _metrics_service.start_collection()
+    logger.info("application_started")
+
+    yield  # 应用运行中...
+
+    # ========== 关闭阶段 ==========
+    logger.info("application_shutting_down")
+
+    # 3. 关闭数据库连接
+    from ..services.db_service import DatabaseService
+
+    db_service = DatabaseService()
+    await db_service.close()
+
+    # 4. 停止性能监控
+    if _metrics_service:
+        await _metrics_service.stop_collection()
+    logger.info("database_connections_closed")
+
+
+# 创建 FastAPI 应用，注册 lifespan
+app = FastAPI(
+    title="Database Query Tool API",
+    description="API for managing database connections and executing queries",
+    version="1.0.0",
+    lifespan=lifespan,  # 注册生命周期钩子
+    max_request_size=config.max_request_size,
+)
+```
+
+**MetricsService 生命周期**：
+
+```mermaid
+sequenceDiagram
+    participant App as FastAPI App
+    participant Lifespan as lifespan
+    participant DB as initialize_database
+    participant Metrics as MetricsService
+    participant Task as 后台收集任务
+
+    App->>Lifespan: 启动应用
+    Lifespan->>DB: initialize_database()
+    DB-->>Lifespan: 数据库初始化完成
+
+    Lifespan->>Metrics: new MetricsService()
+    Lifespan->>Metrics: start_collection()
+    Metrics->>Task: 创建后台任务 asyncio.create_task
+    Task->>Task: 每60秒收集系统指标
+    Metrics-->>Lifespan: 启动完成
+
+    Lifespan->>App: yield (应用运行)
+    Note over App,Task: 应用处理请求...
+
+    App->>Lifespan: 关闭应用
+    Lifespan->>Task: cancel()
+    Task-->>Lifespan: 任务取消
+    Lifespan->>Metrics: stop_collection()
+    Lifespan->>DB: db_service.close()
+    Lifespan->>App: 生命周期结束
+```
+
+**健康检查端点使用全局服务**：
+
+```python
+@app.get("/health")
+async def health() -> dict[str, Any]:
+    """Enhanced health check endpoint with system metrics.
+
+    Returns:
+        Health status including system metrics and any detected issues.
+    """
+    if _metrics_service:
+        return _metrics_service.get_health_status()
+    return {"status": "healthy", "timestamp": "unknown"}
+
+
+def get_metrics_service() -> Any:
+    """Get the global metrics service instance.
+
+    Returns:
+        The metrics service instance or None if not initialized.
+    """
+    return _metrics_service
+```
+
+---
+
+### Hook 联动机制
+
+#### 前后端联动流程
+
+**完整查询流程中的 Hook 联动**：
+
+```mermaid
+sequenceDiagram
+    participant User as 用户
+    participant FE_Hook as useQueryExecution
+    participant FE_Query as React Query
+    participant API as Backend API
+    participant BE_Depends as FastAPI Depends
+    participant BE_Services as 后端服务层
+    participant Lifespan as MetricsService
+
+    User->>FE_Hook: 点击执行查询
+    FE_Hook->>FE_Query: executeQueryMutation.mutateAsync()
+    FE_Query->>API: POST /api/v1/dbs/{name}/query
+
+    API->>BE_Depends: 注入 get_query_service()
+    BE_Depends->>BE_Services: new QueryService()
+    BE_Services-->>API: 服务实例
+
+    API->>BE_Services: query_service.execute_query()
+
+    par 并行操作
+        BE_Services->>BE_Services: 执行 SQL 查询
+    and
+        BE_Services->>Lifespan: record_slow_query()
+        Lifespan->>Lifespan: 记录慢查询到内存
+    end
+
+    BE_Services-->>API: QueryResponse
+    API-->>FE_Query: JSON 响应
+    FE_Query->>FE_Query: 更新缓存
+    FE_Query->>FE_Hook: onSuccess 回调
+    FE_Hook->>User: 显示结果
+
+    Note over FE_Query: 自动失效查询历史缓存
+    FE_Query->>FE_Query: invalidateQueries(['queries', 'history', databaseName])
+```
+
+#### 缓存联动
+
+**跨 Hook 缓存失效**：
+
+```typescript
+// useMetadata Hook
+const deleteDatabaseMutation = useMutation({
+  onSuccess: (_, name) => {
+    // 1. 失效元数据缓存
+    queryClient.invalidateQueries({ queryKey: metadataKeys.detail(name) });
+
+    // 2. 失效数据库列表缓存
+    queryClient.invalidateQueries({ queryKey: ["databases", "list"] });
+
+    // 3. 如果删除的是当前选中数据库，清空选择
+    if (selectedDatabaseName === name) {
+      setSelectedDatabaseName(null);
+    }
+  },
+});
+```
+
+**依赖 Hook 级联刷新**：
+
+```typescript
+// Dashboard 组件中的 Hook 联动
+function Dashboard() {
+  const { selectedDatabase } = useMetadata();
+  const { invalidateQueryHistory } = useQueryExecution();
+
+  // 当选中数据库变化时，刷新查询历史
+  useEffect(() => {
+    if (selectedDatabase) {
+      invalidateQueryHistory(selectedDatabase.name);
+    }
+  }, [selectedDatabase]);
+}
+```
+
+#### 性能监控联动
+
+**前后端性能数据同步**：
+
+```mermaid
+graph LR
+    subgraph "后端"
+        A[MetricsService<br/>收集系统指标]
+        B[查询执行<br/>记录慢查询]
+        C[API 端点<br/>暴露指标数据]
+    end
+
+    subgraph "前端"
+        D[usePerformance<br/>轮询获取指标]
+        E[PerformanceDashboard<br/>展示性能数据]
+    end
+
+    A --> C
+    B --> C
+    C --> D
+    D --> E
+
+    style A fill:#fff4e6
+    style D fill:#e1f5ff
+```
+
+**自动刷新机制**：
+
+```typescript
+// 前端自动轮询（5秒间隔）
+const systemMetrics = useSystemMetrics(5000);
+
+// 后端定时收集（60秒间隔）
+// MetricsService._collect_system_metrics() 每60秒执行一次
+```
+
+---
+
+### Hooks 最佳实践
+
+#### 1. Query Key 设计
+
+```typescript
+// ✅ 推荐：层级化、可预测的 key 结构
+const userKeys = {
+  all: ["users"] as const,
+  lists: () => [...userKeys.all, "list"] as const,
+  list: (filters: string) => [...userKeys.lists(), filters] as const,
+  details: () => [...userKeys.all, "detail"] as const,
+  detail: (id: number) => [...userKeys.details(), id] as const,
+};
+
+// ❌ 避免：扁平化、不可预测的 key
+const badKeys = {
+  users: "users",
+  userDetail: (id: number) => `user-${id}`,
+};
+```
+
+#### 2. 缓存策略
+
+```typescript
+// ✅ 推荐：根据数据变化频率设置 staleTime
+useQuery({
+  queryKey: ["databases"],
+  staleTime: 2 * 60 * 1000,  // 2分钟 - 数据库列表变化较少
+});
+
+useQuery({
+  queryKey: ["metadata", databaseName],
+  staleTime: 10 * 60 * 1000, // 10分钟 - 元数据变化最少
+});
+
+useQuery({
+  queryKey: ["system-metrics"],
+  staleTime: 1000,            // 1秒 - 系统指标频繁变化
+});
+
+// ❌ 避免：所有查询使用相同的 staleTime
+useQuery({
+  queryKey: ["anything"],
+  staleTime: 0,  // 每次都重新请求，浪费资源
+});
+```
+
+#### 3. 错误处理
+
+```typescript
+// ✅ 推荐：在 Mutation 中处理错误
+const mutation = useMutation({
+  mutationFn: async (data) => {
+    return await api.createResource(data);
+  },
+  onError: (error: Error) => {
+    // 统一错误处理
+    message.error(error.message || "操作失败");
+    // 可以添加错误上报
+    trackError(error);
+  },
+});
+
+// ❌ 避免：在每个调用处处理错误
+try {
+  await mutation.mutateAsync(data);
+} catch (error) {
+  message.error((error as Error).message);  // 重复代码
+}
+```
+
+#### 4. 乐观更新
+
+```typescript
+// ✅ 推荐：使用乐观更新提升用户体验
+const updateMutation = useMutation({
+  mutationFn: updateResource,
+  onMutate: async (newData) => {
+    // 1. 取消相关查询
+    await queryClient.cancelQueries({ queryKey: ["resource", newData.id] });
+
+    // 2. 保存当前值
+    const previousData = queryClient.getQueryData(["resource", newData.id]);
+
+    // 3. 乐观更新 UI
+    queryClient.setQueryData(["resource", newData.id], newData);
+
+    return { previousData };
+  },
+  onError: (err, newData, context) => {
+    // 4. 出错时回滚
+    queryClient.setQueryData(["resource", newData.id], context?.previousData);
+  },
+  onSettled: () => {
+    // 5. 无论成功失败都重新获取
+    queryClient.invalidateQueries({ queryKey: ["resource"] });
+  },
+});
 ```
 
 ---

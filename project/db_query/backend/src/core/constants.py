@@ -49,3 +49,33 @@ class Validation:
     # Natural language prompt
     PROMPT_MIN_LENGTH = 1
     PROMPT_MAX_LENGTH = 5_000
+
+
+class Performance:
+    """Performance monitoring-related constants."""
+
+    # Slow query thresholds (in milliseconds)
+    SLOW_QUERY_THRESHOLD = 1000  # 1 second
+    VERY_SLOW_QUERY_THRESHOLD = 5000  # 5 seconds
+    CRITICAL_SLOW_QUERY_THRESHOLD = 10000  # 10 seconds
+
+    # Request performance thresholds (in milliseconds)
+    FAST_REQUEST_THRESHOLD = 100  # < 100ms is fast
+    NORMAL_REQUEST_THRESHOLD = 500  # < 500ms is normal
+    SLOW_REQUEST_THRESHOLD = 1000  # >= 1s is slow
+
+    # Memory monitoring
+    MEMORY_WARNING_THRESHOLD = 80  # 80% memory usage
+    MEMORY_CRITICAL_THRESHOLD = 90  # 90% memory usage
+
+    # Performance metrics retention
+    METRICS_RETENTION_DAYS = 30  # Keep metrics for 30 days
+    PERFORMANCE_HISTORY_LIMIT = 1000  # Max records to keep in memory
+
+    # Alert thresholds
+    HIGH_ERROR_RATE_THRESHOLD = 0.05  # 5% error rate
+    HIGH_LATENCY_P95_THRESHOLD = 2000  # P95 latency > 2s
+
+    # Monitoring intervals
+    SYSTEM_METRICS_INTERVAL = 60  # Collect system metrics every 60 seconds
+    PERFORMANCE_STATS_INTERVAL = 300  # Calculate performance stats every 5 minutes

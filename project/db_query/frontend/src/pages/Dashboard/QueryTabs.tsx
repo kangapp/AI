@@ -1,6 +1,7 @@
 import { Tabs } from "antd";
-import { ColumnHeightOutlined, ThunderboltOutlined, HistoryOutlined } from "@ant-design/icons";
+import { ColumnHeightOutlined, ThunderboltOutlined, HistoryOutlined, LineChartOutlined } from "@ant-design/icons";
 import { SqlEditor, QueryResults, NaturalQueryInput, QueryHistoryTab } from "../../components/query";
+import { PerformanceDashboard } from "../../components/performance/PerformanceDashboard";
 import type { QueryResponse } from "../../services/api";
 
 interface QueryTabsProps {
@@ -102,6 +103,16 @@ export function QueryTabs({
               onReExecuteQuery={handleReExecuteQuery}
             />
           ),
+        },
+        {
+          key: "performance",
+          label: (
+            <span>
+              <LineChartOutlined />
+              性能监控
+            </span>
+          ),
+          children: <PerformanceDashboard />,
         },
       ]}
     />

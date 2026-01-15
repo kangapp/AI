@@ -1,5 +1,6 @@
 """SQLite database layer for storing metadata and connections."""
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -18,7 +19,12 @@ class SQLiteDB:
             db_path: Path to the SQLite database file. If None, uses config default.
         """
         if db_path is None:
-            db_path = get_config().get_resolved_db_path()
+            # Check if DB_PATH is set in environment (for testing)
+            env_path = os.environ.get("DB_PATH")
+            if env_path and env_path != ":memory:":  # Use env path if set and not :memory:
+                db_path = Path(env_path)
+            else:
+                db_path = get_config().get_resolved_db_path()
 
         self.db_path = db_path
 
