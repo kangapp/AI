@@ -1,6 +1,20 @@
 ## 生成重构计划
 根据@.claude/commands/deep-code-review.md 对 @project/db_query/ 按照其中的建议按重要程度排序,生成详细的代码重构计划,放在@specs/002-db-query/refactoring_plan.md下
 
+## code review command
+
+帮我参照 @.claude/commands/speckit.specify.md 的结构，think ultra hard，构建一个对 Python 和 Typescript 代码进行深度代码审查的命令，放在 @.claude/commands/deep-code-review.md。主要考虑几个方面：
+
+- 架构和设计：是否考虑 python 和 typescript 的架构和设计最佳实践？是否有清晰的接口设计？是否考虑一定程度的可扩展性
+- KISS 原则
+- 代码质量：DRY, YAGNI, SOLID, etc. 函数原则上不超过 150 行，参数原则上不超过 7 个。
+- 代码风格：是否符合 python 和 typescript 的代码风格指南？是否使用了一致的命名约定？是否考虑了代码的可读性和可维护性？
+- 错误处理：是否考虑了所有可能错误情况？是否使用了适当的异常处理机制？
+- 性能优化：是否考虑了代码的性能问题？是否使用了适当的优化技术？
+- 设计模式：是否考虑了适当的设计模式？是否使用了适当的设计模式？
+的
+review完成后生成markdown文件,必要时可结合mermaid图表说明,始终用中文输出,放在./specs/reviews/ 下的文件,文件名示例 <topic>-deep-code-review.md
+
 ## README.md 重构
 请为以下全栈数据库查询工具项目生成一份详尽的技术文档，要求既包含宏观的架构设计，也包含微观的代码实现细节。
 
@@ -324,3 +338,24 @@
   ---
 
   请基于以上要求，生成一份详尽的技术文档,覆盖在 @project/db_query/README.MD文件上 。文档应适合开发者阅读，帮助他们快速理解项目架构、找到相关代码、进行功能扩展或问题排查
+
+## 探索语音转文字app
+
+### 探索
+帮我探索elevenlabs实时transcription api(scribe v2 realtime)的typescript例子,并帮我构思如何实现一个类似wisper flow的工具,给出最佳的方案并列举出所需要引入的库.要求:app使用tauri实现,app打开后,常驻systray,用户使用“cmd+shift+hotkey”可以开启或停止transcribing.从scribe v2 api获得文本插入到当前active app的光标的位置(如果当前光标位置不可输入,那么就在停止transcribing时,把内容拷贝到剪贴板,用户可以粘贴到想要的地方)
+
+### 转化格式
+@specs/003-raflow/0001-spec.md 将文件组织成格式正确的markdown文件,不要丢失任何内容
+
+### 构建详细的设计文档
+根据 @specs/003-raflow/0001-spec.md 的内容，进行系统的 web search 确保信息的准确性，尤其是使用最新版本的 dependencies。根据你了解的知识，构建一个基于macos系统的详细需求设计文档，放在 ./specs/003-raflow/0002-design.md 文件中，使用 mermaid 绘制架构，设计，组件，流程等图表并详细说明。
+
+### 生成实现计划
+@specs/003-raflow/0002-design.md 根据这个设计生成 implementation plan, 确保前端和后端使用最新的版本库, 放在 ./specs/003-raflow/0003-implementation.md 文件中
+
+### 实现
+根据 @specs/003-raflow/0002-design.md 和 @specs/003-raflow/0003-implementation.md 文件中的设计,完整实现phase 1
+
+
+### 生成更新的design doc
+仔细阅读目前 @project/raflow 项目的代码,think ultra hard,构建一个更新的design doc,放在 @specs/003-raflow/0004-design.md 文件中,使用 mermaid 绘制架构，设计，组件，流程等图表并详细说明。
