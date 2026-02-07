@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-gray-950 text-white antialiased;
+  }
+}
+
+@layer components {
+  /* 自定义组件样式 */
+}
