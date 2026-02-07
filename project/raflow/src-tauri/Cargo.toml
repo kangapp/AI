@@ -26,6 +26,10 @@ base64 = "0.22"
 # Audio processing
 cpal = "0.15"
 rubato = "0.14"
+ringbuf = "0.4"
+
+# Performance monitoring
+parking_lot = "0.12"
 
 # Text injection and clipboard
 enigo = "0.2"

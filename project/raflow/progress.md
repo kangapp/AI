@@ -178,11 +178,31 @@
   - `task_plan.md` - 更新 Phase 5 状态为 complete
 
 ### Phase 6: 高性能架构迁移（第二阶段）
-- **状态:** pending
+- **状态:** in_progress
+- 开始时间: 2026-02-07
 - 进行的操作:
-  -
+  - 使用 @context7 查询了 ringbuf 最新 API 文档
+  - 创建了 src-tauri/src/perf/ 模块目录
+  - 使用 TDD 流程实现了 AudioPipeline 高性能音频管道
+    - 创建 pipeline.rs 模块（基于 ringbuf 环形缓冲区）
+    - 实现环形缓冲区包装器 SharedRingBuffer
+    - 实现 AudioPipeline 结构体（支持 start/stop/read 操作）
+    - 集成 cpal 音频流回调
+    - 集成 rubato 重采样器
+  - 使用 TDD 流程实现了性能监控系统
+    - 创建 histogram.rs 直方图实现（百分位计算 P50/P95/P99）
+    - 创建 metrics.rs 指标收集器（延迟、帧数、字数统计）
+    - 实现 Timer 自动计时器（RAII 模式）
+  - 所有测试通过（47 个测试：AudioPipeline 10 个 + Histogram 8 个 + Metrics 8 个）
 - 创建/修改的文件:
-  -
+  - `src-tauri/Cargo.toml` - 添加 ringbuf 和 parking_lot 依赖
+  - `src-tauri/src/perf/mod.rs` - 性能监控模块入口
+  - `src-tauri/src/perf/histogram.rs` - 直方图实现（8 个测试）
+  - `src-tauri/src/perf/metrics.rs` - 指标收集器实现（8 个测试）
+  - `src-tauri/src/audio/pipeline.rs` - 高性能音频管道实现（10 个测试）
+  - `src-tauri/src/audio/mod.rs` - 导出 pipeline 模块
+  - `src-tauri/src/lib.rs` - 导出 perf 模块
+  - `task_plan.md` - 更新 Phase 6 状态
 
 ### Phase 7: 生产级优化（第三阶段）
 - **状态:** pending

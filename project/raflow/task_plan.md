@@ -105,18 +105,18 @@ Phase 5（系统集成与 Tauri 配置）
 
 ### Phase 6: 高性能架构迁移（第二阶段）
 <!-- WHAT: 优化音频处理管道，移除插件依赖 -->
-- [ ] 使用 `@context7` 查询 cpal、rubato、ringbuf 最新 API
-- [ ] 使用 `@test-driven-development` 实现 AudioPipeline
+- [x] 使用 `@context7` 查询 cpal、rubato、ringbuf 最新 API
+- [x] 使用 `@test-driven-development` 实现 AudioPipeline
   - 编写测试：cpal 音频流创建
   - 编写测试：环形缓冲区无锁并发
   - 编写测试：rubato 高质量重采样
   - 实现功能：自定义音频管道
-- [ ] 使用 `@test-driven-development` 实现性能监控系统
+- [x] 使用 `@test-driven-development` 实现性能监控系统
   - 编写测试：指标收集（延迟百分位计算）
   - 编写测试：指标快照获取
   - 实现功能：Metrics 和 Histogram 实现
 - [ ] 迁移测试：从插件方案平滑迁移到自定义管道
-- **状态:** pending
+- **状态:** in_progress
 
 ### Phase 7: 生产级优化（第三阶段）
 <!-- WHAT: 添加断线重连、可编辑性检测、多语言支持 -->

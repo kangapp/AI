@@ -121,7 +121,7 @@
 - 位深: 16-bit
 - 字节序: Little-endian
 
-### 需要进一步研究的领域（使用 @context7 查询）
+需要进一步研究的领域（使用 @context7 查询）:
 - [x] tauri-plugin-mic-recorder 可用性和 API（Tauri v2 可能不直接支持，已改用 cpal）
 - [x] enigo/arboard 跨平台键盘模拟和剪贴板
 - [x] cpal、rubato、ringbuf 音频处理库
