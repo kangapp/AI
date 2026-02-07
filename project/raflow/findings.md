@@ -126,7 +126,7 @@
 - [x] enigo/arboard 跨平台键盘模拟和剪贴板
 - [x] cpal、rubato、ringbuf 音频处理库
 - [ ] macOS Accessibility API 最新用法
-- [ ] Framer Motion、Zustand 最新 API
+- [x] Framer Motion、Zustand 最新 API
 
 ## 技术决策
 

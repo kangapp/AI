@@ -70,21 +70,21 @@ Phase 4（前端界面实现）
 
 ### Phase 4: 前端界面实现
 <!-- WHAT: 构建用户交互界面 -->
-- [ ] 使用 `@context7` 查询 React 18、Framer Motion、Zustand 最新 API
-- [ ] 使用 `@test-driven-development` 实现悬浮窗组件
+- [x] 使用 `@context7` 查询 React 18、Framer Motion、Zustand 最新 API
+- [x] 使用 `@test-driven-development` 实现悬浮窗组件
   - 编写测试：录音状态切换
   - 编写测试：实时文本显示（partial vs committed）
   - 实现功能：FloatingWindow 组件和波形可视化
-- [ ] 使用 `@test-driven-development` 实现 Tauri 命令 hooks
+- [x] 使用 `@test-driven-development` 实现 Tauri 命令 hooks
   - 编写测试：invoke 调用封装
   - 编写测试：错误处理和状态管理
   - 实现功能：useFloatingWindow、usePermissions hooks
-- [ ] 使用 `@test-driven-development` 实现权限引导组件
+- [x] 使用 `@test-driven-development` 实现权限引导组件
   - 编写测试：权限状态检测
   - 编写测试：权限请求触发
   - 实现功能：PermissionGuide 组件
-- [ ] 使用 Tailwind CSS 实现响应式样式
-- **状态:** pending
+- [x] 使用 Tailwind CSS 实现响应式样式
+- **状态:** complete ✅
 
 ### Phase 5: 系统集成与 Tauri 配置
 <!-- WHAT: 配置系统托盘、全局快捷键、应用生命周期 -->
