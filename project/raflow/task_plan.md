@@ -33,21 +33,24 @@ Phase 2（MVP 快速验证 - 音频采集与 ElevenLabs 集成）
 
 ### Phase 2: MVP 快速验证 - 音频采集与 ElevenLabs 集成
 <!-- WHAT: 实现核心音频录制和语音转文字功能 -->
-- [ ] 使用 `@test-driven-development` 实现音频录制模块（基于 tauri-plugin-mic-recorder）
+- [x] 使用 `@context7` 查询 cpal 最新 API（音频采集）
+- [x] 使用 `@context7` 查询 tokio-tungstenite 最新 API（WebSocket）
+- [x] 使用 `@context7` 查询 rubato 最新 API（重采样）
+- [x] 使用 `@test-driven-development` 实现音频录制模块（基于 cpal）
   - 编写测试：录制开始/停止功能
-  - 编写测试：音频数据格式验证（WAV → 16kHz PCM）
+  - 编写测试：音频数据格式验证（16kHz PCM 16-bit）
   - 实现功能：录音控制命令
-- [ ] 使用 `@test-driven-development` 实现 ElevenLabs WebSocket 客户端
+- [x] 使用 `@test-driven-development` 实现 ElevenLabs WebSocket 客户端
   - 编写测试：WebSocket 连接建立
   - 编写测试：音频数据发送（Base64 编码）
   - 编写测试：消息解析（partial_transcript、committed_transcript）
   - 实现功能：ScribeClient 连接和消息处理
-- [ ] 使用 `@test-driven-development` 实现音频数据重采样
+- [x] 使用 `@test-driven-development` 实现音频数据重采样
   - 编写测试：不同采样率转换（44.1kHz → 16kHz）
   - 编写测试：PCM 数据格式验证
-  - 实现功能：简单线性插值重采样
-- [ ] 集成测试：端到端音频录制 → 转录流程
-- **状态:** pending
+  - 实现功能：rubato 重采样器封装
+- [x] 集成测试：端到端音频录制 → 转录流程
+- **状态:** **complete** ✅
 
 ### Phase 3: 文本注入与剪贴板管理
 <!-- WHAT: 实现智能文本注入功能 -->

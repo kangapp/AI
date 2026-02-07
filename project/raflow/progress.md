@@ -62,11 +62,39 @@
   - `task_plan.md` - 更新了阶段状态
 
 ### Phase 2: MVP 快速验证 - 音频采集与 ElevenLabs 集成
-- **状态:** pending
+- **状态:** complete ✅
+- **开始时间:** 2026-02-07
+- **完成时间:** 2026-02-07
 - 进行的操作:
-  -
+  - 检查了 git 状态（工作树干净，Phase 1 已提交）
+  - 研究发现: tauri-plugin-mic-recorder 在 Tauri v2 中不可用
+  - 决定直接使用设计文档中的高性能方案: cpal + rubato + tokio-tungstenite
+  - 查询了 cpal (2943 代码示例) 和 tokio-tungstenite (769 代码示例) 最新文档
+  - 更新了 task_plan.md 状态为 in_progress
+  - 使用 TDD 流程实现了核心模块:
+    - 音频录制模块 (audio/recorder.rs) - 基于 cpal
+    - 音频重采样模块 (audio/resampler.rs) - 基于 rubato
+    - ElevenLabs WebSocket 客户端 (transcription/client.rs)
+    - API 消息定义 (transcription/messages.rs)
+    - Tauri 命令模块 (commands.rs)
+  - 创建了完整的测试套件，所有 42 个测试通过
+  - 修复了 Tauri 配置问题（图标文件、macos-private-api 特性）
 - 创建/修改的文件:
-  -
+  - `task_plan.md` (更新: Phase 2 状态 → complete)
+  - `src-tauri/Cargo.toml` (添加 cpal, rubato 依赖)
+  - `src-tauri/src/lib.rs` (重构模块结构)
+  - `src-tauri/src/main.rs` (简化为入口)
+  - `src-tauri/src/audio/mod.rs` (音频模块)
+  - `src-tauri/src/audio/recorder.rs` (录音器实现)
+  - `src-tauri/src/audio/resampler.rs` (重采样器实现)
+  - `src-tauri/src/transcription/mod.rs` (转录模块)
+  - `src-tauri/src/transcription/client.rs` (WebSocket 客户端)
+  - `src-tauri/src/transcription/messages.rs` (消息类型)
+  - `src-tauri/src/commands.rs` (Tauri 命令)
+  - `src-tauri/tests/audio_recorder_tests.rs` (8 个测试)
+  - `src-tauri/tests/resampler_tests.rs` (7 个测试)
+  - `src-tauri/tests/scribe_client_tests.rs` (12 个测试)
+  - `src-tauri/icons/icon.png` (应用图标)
 
 ### Phase 3: 文本注入与剪贴板管理
 - **状态:** pending
