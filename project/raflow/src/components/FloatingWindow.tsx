@@ -1,9 +1,10 @@
 // 悬浮窗组件 - RaFlow 的主界面
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { WaveformVisualizer } from './WaveformVisualizer';
 import { TranscriptDisplay } from './TranscriptDisplay';
 import { RecordingButton } from './RecordingButton';
+import { MetricsPanel } from './MetricsPanel';
 import { useFloatingWindow } from '../hooks/useFloatingWindow';
 
 interface FloatingWindowProps {
@@ -31,6 +32,7 @@ export function FloatingWindow({
   onMinimize,
 }: FloatingWindowProps) {
   const [isMinimized, setIsMinimized] = useState(false);
+  const [isMetricsOpen, setIsMetricsOpen] = useState(false);
   const {
     isRecording,
     partialTranscript,
@@ -51,51 +53,65 @@ export function FloatingWindow({
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-950 to-black p-6">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        transition={{ duration: 0.3, ease: 'easeOut' }}
-        className="w-full max-w-md bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden"
-      >
-        {/* 标题栏 */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700/50">
-          <div className="flex items-center gap-3">
-            <h1 className="text-xl font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
-              {title}
-            </h1>
-            {/* 状态指示器 */}
-            <motion.div
-              className={`w-2 h-2 rounded-full ${
-                isRecording ? 'bg-red-500' : 'bg-gray-600'
-              }`}
-              animate={isRecording ? { scale: [1, 1.2, 1] } : {}}
-              transition={{ duration: 1, repeat: Infinity }}
-            />
-          </div>
+    <>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-900 via-gray-950 to-black p-6">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95, y: 20 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          transition={{ duration: 0.3, ease: 'easeOut' }}
+          className="w-full max-w-md bg-gray-800/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-gray-700/50 overflow-hidden"
+        >
+          {/* 标题栏 */}
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700/50">
+            <div className="flex items-center gap-3">
+              <h1 className="text-xl font-bold bg-gradient-to-r from-primary-400 to-primary-600 bg-clip-text text-transparent">
+                {title}
+              </h1>
+              {/* 状态指示器 */}
+              <motion.div
+                className={`w-2 h-2 rounded-full ${
+                  isRecording ? 'bg-red-500' : 'bg-gray-600'
+                }`}
+                animate={isRecording ? { scale: [1, 1.2, 1] } : {}}
+                transition={{ duration: 1, repeat: Infinity }}
+              />
+            </div>
 
-          {showMinimize && (
-            <button
-              onClick={handleMinimize}
-              className="text-gray-400 hover:text-white transition-colors p-1"
-              aria-label="最小化"
-            >
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+            <div className="flex items-center gap-2">
+              {/* 性能指标按钮 */}
+              <button
+                onClick={() => setIsMetricsOpen(true)}
+                className="text-gray-400 hover:text-white transition-colors p-1"
+                aria-label="性能指标"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M20 12H4"
-                />
-              </svg>
-            </button>
-          )}
-        </div>
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>
+              </button>
+
+              {showMinimize && (
+                <button
+                  onClick={handleMinimize}
+                  className="text-gray-400 hover:text-white transition-colors p-1"
+                  aria-label="最小化"
+                >
+                  <svg
+                    className="w-5 h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M20 12H4"
+                    />
+                  </svg>
+                </button>
+              )}
+            </div>
+          </div>
 
         {/* 内容区域 */}
         <div className="p-6 space-y-6">
@@ -176,9 +192,9 @@ export function FloatingWindow({
           </p>
         </div>
       </motion.div>
-    </div>
+
+      {/* 性能指标面板 */}
+      <MetricsPanel isOpen={isMetricsOpen} onClose={() => setIsMetricsOpen(false)} />
+    </>
   );
 }
-
-// 导出 AnimatePresence 用于组件内部
-import { AnimatePresence } from 'framer-motion';

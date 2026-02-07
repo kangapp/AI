@@ -5,5 +5,5 @@ pub mod metrics;
 pub mod histogram;
 
 // Re-export commonly used types
-pub use metrics::Metrics;
+pub use metrics::{Metrics, MetricsSnapshot, MetricType};
 pub use histogram::Histogram;

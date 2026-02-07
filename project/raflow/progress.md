@@ -178,8 +178,9 @@
   - `task_plan.md` - 更新 Phase 5 状态为 complete
 
 ### Phase 6: 高性能架构迁移（第二阶段）
-- **状态:** in_progress
+- **状态:** complete ✅
 - 开始时间: 2026-02-07
+- 完成时间: 2026-02-07
 - 进行的操作:
   - 使用 @context7 查询了 ringbuf 最新 API 文档
   - 创建了 src-tauri/src/perf/ 模块目录
@@ -193,16 +194,41 @@
     - 创建 histogram.rs 直方图实现（百分位计算 P50/P95/P99）
     - 创建 metrics.rs 指标收集器（延迟、帧数、字数统计）
     - 实现 Timer 自动计时器（RAII 模式）
-  - 所有测试通过（47 个测试：AudioPipeline 10 个 + Histogram 8 个 + Metrics 8 个）
+  - 集成 AudioPipeline 到命令模块
+    - 更新 commands.rs 添加 AudioState、MetricsState
+    - 实现 start_recording、stop_recording、get_recording_status 命令
+    - 实现 get_pipeline_status、get_metrics、reset_metrics 命令
+    - 使用 parking_lot::Mutex 和 Arc<AtomicBool> 解决 Send + Sync 约束
+  - 添加性能指标 Serialize 支持
+    - 为 HistogramSnapshot 和 MetricsSnapshot 添加 serde::Serialize
+    - 更新 perf/mod.rs 导出 MetricsSnapshot、MetricType
+  - 前端集成性能数据显示
+    - 创建 MetricsPanel.tsx 组件显示实时性能指标
+    - 更新 types/index.ts 添加性能相关类型定义
+    - 更新 lib/tauri.ts 添加性能指标命令
+    - 更新 FloatingWindow.tsx 添加性能面板按钮
+  - 编写端到端集成测试
+    - 创建 integration_tests.rs 包含 8 个集成测试
+    - 测试音频管道生命周期、指标记录、百分位数计算、并发记录等
+    - 所有集成测试通过（8 个测试）
 - 创建/修改的文件:
   - `src-tauri/Cargo.toml` - 添加 ringbuf 和 parking_lot 依赖
-  - `src-tauri/src/perf/mod.rs` - 性能监控模块入口
-  - `src-tauri/src/perf/histogram.rs` - 直方图实现（8 个测试）
-  - `src-tauri/src/perf/metrics.rs` - 指标收集器实现（8 个测试）
-  - `src-tauri/src/audio/pipeline.rs` - 高性能音频管道实现（10 个测试）
+  - `src-tauri/src/perf/mod.rs` - 性能监控模块入口，导出 MetricsSnapshot、MetricType
+  - `src-tauri/src/perf/histogram.rs` - 直方图实现（添加 Serialize），8 个测试
+  - `src-tauri/src/perf/metrics.rs` - 指标收集器实现，8 个测试
+  - `src-tauri/src/audio/pipeline.rs` - 高性能音频管道实现，10 个测试
   - `src-tauri/src/audio/mod.rs` - 导出 pipeline 模块
   - `src-tauri/src/lib.rs` - 导出 perf 模块
-  - `task_plan.md` - 更新 Phase 6 状态
+  - `src-tauri/src/commands.rs` - 集成 AudioPipeline 和 Metrics，添加 5 个新命令
+  - `src-tauri/tests/integration_tests.rs` - 8 个端到端集成测试
+  - `src/types/index.ts` - 添加 MetricsSnapshot、PipelineStatus 等类型
+  - `src/lib/tauri.ts` - 添加性能指标和管道状态命令
+  - `src/components/MetricsPanel.tsx` - 性能指标显示组件（新建）
+  - `src/components/FloatingWindow.tsx` - 添加性能面板按钮
+  - `src/components/index.ts` - 导出 MetricsPanel
+  - `findings.md` - 更新研究发现
+  - `task_plan.md` - 更新 Phase 6 状态为 complete
+- 测试统计: 8 个集成测试全部通过
 
 ### Phase 7: 生产级优化（第三阶段）
 - **状态:** pending

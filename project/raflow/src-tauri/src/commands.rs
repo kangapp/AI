@@ -1,32 +1,119 @@
 // Tauri commands - Tauri 命令定义
 // 暴露给前端的 Rust 函数
 
+use crate::audio::pipeline::AudioPipeline;
 use crate::injection::{ClipboardInjector, InjectResult, is_editable_element};
+use crate::perf::{Metrics, MetricsSnapshot, MetricType};
 use crate::system_tray;
+use parking_lot::Mutex;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use tauri::{Emitter, Manager};
 
-// 音频录制状态
+/// 音频录制状态
 struct AudioState {
-    // TODO: 添加录音器实例
+    /// 音频管道（使用 Arc<Mutex<>> 以确保 Send + Sync）
+    pipeline: Arc<Mutex<AudioPipeline>>,
+    /// 是否正在录音（使用 AtomicBool 以便跨线程访问）
+    is_recording: Arc<AtomicBool>,
 }
 
-// 转录状态
+impl AudioState {
+    fn new() -> Self {
+        Self {
+            pipeline: Arc::new(Mutex::new(AudioPipeline::with_default_config())),
+            is_recording: Arc::new(AtomicBool::new(false)),
+        }
+    }
+}
+
+// 实现 Send + Sync 以便在 Tauri 状态中使用
+unsafe impl Send for AudioState {}
+unsafe impl Sync for AudioState {}
+
+/// 转录状态
 struct TranscriptionState {
     // TODO: 添加转录客户端实例
+    is_transcribing: Arc<AtomicBool>,
 }
+
+// 实现 Send + Sync 以便在 Tauri 状态中使用
+unsafe impl Send for TranscriptionState {}
+unsafe impl Sync for TranscriptionState {}
+
+/// 性能指标状态
+struct MetricsState {
+    /// 性能指标收集器（使用 Arc<Mutex<>> 以确保 Send + Sync）
+    metrics: Arc<Mutex<Metrics>>,
+}
+
+impl MetricsState {
+    fn new() -> Self {
+        Self {
+            metrics: Arc::new(Mutex::new(Metrics::new())),
+        }
+    }
+}
+
+// 实现 Send + Sync 以便在 Tauri 状态中使用
+unsafe impl Send for MetricsState {}
+unsafe impl Sync for MetricsState {}
 
 /// 开始录音
 #[tauri::command]
-async fn start_recording() -> Result<(), String> {
-    // TODO: 实现录音功能
+async fn start_recording(
+    state: tauri::State<'_, AudioState>,
+    metrics_state: tauri::State<'_, MetricsState>,
+) -> Result<(), String> {
+    // 检查是否已经在录音
+    if state.is_recording.load(Ordering::Relaxed) {
+        return Err("Already recording".to_string());
+    }
+
+    // 启动音频管道
+    {
+        let mut audio = state.pipeline.lock();
+        audio.start()
+            .map_err(|e| format!("Failed to start audio pipeline: {}", e))?;
+    }
+
+    // 更新录音状态
+    state.is_recording.store(true, Ordering::Relaxed);
+
+    // 记录启动时间（通过 metrics）- 在独立的代码块中
+    {
+        let metrics = metrics_state.metrics.lock();
+        let _timer = metrics.timer(MetricType::AudioLatency);
+        // Timer 会在代码块结束时自动记录延迟
+    }
+
     Ok(())
 }
 
 /// 停止录音
 #[tauri::command]
-async fn stop_recording() -> Result<(), String> {
-    // TODO: 实现停止录音功能
+async fn stop_recording(state: tauri::State<'_, AudioState>) -> Result<(), String> {
+    // 检查是否正在录音
+    if !state.is_recording.load(Ordering::Relaxed) {
+        return Err("Not recording".to_string());
+    }
+
+    // 停止音频管道
+    {
+        let mut audio = state.pipeline.lock();
+        audio.stop();
+    }
+
+    // 更新录音状态
+    state.is_recording.store(false, Ordering::Relaxed);
+
     Ok(())
+}
+
+/// 获取录音状态
+#[tauri::command]
+async fn get_recording_status(state: tauri::State<'_, AudioState>) -> Result<bool, String> {
+    Ok(state.is_recording.load(Ordering::Relaxed))
 }
 
 /// 开始转录
@@ -76,6 +163,44 @@ async fn check_clipboard() -> Result<String, String> {
     injector.read_from_clipboard()
 }
 
+/// 获取性能指标快照
+#[tauri::command]
+async fn get_metrics(metrics_state: tauri::State<'_, MetricsState>) -> Result<MetricsSnapshot, String> {
+    let metrics = metrics_state.metrics.lock();
+    Ok(metrics.snapshot())
+}
+
+/// 重置性能指标
+#[tauri::command]
+async fn reset_metrics(metrics_state: tauri::State<'_, MetricsState>) -> Result<(), String> {
+    let metrics = metrics_state.metrics.lock();
+    metrics.reset();
+    Ok(())
+}
+
+/// 获取音频管道状态
+#[tauri::command]
+async fn get_pipeline_status(state: tauri::State<'_, AudioState>) -> Result<PipelineStatus, String> {
+    let audio = state.pipeline.lock();
+    Ok(PipelineStatus {
+        is_running: audio.is_running(),
+        total_frames: audio.total_frames(),
+        elapsed_seconds: audio.elapsed_seconds(),
+        available_frames: audio.available_frames(),
+        buffer_usage: audio.buffer_usage(),
+    })
+}
+
+/// 音频管道状态
+#[derive(serde::Serialize)]
+struct PipelineStatus {
+    is_running: bool,
+    total_frames: u64,
+    elapsed_seconds: Option<f64>,
+    available_frames: usize,
+    buffer_usage: f64,
+}
+
 /// 主运行函数 - Tauri 应用入口
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -102,15 +227,22 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             start_recording,
             stop_recording,
+            get_recording_status,
             start_transcription,
             stop_transcription,
             inject_text,
             check_clipboard,
+            get_metrics,
+            reset_metrics,
+            get_pipeline_status,
         ])
         .setup(|app| {
             // 初始化应用状态
-            app.manage(AudioState {});
-            app.manage(TranscriptionState {});
+            app.manage(AudioState::new());
+            app.manage(TranscriptionState {
+                is_transcribing: Arc::new(AtomicBool::new(false)),
+            });
+            app.manage(MetricsState::new());
 
             // 初始化系统托盘
             let app_handle = app.handle().clone();

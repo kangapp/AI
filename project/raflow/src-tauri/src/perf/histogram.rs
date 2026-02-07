@@ -177,7 +177,7 @@ impl Histogram {
 }
 
 /// 直方图快照
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct HistogramSnapshot {
     pub p50: Option<u64>,
     pub p95: Option<u64>,

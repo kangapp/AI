@@ -4,10 +4,10 @@
 use crate::perf::histogram::Histogram;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 /// 性能指标快照
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize)]
 pub struct MetricsSnapshot {
     /// 音频采集延迟（毫秒）
     pub audio_latency: Option<crate::perf::histogram::HistogramSnapshot>,

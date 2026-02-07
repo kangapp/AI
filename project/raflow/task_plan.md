@@ -115,8 +115,20 @@ Phase 5（系统集成与 Tauri 配置）
   - 编写测试：指标收集（延迟百分位计算）
   - 编写测试：指标快照获取
   - 实现功能：Metrics 和 Histogram 实现
-- [ ] 迁移测试：从插件方案平滑迁移到自定义管道
-- **状态:** in_progress
+- [x] 集成 AudioPipeline 到命令模块
+  - 实现功能：start_recording、stop_recording、get_recording_status 命令
+  - 实现功能：get_pipeline_status 命令
+- [x] 添加性能指标获取命令
+  - 实现功能：get_metrics、reset_metrics 命令
+  - 实现 Serialize 支持：MetricsSnapshot、HistogramSnapshot
+- [x] 前端集成性能数据显示
+  - 实现 MetricsPanel 组件
+  - 实现 PipelineStatus 类型定义
+  - 集成到 FloatingWindow 组件
+- [x] 端到端测试验证
+  - 编写集成测试：audio_pipeline_lifecycle、metrics_recording、metrics_percentiles 等
+  - 所有 8 个集成测试通过
+- **状态:** complete ✅
 
 ### Phase 7: 生产级优化（第三阶段）
 <!-- WHAT: 添加断线重连、可编辑性检测、多语言支持 -->

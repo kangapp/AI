@@ -45,3 +45,31 @@ export interface AppState {
   apiKey: string | null;
   language: string;
 }
+
+// 性能指标类型
+export interface HistogramSnapshot {
+  p50?: number;
+  p95?: number;
+  p99?: number;
+  avg?: number;
+  min?: number;
+  max?: number;
+  count: number;
+}
+
+export interface MetricsSnapshot {
+  audio_latency?: HistogramSnapshot;
+  transcription_latency?: HistogramSnapshot;
+  e2e_latency?: HistogramSnapshot;
+  total_frames: number;
+  total_words: number;
+  uptime_seconds: number;
+}
+
+export interface PipelineStatus {
+  is_running: boolean;
+  total_frames: number;
+  elapsed_seconds?: number;
+  available_frames: number;
+  buffer_usage: number;
+}
