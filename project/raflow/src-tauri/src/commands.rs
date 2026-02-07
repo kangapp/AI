@@ -1,6 +1,7 @@
 // Tauri commands - Tauri 命令定义
 // 暴露给前端的 Rust 函数
 
+use crate::api_config::ApiConfig;
 use crate::audio::pipeline::AudioPipeline;
 use crate::debug::{DebugState, DebugConfig, LogLevel, global_debug_state};
 use crate::injection::{ClipboardInjector, InjectResult, is_editable_element};
@@ -301,12 +302,59 @@ async fn remove_debug_exclude_target(target: String) -> Result<DebugStatus, Stri
     Ok(DebugStatus::from(&*state))
 }
 
+/// API 配置状态
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct ApiConfigStatus {
+    pub has_api_key: bool,
+    pub key_preview: String,  // 前 8 个字符，用于显示
+}
+
+impl From<&ApiConfig> for ApiConfigStatus {
+    fn from(config: &ApiConfig) -> Self {
+        let key_preview = if config.api_key.len() > 8 {
+            format!("{}...", &config.api_key[..8])
+        } else {
+            config.api_key.clone()
+        };
+
+        Self {
+            has_api_key: !config.api_key.is_empty(),
+            key_preview,
+        }
+    }
+}
+
+/// 获取 API 配置状态
+#[tauri::command]
+async fn get_api_config_status() -> Result<ApiConfigStatus, String> {
+    let config = ApiConfig::load()?;
+    Ok(ApiConfigStatus::from(&config))
+}
+
+/// 保存 API 密钥
+#[tauri::command]
+async fn save_api_key(api_key: String) -> Result<ApiConfigStatus, String> {
+    let config = ApiConfig::load()?;
+    let updated_config = config.set_api_key(api_key)?;
+    Ok(ApiConfigStatus::from(&updated_config))
+}
+
+/// 验证 API 密钥
+#[tauri::command]
+async fn validate_api_key(api_key: String) -> Result<bool, String> {
+    match ApiConfig::validate_key(&api_key) {
+        Ok(()) => Ok(true),
+        Err(_e) => Ok(false),
+    }
+}
+
 /// 主运行函数 - Tauri 应用入口
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard_manager::init())
+        .plugin(tauri_plugin_store::Builder::new().build())
         .plugin(tauri_plugin_global_shortcut::Builder::new()
             .with_handler(|app, shortcut, event| {
                 use tauri_plugin_global_shortcut::ShortcutState;
@@ -344,6 +392,9 @@ pub fn run() {
             remove_debug_include_target,
             add_debug_exclude_target,
             remove_debug_exclude_target,
+            get_api_config_status,
+            save_api_key,
+            validate_api_key,
         ])
         .setup(|app| {
             // 初始化应用状态

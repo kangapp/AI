@@ -1,11 +1,13 @@
 // 悬浮窗组件 - RaFlow 的主界面
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Settings } from 'lucide-react';
 import { WaveformVisualizer } from './WaveformVisualizer';
 import { TranscriptDisplay } from './TranscriptDisplay';
 import { RecordingButton } from './RecordingButton';
 import { MetricsPanel } from './MetricsPanel';
 import { DebugPanel } from './DebugPanel';
+import { SettingsPanel } from './SettingsPanel';
 import { useFloatingWindow } from '../hooks/useFloatingWindow';
 
 interface FloatingWindowProps {
@@ -35,6 +37,7 @@ export function FloatingWindow({
   const [isMinimized, setIsMinimized] = useState(false);
   const [isMetricsOpen, setIsMetricsOpen] = useState(false);
   const [isDebugOpen, setIsDebugOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const {
     isRecording,
     partialTranscript,
@@ -80,6 +83,15 @@ export function FloatingWindow({
             </div>
 
             <div className="flex items-center gap-2">
+              {/* 设置面板按钮 */}
+              <button
+                onClick={() => setIsSettingsOpen(true)}
+                className="text-gray-400 hover:text-white transition-colors p-1"
+                aria-label="设置"
+              >
+                <Settings className="w-5 h-5" />
+              </button>
+
               {/* 调试面板按钮 */}
               <button
                 onClick={() => setIsDebugOpen(true)}
@@ -212,6 +224,9 @@ export function FloatingWindow({
 
       {/* 调试面板 */}
       <DebugPanel isOpen={isDebugOpen} onClose={() => setIsDebugOpen(false)} />
+
+      {/* 设置面板 */}
+      {isSettingsOpen && <SettingsPanel onClose={() => setIsSettingsOpen(false)} />}
     </>
   );
 }

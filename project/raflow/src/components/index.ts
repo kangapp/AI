@@ -7,3 +7,5 @@ export { RecordingButton } from './RecordingButton';
 export { PermissionGuide } from './PermissionGuide';
 export { MetricsPanel } from './MetricsPanel';
 export { DebugPanel } from './DebugPanel';
+export { SettingsPanel } from './SettingsPanel';
+export { APIKeyInput } from './APIKeyInput';

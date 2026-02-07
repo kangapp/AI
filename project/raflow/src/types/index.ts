@@ -83,3 +83,9 @@ export interface DebugStatus {
 }
 
 export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';
+
+// API 配置类型
+export interface ApiConfigStatus {
+  has_api_key: boolean;
+  key_preview: string;
+}

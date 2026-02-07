@@ -9,6 +9,7 @@ pub mod system_tray;
 pub mod perf;
 pub mod permissions;
 pub mod debug;
+pub mod api_config;
 
 // Re-export the main run function (for binary)
 pub use commands::run;
