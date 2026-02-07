@@ -231,8 +231,9 @@
 - 测试统计: 8 个集成测试全部通过
 
 ### Phase 7: 生产级优化（第三阶段）
-- **状态:** in_progress
+- **状态:** **complete** ✅
 - 开始时间: 2026-02-07
+- 完成时间: 2026-02-07
 - 进行的操作:
   - 使用 TDD 流程实现了 RobustScribeClient 断线重连机制 ✅
     - 创建 robust_client.rs 模块
@@ -260,20 +261,32 @@
     - 实现 FromStr trait 支持语言代码解析
     - 创建 18 个多语言配置测试（全部通过）
     - 更新 transcription/mod.rs 导出新类型
+  - 使用 TDD 流程实现了权限引导流程 ✅
+    - 创建 permissions.rs 模块
+    - 实现 PermissionStatus 枚举
+    - 实现 PermissionType 枚举
+    - 实现 PermissionRequestResult 枚举
+    - 实现 check_permissions、check_microphone_permission、check_accessibility_permission
+    - 实现 request_permission、request_microphone_permission、request_accessibility_permission
+    - 创建 20 个权限测试（全部通过）
+    - 更新 lib.rs 导出 permissions 模块
   - 修复 metrics.rs 测试中缺少 Duration 导入的编译错误
 - 创建/修改的文件:
   - `src-tauri/src/transcription/robust_client.rs` - 断线重连客户端实现（新建）
   - `src-tauri/src/transcription/language_config.rs` - 多语言配置实现（新建）
   - `src-tauri/src/transcription/mod.rs` - 导出 robust_client 和 language_config 模块
+  - `src-tauri/src/permissions.rs` - 权限检测和请求实现（新建）
+  - `src-tauri/src/lib.rs` - 导出 permissions 模块
   - `src-tauri/tests/robust_client_tests.rs` - 11 个断线重连测试（新建）
   - `src-tauri/tests/language_config_tests.rs` - 18 个多语言配置测试（新建）
+  - `src-tauri/tests/permission_tests.rs` - 20 个权限测试（新建）
   - `src-tauri/src/injection/accessibility.rs` - 可编辑性检测实现（重构）
   - `src-tauri/src/injection/mod.rs` - 导出可编辑性检测相关类型
   - `src-tauri/tests/accessibility_tests.rs` - 13 个可编辑性检测测试（新建）
   - `src-tauri/src/perf/metrics.rs` - 修复测试中的 Duration 导入
   - `findings.md` - 待更新研究发现
-  - `task_plan.md` - 更新 Phase 7 状态为 in_progress
-- 测试统计: 119 个测试全部通过（Phase 7 新增 42 个）
+  - `task_plan.md` - 更新 Phase 7 状态为 complete
+- 测试统计: 139 个测试全部通过（Phase 7 新增 62 个）
 
 ### Phase 8: 调试工具与开发者体验
 - **状态:** pending
