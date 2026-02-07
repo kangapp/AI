@@ -214,6 +214,7 @@ impl<'a> Drop for Timer<'a> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::time::Duration;
 
     #[test]
     fn test_metrics_creation() {

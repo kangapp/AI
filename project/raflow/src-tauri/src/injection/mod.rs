@@ -7,4 +7,7 @@ pub mod accessibility;
 
 // Re-export main types
 pub use clipboard::{ClipboardInjector, InjectResult};
-pub use accessibility::is_editable_element;
+pub use accessibility::{
+    is_editable_element, is_blacklisted_app, is_whitelisted_app,
+    AccessibilityError, EditableDetectionConfig, EditableDetectionConfigBuilder
+};
