@@ -122,9 +122,9 @@
 - 字节序: Little-endian
 
 ### 需要进一步研究的领域（使用 @context7 查询）
-- [ ] tauri-plugin-mic-recorder 可用性和 API（Tauri v2 可能不直接支持，需要研究替代方案）
-- [ ] enigo/arboard 跨平台键盘模拟和剪贴板
-- [ ] cpal、rubato、ringbuf 音频处理库
+- [x] tauri-plugin-mic-recorder 可用性和 API（Tauri v2 可能不直接支持，已改用 cpal）
+- [x] enigo/arboard 跨平台键盘模拟和剪贴板
+- [x] cpal、rubato、ringbuf 音频处理库
 - [ ] macOS Accessibility API 最新用法
 - [ ] Framer Motion、Zustand 最新 API
 
