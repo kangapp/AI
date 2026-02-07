@@ -159,11 +159,23 @@
   - `task_plan.md` - 更新 Phase 4 状态为 complete
 
 ### Phase 5: 系统集成与 Tauri 配置
-- **状态:** pending
+- **状态:** complete ✅
+- **开始时间:** 2026-02-07
+- **完成时间:** 2026-02-07
 - 进行的操作:
-  -
+  - 使用 @context7 查询了 Tauri v2 系统托盘和全局快捷键 API
+  - 创建了系统托盘模块 (src-tauri/src/system_tray.rs)
+  - 实现了全局快捷键功能 (Command+Shift+R / Ctrl+Shift+R)
+  - 配置了应用生命周期管理（关闭按钮隐藏到托盘）
+  - 所有测试通过
 - 创建/修改的文件:
-  -
+  - `src-tauri/src/system_tray.rs` - 系统托盘模块（创建）
+  - `src-tauri/src/lib.rs` - 导出 system_tray 模块
+  - `src-tauri/src/commands.rs` - 集成系统托盘和全局快捷键
+  - `src-tauri/tauri.conf.json` - 配置窗口关闭行为
+  - `src/App.tsx` - 处理关闭请求和快捷键事件
+  - `findings.md` - 更新研究发现（Tauri v2 API）
+  - `task_plan.md` - 更新 Phase 5 状态为 complete
 
 ### Phase 6: 高性能架构迁移（第二阶段）
 - **状态:** pending

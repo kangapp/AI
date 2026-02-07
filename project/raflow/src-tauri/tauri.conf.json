@@ -12,6 +12,7 @@
   "app": {
     "windows": [
       {
+        "label": "main",
         "title": "RaFlow",
         "width": 400,
         "height": 200,
@@ -21,7 +22,11 @@
         "skipTaskbar": true,
         "resizable": false,
         "center": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "visible": false,
+        "closeWindowAction": {
+          "emitEvent": "tauri://close-requested"
+        }
       }
     ],
     "security": {

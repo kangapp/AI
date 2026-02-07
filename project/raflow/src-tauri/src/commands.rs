@@ -2,7 +2,8 @@
 // 暴露给前端的 Rust 函数
 
 use crate::injection::{ClipboardInjector, InjectResult, is_editable_element};
-use tauri::Manager;
+use crate::system_tray;
+use tauri::{Emitter, Manager};
 
 // 音频录制状态
 struct AudioState {
@@ -81,7 +82,23 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_clipboard_manager::init())
-        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .plugin(tauri_plugin_global_shortcut::Builder::new()
+            .with_handler(|app, shortcut, event| {
+                use tauri_plugin_global_shortcut::ShortcutState;
+
+                match event.state() {
+                    ShortcutState::Pressed => {
+                        // 快捷键按下时切换录音状态
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.emit("toggle-recording", ());
+                        }
+                    }
+                    ShortcutState::Released => {
+                        // 可以在这里处理释放事件
+                    }
+                }
+            })
+            .build())
         .invoke_handler(tauri::generate_handler![
             start_recording,
             stop_recording,
@@ -95,7 +112,28 @@ pub fn run() {
             app.manage(AudioState {});
             app.manage(TranscriptionState {});
 
-            // 初始化系统托盘（将在后续阶段实现）
+            // 初始化系统托盘
+            let app_handle = app.handle().clone();
+            if let Err(e) = system_tray::create_system_tray(&app_handle) {
+                eprintln!("Failed to create system tray: {}", e);
+            }
+
+            // 注册全局快捷键 (Command+Shift+R on macOS, Ctrl+Shift+R on others)
+            #[cfg(desktop)]
+            {
+                use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
+
+                #[cfg(target_os = "macos")]
+                let shortcut = Shortcut::new(Some(Modifiers::SHIFT | Modifiers::SUPER), Code::KeyR);
+                #[cfg(not(target_os = "macos"))]
+                let shortcut = Shortcut::new(Some(Modifiers::SHIFT | Modifiers::CONTROL), Code::KeyR);
+
+                if let Err(e) = app.global_shortcut().register(shortcut) {
+                    eprintln!("Failed to register global shortcut: {}", e);
+                }
+            }
+
+            // macOS: 设置为辅助应用（不在 Dock 中显示）
             #[cfg(target_os = "macos")]
             {
                 let _ = app.set_activation_policy(tauri::ActivationPolicy::Accessory);

@@ -11,13 +11,14 @@
 
 ## 当前阶段
 
-Phase 4（前端界面实现）
+Phase 5（系统集成与 Tauri 配置）
 
 > **已完成**:
 > - Phase 0: 规划文件创建 ✅
 > - Phase 1: 项目初始化与环境准备 ✅
 > - Phase 2: MVP 快速验证 - 音频采集与 ElevenLabs 集成 ✅
 > - Phase 3: 文本注入与剪贴板管理 ✅
+> - Phase 4: 前端界面实现 ✅
 
 ## 阶段划分
 
@@ -88,19 +89,19 @@ Phase 4（前端界面实现）
 
 ### Phase 5: 系统集成与 Tauri 配置
 <!-- WHAT: 配置系统托盘、全局快捷键、应用生命周期 -->
-- [ ] 使用 `@context7` 查询 Tauri v2 系统托盘最新配置语法
-- [ ] 使用 `@test-driven-development` 实现系统托盘功能
+- [x] 使用 `@context7` 查询 Tauri v2 系统托盘最新配置语法
+- [x] 使用 `@test-driven-development` 实现系统托盘功能
   - 编写测试：托盘菜单创建和事件处理
   - 编写测试：托盘图标显示
   - 实现功能：SystemTray 配置和事件监听
-- [ ] 使用 `@context7` 查询 tauri-plugin-global-shortcut 最新用法
-- [ ] 使用 `@test-driven-development` 实现全局快捷键
+- [x] 使用 `@context7` 查询 tauri-plugin-global-shortcut 最新用法
+- [x] 使用 `@test-driven-development` 实现全局快捷键
   - 编写测试：快捷键注册和触发
   - 编写测试：快捷键与录音状态绑定
   - 实现功能：全局快捷键配置（Command+Shift+R）
-- [ ] 配置 tauri.conf.json（窗口、权限、插件）
-- [ ] 实现应用生命周期管理（启动、关闭、隐藏/显示）
-- **状态:** pending
+- [x] 配置 tauri.conf.json（窗口、权限、插件）
+- [x] 实现应用生命周期管理（启动、关闭、隐藏/显示）
+- **状态:** complete ✅
 
 ### Phase 6: 高性能架构迁移（第二阶段）
 <!-- WHAT: 优化音频处理管道，移除插件依赖 -->

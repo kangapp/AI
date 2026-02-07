@@ -3,6 +3,7 @@ import { FloatingWindow, PermissionGuide } from './components';
 import { useAppStore } from './stores/useAppStore';
 import { usePermissions } from './hooks';
 import { getCurrentWindow } from '@tauri-apps/api/window';
+import { listen } from '@tauri-apps/api/event';
 
 /**
  * RaFlow 主应用组件
@@ -10,7 +11,7 @@ import { getCurrentWindow } from '@tauri-apps/api/window';
  * 功能：
  * - 显示悬浮窗界面（录音控制、波形可视化、转录结果显示）
  * - 权限引导流程（麦克风、辅助功能、API 密钥配置）
- * - 窗口状态管理（最小化、关闭）
+ * - 窗口状态管理（最小化、关闭到托盘）
  */
 function App() {
   const { isPermissionGuideOpen, setPermissionGuideOpen } = useAppStore();
@@ -23,10 +24,22 @@ function App() {
     }
   }, [needsPermissionGuide, setPermissionGuideOpen]);
 
-  // 监听窗口显示/隐藏事件
+  // 监听窗口关闭请求事件 - 隐藏窗口而非退出
   useEffect(() => {
-    const unlisten = getCurrentWindow().onFocusChanged(({ payload: focused }) => {
-      console.log('Window focus changed:', focused);
+    const unlisten = listen('tauri://close-requested', async () => {
+      await getCurrentWindow().hide();
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
+
+  // 监听全局快捷键切换录音事件
+  useEffect(() => {
+    const unlisten = listen('toggle-recording', () => {
+      console.log('Toggle recording shortcut triggered');
+      // TODO: 实现切换录音逻辑
     });
 
     return () => {
