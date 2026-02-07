@@ -8,6 +8,7 @@ pub mod injection;
 pub mod system_tray;
 pub mod perf;
 pub mod permissions;
+pub mod debug;
 
 // Re-export the main run function (for binary)
 pub use commands::run;

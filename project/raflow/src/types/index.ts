@@ -73,3 +73,13 @@ export interface PipelineStatus {
   available_frames: number;
   buffer_usage: number;
 }
+
+// 调试模式类型
+export interface DebugStatus {
+  enabled: boolean;
+  log_level: string;
+  include_targets: string[];
+  exclude_targets: string[];
+}
+
+export type LogLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';

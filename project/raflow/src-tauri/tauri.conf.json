@@ -23,7 +23,8 @@
         "resizable": false,
         "center": true,
         "fullscreen": false,
-        "visible": false
+        "visible": false,
+        "javascriptDisabled": false
       }
     ],
     "security": {
@@ -33,7 +34,58 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all"
+    "targets": "all",
+    "publisher": "RaFlow Team",
+    "shortDescription": "实时语音转文字桌面应用",
+    "longDescription": "RaFlow 是一个基于 Tauri v2 的实时语音转文字桌面应用，支持 ElevenLabs Scribe v2 Realtime API、全局快捷键、智能文本注入等功能。",
+    "category": "Productivity",
+    "macOS": {
+      "minimumSystemVersion": "10.13",
+      "entitlements": null,
+      "exceptionDomain": "",
+      "frameworks": [],
+      "providerShortName": null,
+      "signingIdentity": null,
+      "hardenedRuntime": true,
+      "dmg": {
+        "appPosition": {
+          "x": 180,
+          "y": 170
+        },
+        "applicationFolderPosition": {
+          "x": 480,
+          "y": 170
+        },
+        "windowSize": {
+          "height": 400,
+          "width": 660
+        }
+      }
+    },
+    "windows": {
+      "certificateThumbprint": null,
+      "digestAlgorithm": "sha256",
+      "timestampUrl": null,
+      "tsp": false,
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper",
+        "silent": true
+      },
+      "nsis": {
+        "displayLanguageSelector": true,
+        "installMode": "perMachine",
+        "languages": ["SimpChinese", "English"]
+      },
+      "wix": null
+    },
+    "linux": {
+      "deb": {
+        "depends": []
+      },
+      "appimage": {
+        "bundleMediaFramework": false
+      }
+    }
   },
   "plugins": {
     "shell": {
@@ -41,6 +93,15 @@
     },
     "clipboard-manager": {
       "description": "RaFlow clipboard access for text injection"
+    },
+    "global-shortcut": {
+      "shortcuts": [
+        {
+          "command": "toggle_recording",
+          "key": "R",
+          "modifiers": ["Shift", "Super"]
+        }
+      ]
     }
   }
 }

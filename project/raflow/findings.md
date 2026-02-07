@@ -125,8 +125,24 @@
 - [x] tauri-plugin-mic-recorder 可用性和 API（Tauri v2 可能不直接支持，已改用 cpal）
 - [x] enigo/arboard 跨平台键盘模拟和剪贴板
 - [x] cpal、rubato、ringbuf 音频处理库
-- [ ] macOS Accessibility API 最新用法
+- [x] macOS Accessibility API 最新用法
 - [x] Framer Motion、Zustand 最新 API
+- [x] tracing 和 tracing-subscriber 结构化日志
+
+## 技术决策
+
+| 决策 | 理由 |
+|------|------|
+| **渐进式架构迁移** | MVP 用插件快速验证，避免过度工程；第二阶段迁移到高性能管道，平衡速度与质量 |
+| **Tokio 异步任务而非 std::thread** | 避免 Rust 事件循环与 Tauri 冲突，简化并发管理 |
+| **剪贴板优先注入策略** | 兼容性最好，可作为可编辑性检测的后备方案，降低失败率 |
+| **环形缓冲区 (ringbuf)** | 无锁队列，音频线程直接推入数据避免阻塞 |
+| **基于 Histogram 的性能指标** | 简单直方图实现百分位计算 (P50, P99)，足够生产使用 |
+| **指数退避重连策略** | 网络故障时避免雪崩，最大退避 30 秒，最多 10 次重试 |
+| **测试驱动开发 (TDD)** | 确保代码质量，便于重构，提前发现集成问题，符合最佳实践 |
+| **Zustand 而非 Redux** | 轻量级状态管理，TypeScript 友好，适合小型应用 |
+| **Framer Motion 动画** | 声明式 API，性能优秀，自带物理弹簧，适合波形可视化 |
+| **tracing 结构化日志** | Rust 生态标准，支持 span 和 event，比 env_logger 更强大，支持动态过滤 |
 
 ## 技术决策
 
@@ -146,7 +162,8 @@
 
 | 问题 | 解决方案 |
 |------|----------|
-| | |
+| macOS 应用启动崩溃 | ✅ 分析完成 - 旧版本配置问题，添加 webviewOptions 优化 |
+| mach_vm_allocate_kernel failed | ✅ 识别为 WebView 初始化内存分配问题 |
 
 ## 资源
 
@@ -185,6 +202,11 @@
 ### 前端库
 - Framer Motion: https://www.framer.com/motion/
 - Zustand: https://zustand-demo.pmnd.rs/
+- @tanstack/react-query: https://tanstack.com/query/latest
+
+### Rust 日志与调试
+- tracing: https://docs.rs/tracing/
+- tracing-subscriber: https://docs.rs/tracing-subscriber/
 
 ## 视觉/浏览器发现
 

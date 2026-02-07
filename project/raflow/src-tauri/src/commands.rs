@@ -2,12 +2,14 @@
 // 暴露给前端的 Rust 函数
 
 use crate::audio::pipeline::AudioPipeline;
+use crate::debug::{DebugState, DebugConfig, LogLevel, global_debug_state};
 use crate::injection::{ClipboardInjector, InjectResult, is_editable_element};
 use crate::perf::{Metrics, MetricsSnapshot, MetricType};
 use crate::system_tray;
 use parking_lot::Mutex;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::str::FromStr;
 use tauri::{Emitter, Manager};
 
 /// 音频录制状态
@@ -201,6 +203,104 @@ struct PipelineStatus {
     buffer_usage: f64,
 }
 
+/// 调试状态快照
+#[derive(serde::Serialize)]
+struct DebugStatus {
+    /// 是否启用调试模式
+    enabled: bool,
+    /// 日志级别
+    log_level: String,
+    /// 包含的目标模块
+    include_targets: Vec<String>,
+    /// 排除的目标模块
+    exclude_targets: Vec<String>,
+}
+
+impl From<&DebugState> for DebugStatus {
+    fn from(state: &DebugState) -> Self {
+        DebugStatus {
+            enabled: state.is_enabled(),
+            log_level: state.log_level().to_string(),
+            include_targets: state.include_targets().iter().cloned().collect(),
+            exclude_targets: state.exclude_targets().iter().cloned().collect(),
+        }
+    }
+}
+
+/// 启用调试模式
+#[tauri::command]
+async fn enable_debug_mode() -> Result<DebugStatus, String> {
+    let mut state = global_debug_state().lock();
+    state.enable();
+    Ok(DebugStatus::from(&*state))
+}
+
+/// 禁用调试模式
+#[tauri::command]
+async fn disable_debug_mode() -> Result<DebugStatus, String> {
+    let mut state = global_debug_state().lock();
+    state.disable();
+    Ok(DebugStatus::from(&*state))
+}
+
+/// 切换调试模式
+#[tauri::command]
+async fn toggle_debug_mode() -> Result<DebugStatus, String> {
+    let mut state = global_debug_state().lock();
+    state.toggle();
+    Ok(DebugStatus::from(&*state))
+}
+
+/// 获取调试状态
+#[tauri::command]
+async fn get_debug_status() -> Result<DebugStatus, String> {
+    let state = global_debug_state().lock();
+    Ok(DebugStatus::from(&*state))
+}
+
+/// 设置调试日志级别
+#[tauri::command]
+async fn set_debug_log_level(level: String) -> Result<DebugStatus, String> {
+    let log_level = LogLevel::from_str(&level)
+        .map_err(|e| format!("Invalid log level: {}", e))?;
+
+    let mut state = global_debug_state().lock();
+    state.set_log_level(log_level);
+    Ok(DebugStatus::from(&*state))
+}
+
+/// 添加包含的目标模块
+#[tauri::command]
+async fn add_debug_include_target(target: String) -> Result<DebugStatus, String> {
+    let mut state = global_debug_state().lock();
+    state.add_include_target(target);
+    Ok(DebugStatus::from(&*state))
+}
+
+/// 移除包含的目标模块
+#[tauri::command]
+async fn remove_debug_include_target(target: String) -> Result<DebugStatus, String> {
+    let mut state = global_debug_state().lock();
+    state.remove_include_target(&target);
+    Ok(DebugStatus::from(&*state))
+}
+
+/// 添加排除的目标模块
+#[tauri::command]
+async fn add_debug_exclude_target(target: String) -> Result<DebugStatus, String> {
+    let mut state = global_debug_state().lock();
+    state.add_exclude_target(target);
+    Ok(DebugStatus::from(&*state))
+}
+
+/// 移除排除的目标模块
+#[tauri::command]
+async fn remove_debug_exclude_target(target: String) -> Result<DebugStatus, String> {
+    let mut state = global_debug_state().lock();
+    state.remove_exclude_target(&target);
+    Ok(DebugStatus::from(&*state))
+}
+
 /// 主运行函数 - Tauri 应用入口
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -235,6 +335,15 @@ pub fn run() {
             get_metrics,
             reset_metrics,
             get_pipeline_status,
+            enable_debug_mode,
+            disable_debug_mode,
+            toggle_debug_mode,
+            get_debug_status,
+            set_debug_log_level,
+            add_debug_include_target,
+            remove_debug_include_target,
+            add_debug_exclude_target,
+            remove_debug_exclude_target,
         ])
         .setup(|app| {
             // 初始化应用状态

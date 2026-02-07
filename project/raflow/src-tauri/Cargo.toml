@@ -23,6 +23,10 @@ tokio = { version = "1", features = ["full"] }
 tokio-tungstenite = "0.21"
 base64 = "0.22"
 
+# Logging and tracing
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
 # Audio processing
 cpal = "0.15"
 rubato = "0.14"
