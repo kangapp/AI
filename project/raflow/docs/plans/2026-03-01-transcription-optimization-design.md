@@ -139,3 +139,15 @@ RAFLOW_LANGUAGE_HINTS=zh
 ---
 
 *文档创建于 2026-03-01*
+
+---
+
+## 实施状态
+
+- [x] Task 1: 扩展 OutgoingMessage 添加 VAD 配置字段
+- [x] Task 2: 修改 WebSocket 连接添加 language_hints
+- [x] Task 3: 修改音频发送逻辑携带 VAD 配置
+- [x] Task 4: 添加配置测试
+- [x] Task 5: 运行完整测试并验证
+
+**实施完成时间**: 2026-03-01
