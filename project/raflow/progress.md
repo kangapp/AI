@@ -6,6 +6,45 @@
 
 ## 会话记录
 
+### 2026-03-01 - Phase 9 UI/UX 优化 (进行中)
+
+**目标**: 优化应用显示 UI/UX
+- 频谱柱状图 (20 条动态柱)
+- 状态切换动画 (idle/recording/processing/error)
+- 打字机效果 + 滚动动画
+- 新录音清除上次结果
+
+**设计文档**: [docs/plans/2026-03-01-ui-ux-enhancement-design.md](docs/plans/2026-03-01-ui-ux-enhancement-design.md)
+**实现计划**: [docs/plans/2026-03-01-ui-ux-enhancement-implementation.md](docs/plans/2026-03-01-ui-ux-enhancement-implementation.md)
+
+**任务进度**:
+- [x] Task 1: 扩展状态类型和清除逻辑
+- [x] Task 2: 创建 useTypewriter Hook
+- [x] Task 3: 重写 WaveformVisualizer
+- [x] Task 4: 重写 TranscriptDisplay
+- [x] Task 5: 更新 App 组件
+- [x] Task 6: 集成测试
+
+**提交记录**:
+| SHA | 描述 |
+|-----|------|
+| `941f8b9` | docs: add UI/UX enhancement design document |
+| `7fcc9f5` | docs: add UI/UX enhancement implementation plan |
+| `721b81e` | feat(transcription): add error state and clear logic on new recording |
+| `45bc571` | feat(hooks): add useTypewriter hook for typewriter effect |
+| `a5b60d4` | feat(ui): enhance WaveformVisualizer with 20-bar spectrum and status colors |
+| `a14b5f8` | feat(ui): add typewriter, scroll and bounce animations to TranscriptDisplay |
+| `53e0f15` | feat(ui): add status indicator, error toast and status-based theming |
+
+**验证结果**:
+| 检查项 | 结果 |
+|--------|------|
+| `npx tsc --noEmit` | ✅ 通过 |
+| `npm run build` | ✅ 3.09s, 277KB |
+| `cargo check` | ✅ 通过 |
+
+---
+
 ### 2026-03-01 - Phase 8 完成 (端到端集成)
 
 **活动**:
