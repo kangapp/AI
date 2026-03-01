@@ -1,6 +1,6 @@
 //! WebSocket task for real-time transcription.
 
-use crate::transcription::{IncomingMessage, OutgoingMessage};
+use crate::transcription::{IncomingMessage, OutgoingMessage, VadConfig};
 use base64::Engine;
 use futures_util::{SinkExt, StreamExt};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -95,6 +95,17 @@ pub async fn run_transcription_task(
 
     tracing::info!("Transcription session started: {}", session_id);
 
+    // 标记是否已发送配置（首次音频消息携带 VAD 配置）
+    let mut config_sent = false;
+
+    // 获取默认 VAD 配置
+    let vad_config = VadConfig::default();
+    tracing::info!(
+        "VAD config: threshold={:?}, silence_threshold={:?}s",
+        vad_config.vad_threshold,
+        vad_config.vad_silence_threshold_secs
+    );
+
     // Emit connected event to frontend (connecting -> recording)
     let _ = app_handle.emit("transcription-connected", ());
 
@@ -108,7 +119,15 @@ pub async fn run_transcription_task(
             // Send audio
             Some(pcm_data) = audio_rx.recv() => {
                 let base64_audio = encode_pcm_to_base64(&pcm_data);
-                let message = OutgoingMessage::audio(base64_audio);
+
+                // 首次发送携带 VAD 配置
+                let message = if config_sent {
+                    OutgoingMessage::audio(base64_audio)
+                } else {
+                    config_sent = true;
+                    OutgoingMessage::audio_with_config(base64_audio, &vad_config)
+                };
+
                 let json = serde_json::to_string(&message)
                     .map_err(|e| format!("Serialize error: {}", e))?;
 
