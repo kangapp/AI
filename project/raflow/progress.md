@@ -6,6 +6,74 @@
 
 ## 会话记录
 
+### 2026-03-01 - Phase 8 完成 (端到端集成)
+
+**活动**:
+- ✅ Task 8.1: 创建 session 模块 (RecordingSession 状态机)
+- ✅ Task 8.2: 实现 start 流程 (channel-based 音频到 WebSocket)
+- ✅ Task 8.3: WebSocket 接收与事件发送 (tokio::select! 双向通信)
+- ✅ Task 8.4: stop 流程与剪贴板输出
+- ✅ Task 8.5: 集成到 Tauri 命令
+- ✅ Task 8.6: 测试验证
+- ✅ Task 8.7: 文档更新
+
+**提交记录**:
+| SHA | 描述 |
+|-----|------|
+| `148d140` | feat(session): add RecordingSession state machine structure |
+| `65bd0eb` | feat(session): implement start flow with audio-to-websocket pipeline |
+| `27a9238` | feat(session): implement WebSocket receiver with event emission |
+| `8964c44` | feat(session): implement stop flow with commit and clipboard output |
+| `6a746ba` | feat(commands): integrate RecordingSession into Tauri commands |
+| `97395ab` | fix(session): improve lock handling and async thread join |
+| `c93623d` | refactor(session): fix clippy warnings and rename session module |
+
+**架构概览**:
+```
+src-tauri/src/session/
+├── mod.rs              # 模块入口
+├── recording.rs        # RecordingSession 状态机
+│   ├── SessionError    # 错误类型
+│   ├── SessionState    # Tauri 状态管理
+│   ├── RecordingSession
+│   │   ├── new()       # 初始化 (检查 API Key, 音频设备)
+│   │   ├── start()     # 启动录音 (创建 WebSocket 任务, 音频线程)
+│   │   ├── stop()      # 停止录音 (commit, 剪贴板)
+│   │   └── is_active() # 检查状态
+│   └── run_websocket_task() # WebSocket 通信委托
+└── websocket_task.rs   # WebSocket 双向通信
+    ├── run_transcription_task()
+    │   ├── 连接 ElevenLabs API
+    │   ├── tokio::select! 双向通信
+    │   ├── 发送音频数据
+    │   ├── 接收转录结果
+    │   └── emit 事件到前端
+    └── encode_pcm_to_base64()
+```
+
+**关键架构决策**:
+| 决策 | 理由 |
+|------|------|
+| AudioPipeline 在专用线程 | cpal::Stream 不是 Send+Sync |
+| channel-based 通信 | 解耦音频采集和 WebSocket 发送 |
+| tokio::select! | 实现双向 WebSocket 通信 |
+| spawn_blocking | 避免阻塞 tokio runtime |
+
+**验证结果**:
+| 检查项 | 结果 |
+|--------|------|
+| `cargo check` | ✅ 通过 |
+| `cargo clippy` | ✅ 无警告 |
+| `cargo test` | ✅ 39 passed |
+| Doc tests | ✅ 13 passed |
+| `pnpm tsc --noEmit` | ✅ 通过 |
+| `pnpm build` | ✅ 9.11s, 271KB |
+
+**下一步**:
+- MVP 完成，可进行实际语音转录测试
+
+---
+
 ### 2026-03-01 - Phase 7 完成 (验证)
 
 **活动**:

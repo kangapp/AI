@@ -175,7 +175,121 @@ active-win = "0.4"
 
 ## 5. 待解决问题
 
-- [ ] ElevenLabs API Key 安全存储方案
+- [x] ElevenLabs API Key 安全存储方案 → 已实现 config 模块 (.env + config.json)
 - [ ] 多麦克风设备选择 UI
 - [ ] 离线模式支持？
 - [ ] Windows 平台 Accessibility 实现
+
+---
+
+## 6. Phase 8 集成发现
+
+### 6.1 cpal::Stream 线程安全
+
+**问题**: `cpal::Stream` 不是 `Send + Sync`，无法存储在 Tauri 状态中。
+
+**解决方案**: 在专用线程中创建和管理 `AudioPipeline`，通过 `mpsc::channel` 传递音频数据。
+
+```rust
+// AudioPipeline 在专用线程中运行
+let handle = thread::spawn(move || {
+    let mut pipeline = AudioPipeline::new().unwrap();
+    pipeline.start(|pcm| {
+        let _ = sender.blocking_send(pcm);
+    });
+    // 等待取消信号
+    while !cancel_token.load(Ordering::SeqCst) {
+        thread::sleep(Duration::from_millis(100));
+    }
+    pipeline.stop();
+});
+```
+
+### 6.2 WebSocket 双向通信
+
+**问题**: `TranscriptionClient` 在 `connect()` 时 split 了 WebSocket，无法同时发送和接收。
+
+**解决方案**: 创建独立的 `websocket_task.rs` 模块，使用 `tokio::select!` 实现双向通信。
+
+```rust
+tokio::select! {
+    // 发送音频
+    Some(pcm) = audio_rx.recv() => {
+        sender.send(WsMessage::Text(json)).await?;
+    }
+    // 接收转录
+    msg = receiver.next() => {
+        // 处理 incoming message
+    }
+    // commit 信号
+    _ = commit_rx.recv() => {
+        sender.send(WsMessage::Text(commit_json)).await?;
+    }
+}
+```
+
+### 6.3 异步锁最佳实践
+
+**问题**: 在热键处理中持有锁时间过长，阻塞 UI。
+
+**解决方案**: 最小化锁作用域，将耗时操作移到锁外执行。
+
+```rust
+// 快速检查
+let should_stop = {
+    let guard = state.session.lock().await;
+    guard.as_ref().map_or(false, |s| s.is_active())
+};
+
+// 在锁外执行耗时操作
+if should_stop {
+    let mut guard = state.session.lock().await;
+    session.stop(app_handle).await?;
+}
+```
+
+### 6.4 阻塞操作在异步上下文
+
+**问题**: `JoinHandle::join()` 是阻塞调用，在异步函数中会阻塞 tokio runtime。
+
+**解决方案**: 使用 `tokio::task::spawn_blocking` 包装阻塞操作。
+
+```rust
+tokio::task::spawn_blocking(move || {
+    let _ = handle.join();
+}).await;
+```
+
+### 6.5 架构总结
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        Tauri Application                        │
+├─────────────────────────────────────────────────────────────────┤
+│  SessionState (Arc<Mutex<Option<RecordingSession>>>)            │
+│      │                                                          │
+│      ▼                                                          │
+│  RecordingSession                                               │
+│      ├── audio_thread_handle: JoinHandle<()>                    │
+│      ├── audio_sender: mpsc::Sender<Vec<i16>>                   │
+│      ├── commit_sender: mpsc::Sender<()>                        │
+│      ├── is_active: Arc<AtomicBool>                             │
+│      └── committed_text: Arc<Mutex<String>>                     │
+│                                                                 │
+│  ┌─────────────────────┐    ┌─────────────────────────────┐     │
+│  │   Audio Thread      │    │   WebSocket Task (tokio)    │     │
+│  │   (cpal + rubato)   │───►│   (tokio-tungstenite)       │     │
+│  │                     │    │                             │     │
+│  │   48kHz → 16kHz     │    │   send: audio_base64        │     │
+│  │   mpsc::Sender      │    │   recv: partial/committed   │     │
+│  └─────────────────────┘    │   emit: Tauri events        │     │
+│                              └─────────────────────────────┘     │
+│                                          │                      │
+│                                          ▼                      │
+│                              ┌─────────────────────────────┐     │
+│                              │   Frontend (React)          │     │
+│                              │   useTranscription hook     │     │
+│                              │   partial/committed display │     │
+│                              └─────────────────────────────┘     │
+└─────────────────────────────────────────────────────────────────┘
+```

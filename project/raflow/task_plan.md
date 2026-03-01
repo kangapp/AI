@@ -55,10 +55,21 @@
 
 ---
 
+### Phase 8: 端到端集成 ✅
+- [x] 8.1 创建 session 模块 (RecordingSession 状态机)
+- [x] 8.2 实现 start 流程 (连接 WebSocket + 启动音频)
+- [x] 8.3 实现 WebSocket 接收与事件发送
+- [x] 8.4 实现 stop 流程 (commit + 剪贴板输出)
+- [x] 8.5 集成到 Tauri 命令
+- [x] 8.6 测试验证 (cargo test + clippy + build)
+- [x] 8.7 文档更新
+
+---
+
 ## 当前焦点
 
-**阶段**: Phase 7 - 验证 ✅ 完成
-**下一阶段**: MVP 完成
+**阶段**: Phase 8 - 端到端集成 ✅ 完成
+**下一阶段**: MVP 完成，可进行实际测试
 **状态**: 已完成
 
 ---
