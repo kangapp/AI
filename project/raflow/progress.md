@@ -6,17 +6,28 @@
 
 ## 会话记录
 
-### 2026-03-01 - 初始化规划
+### 2026-03-01 - Brainstorming & Planning
 
 **活动**:
 - ✅ 阅读技术规格文档 (specs/003-raflow/0001-spec.md)
 - ✅ 创建规划文件 (task_plan.md, findings.md, progress.md)
-- ✅ 拆解 7 个开发阶段
-- ⏳ 等待用户确认规划
+- ✅ Brainstorming 需求澄清 (5 个关键决策)
+- ✅ 设计方案确认 (Rust 全栈架构)
+- ✅ 创建设计文档 (docs/plans/2026-03-01-mvp-design.md)
+- ✅ 创建实现计划 (docs/plans/2026-03-01-mvp-implementation.md)
+
+**设计决策**:
+| 决策项 | 选择 |
+|--------|------|
+| 启动策略 | MVP 优先 |
+| API Key | 硬编码/环境变量 |
+| 目标平台 | macOS 优先 |
+| 输出方式 | 纯剪贴板 |
+| UI 复杂度 | 最小悬浮窗 |
+| 架构方案 | Rust 全栈 |
 
 **下一步**:
-- 用户确认规划方向
-- 开始 Phase 1: 项目初始化
+- 选择执行方式并开始实现
 
 ---
 
@@ -35,6 +46,8 @@
 | 2026-03-01 | task_plan.md | 创建 | 任务规划文件 |
 | 2026-03-01 | findings.md | 创建 | 技术发现文件 |
 | 2026-03-01 | progress.md | 创建 | 进度日志文件 |
+| 2026-03-01 | docs/plans/2026-03-01-mvp-design.md | 创建 | 设计文档 |
+| 2026-03-01 | docs/plans/2026-03-01-mvp-implementation.md | 创建 | 实现计划 |
 
 ---
 

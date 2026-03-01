@@ -6,73 +6,59 @@
 
 ## 项目概述
 
-**目标**: 构建类似 Wispr Flow 的系统级语音听写工具，实现：
-- 全局热键触发录音
-- 实时语音转文字（<150ms 延迟）
-- 智能文本注入到当前光标位置
-- 不可输入时回退到剪贴板
+**目标**: 构建类似 Wispr Flow 的 macOS 语音听写工具 (MVP)
+
+**MVP 功能**:
+- 全局热键触发录音 (Cmd+Shift+H)
+- 实时语音转文字 (<150ms 延迟)
+- 转录文本自动复制到剪贴板
+- 最小悬浮窗显示转录状态
 
 **技术栈**: Tauri v2 + Rust + React + ElevenLabs Scribe v2
 
+**详细计划**: [docs/plans/2026-03-01-mvp-implementation.md](docs/plans/2026-03-01-mvp-implementation.md)
+
 ---
 
-## 阶段路线图
+## 阶段路线图 (MVP)
 
-### Phase 1: 项目初始化与基础设施
-- [ ] 1.1 初始化 Tauri v2 项目结构
-- [ ] 1.2 配置 Rust 后端依赖 (Cargo.toml)
-- [ ] 1.3 配置前端依赖 (package.json)
-- [ ] 1.4 设置 TypeScript 严格模式
-- [ ] 1.5 配置 Tauri 权限 (Capabilities)
+### Phase 1: 项目初始化
+- [ ] 1.1 创建 Tauri 项目 (Cargo.toml, tauri.conf.json, package.json)
+- [ ] 1.2 配置前端 (Vite, TypeScript, Tailwind)
+- [ ] 1.3 创建基础 UI 结构
 
-### Phase 2: 音频管道工程
-- [ ] 2.1 实现麦克风音频采集 (cpal)
-- [ ] 2.2 构建环形缓冲区 (ringbuf)
-- [ ] 2.3 实现实时重采样 48kHz → 16kHz (rubato)
-- [ ] 2.4 音频数据 Float32 → Int16 PCM 转换
-- [ ] 2.5 音频管道单元测试
+### Phase 2: 音频管道
+- [ ] 2.1 音频模块结构 (mod.rs)
+- [ ] 2.2 音频采集器 (cpal + mono 转换)
+- [ ] 2.3 音频重采样器 (rubato 48→16kHz)
+- [ ] 2.4 音频管道整合 (ringbuf)
 
-### Phase 3: WebSocket 通信与转录
-- [ ] 3.1 实现 ElevenLabs WebSocket 客户端
-- [ ] 3.2 音频流式传输 (Base64 编码)
-- [ ] 3.3 转录事件处理 (partial/committed)
-- [ ] 3.4 连接状态管理与重连机制
-- [ ] 3.5 错误处理与日志
+### Phase 3: WebSocket 转录
+- [ ] 3.1 转录模块结构
+- [ ] 3.2 消息类型定义 (JSON)
+- [ ] 3.3 WebSocket 客户端 (tokio-tungstenite)
 
-### Phase 4: 系统集成与文本注入
-- [ ] 4.1 全局热键监听 (Cmd+Shift+H)
-- [ ] 4.2 活动窗口检测 (active-win)
-- [ ] 4.3 macOS Accessibility API 集成
-- [ ] 4.4 可编辑性探测逻辑
-- [ ] 4.5 剪贴板操作 (arboard)
-- [ ] 4.6 键盘模拟注入 (enigo)
-- [ ] 4.7 注入回退机制
+### Phase 4: 全局热键与命令
+- [ ] 4.1 Tauri 命令 (start/stop recording)
+- [ ] 4.2 全局热键注册 (Cmd+Shift+H)
 
-### Phase 5: 前端 UI 实现
-- [ ] 5.1 悬浮窗配置 (透明/置顶/无边框)
-- [ ] 5.2 鼠标穿透逻辑
-- [ ] 5.3 实时波形可视化
-- [ ] 5.4 转录文本显示 (partial 灰色/committed 黑色)
-- [ ] 5.5 状态同步 (Tauri Events)
+### Phase 5: 剪贴板输出
+- [ ] 5.1 剪贴板模块 (arboard)
 
-### Phase 6: 系统托盘与权限
-- [ ] 6.1 托盘图标与菜单
-- [ ] 6.2 麦克风权限处理 (macOS/Windows)
-- [ ] 6.3 辅助功能权限引导
-- [ ] 6.4 应用生命周期管理
+### Phase 6: 前端 UI
+- [ ] 6.1 状态管理 Hook
+- [ ] 6.2 悬浮窗组件 (波形 + 转录文本)
 
-### Phase 7: 测试与发布
-- [ ] 7.1 集成测试
-- [ ] 7.2 性能优化
-- [ ] 7.3 代码签名准备
-- [ ] 7.4 文档完善
+### Phase 7: 验证
+- [ ] 7.1 构建验证
+- [ ] 7.2 功能测试
 
 ---
 
 ## 当前焦点
 
 **阶段**: Phase 1 - 项目初始化
-**任务**: 1.1 初始化 Tauri v2 项目结构
+**任务**: 1.1 创建 Tauri 项目
 **状态**: 待开始
 
 ---
@@ -89,5 +75,7 @@
 
 | 日期 | 决策 | 理由 |
 |------|------|------|
-| 2026-03-01 | 选择 Tauri v2 而非 Electron | 内存占用低 (30MB vs 100MB+)，Rust 生态适合音频处理 |
-| 2026-03-01 | 剪贴板粘贴作为主要注入策略 | 兼容性好，支持长文本，可优雅回退 |
+| 2026-03-01 | 选择 Tauri v2 而非 Electron | 内存占用低 (30MB vs 100MB+) |
+| 2026-03-01 | MVP 优先策略 | 快速验证核心功能 |
+| 2026-03-01 | 纯剪贴板输出 | 简单稳定，适合 MVP |
+| 2026-03-01 | Rust 全栈架构 | 后台稳定，性能最优 |
