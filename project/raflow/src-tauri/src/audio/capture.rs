@@ -150,7 +150,7 @@ impl AudioCapture {
     /// use ringbuf::HeapRb;
     /// use ringbuf::traits::*;
     ///
-    /// let capture = AudioCapture::new()?;
+    /// let mut capture = AudioCapture::new()?;
     /// let buffer_size = capture.sample_rate() as usize; // 1 second buffer
     /// let rb = HeapRb::<f32>::new(buffer_size);
     /// let (producer, _consumer) = rb.split();

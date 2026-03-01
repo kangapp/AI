@@ -34,32 +34,32 @@
 - [x] 2.4 音频管道整合 (ringbuf)
 
 ### Phase 3: WebSocket 转录
-- [ ] 3.1 转录模块结构
-- [ ] 3.2 消息类型定义 (JSON)
-- [ ] 3.3 WebSocket 客户端 (tokio-tungstenite)
+- [x] 3.1 转录模块结构
+- [x] 3.2 消息类型定义 (JSON)
+- [x] 3.3 WebSocket 客户端 (tokio-tungstenite)
 
 ### Phase 4: 全局热键与命令
-- [ ] 4.1 Tauri 命令 (start/stop recording)
-- [ ] 4.2 全局热键注册 (Cmd+Shift+H)
+- [x] 4.1 Tauri 命令 (start/stop recording)
+- [x] 4.2 全局热键注册 (Cmd+Shift+H)
 
 ### Phase 5: 剪贴板输出
-- [ ] 5.1 剪贴板模块 (arboard)
+- [x] 5.1 剪贴板模块 (arboard)
 
 ### Phase 6: 前端 UI
-- [ ] 6.1 状态管理 Hook
-- [ ] 6.2 悬浮窗组件 (波形 + 转录文本)
+- [x] 6.1 状态管理 Hook
+- [x] 6.2 悬浮窗组件 (波形 + 转录文本)
 
 ### Phase 7: 验证
-- [ ] 7.1 构建验证
-- [ ] 7.2 功能测试
+- [x] 7.1 构建验证 (Rust + Frontend)
+- [x] 7.2 功能测试 (cargo test + tsc)
 
 ---
 
 ## 当前焦点
 
-**阶段**: Phase 2 - 音频管道 ✅ 完成
-**下一阶段**: Phase 3 - WebSocket 转录
-**状态**: 待开始
+**阶段**: Phase 7 - 验证 ✅ 完成
+**下一阶段**: MVP 完成
+**状态**: 已完成
 
 ---
 
