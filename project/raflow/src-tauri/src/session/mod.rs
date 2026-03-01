@@ -4,5 +4,6 @@
 //! audio capture, WebSocket transcription, and clipboard output.
 
 mod session;
+mod websocket_task;
 
 pub use session::{RecordingSession, SessionError, SessionState};

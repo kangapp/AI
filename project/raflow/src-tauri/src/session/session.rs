@@ -2,7 +2,7 @@
 
 use crate::audio::AudioPipeline;
 use crate::config;
-use crate::transcription::TranscriptionClient;
+use crate::session::websocket_task::run_transcription_task;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
@@ -171,54 +171,28 @@ impl RecordingSession {
     /// Run the WebSocket communication task.
     async fn run_websocket_task(
         api_key: String,
-        mut audio_rx: mpsc::Receiver<Vec<i16>>,
+        audio_rx: mpsc::Receiver<Vec<i16>>,
         is_active: Arc<AtomicBool>,
         committed_text: Arc<Mutex<String>>,
         cancel_token: Arc<AtomicBool>,
         app_handle: AppHandle,
     ) -> Result<(), SessionError> {
-        // Connect to WebSocket
-        let mut client = TranscriptionClient::new(api_key);
-        client
-            .connect()
-            .await
-            .map_err(|e| SessionError::ConnectionFailed(e.to_string()))?;
+        // Run the transcription task
+        let result = run_transcription_task(
+            api_key,
+            audio_rx,
+            committed_text,
+            cancel_token,
+            app_handle.clone(),
+        )
+        .await;
 
-        tracing::info!(
-            "WebSocket connected, session_id: {:?}",
-            client.session_id()
-        );
-
-        // Main loop - just send audio for now (receiving will be added in Task 3)
-        loop {
-            if cancel_token.load(Ordering::SeqCst) {
-                break;
-            }
-
-            // Receive audio from pipeline
-            match audio_rx.recv().await {
-                Some(pcm_data) => {
-                    if let Err(e) = client.send_audio(&pcm_data).await {
-                        tracing::error!("Failed to send audio: {}", e);
-                    }
-                }
-                None => break, // Channel closed
-            }
-        }
-
-        // Close WebSocket
-        client.close().await;
-        tracing::info!("WebSocket task ended");
-
-        // Reset active flag
+        // Reset active state
         is_active.store(false, Ordering::SeqCst);
 
         // Emit recording stopped event
         let _ = app_handle.emit("recording-state-changed", false);
 
-        // Suppress unused variable warning
-        let _ = committed_text;
-
-        Ok(())
+        result.map_err(SessionError::ConnectionFailed)
     }
 }
