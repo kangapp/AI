@@ -1,10 +1,12 @@
 //! Recording session implementation.
 
 use crate::audio::AudioPipeline;
+use crate::clipboard;
 use crate::config;
 use crate::session::websocket_task::run_transcription_task;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use thiserror::Error;
 use tokio::sync::{mpsc, Mutex};
@@ -61,6 +63,8 @@ pub struct RecordingSession {
     audio_pipeline: AudioPipeline,
     /// Channel sender for audio data.
     audio_sender: Option<mpsc::Sender<Vec<i16>>>,
+    /// Channel sender for commit signals.
+    commit_sender: Option<mpsc::Sender<()>>,
     /// Flag indicating if session is active.
     is_active: Arc<AtomicBool>,
     /// Latest committed transcript text.
@@ -89,6 +93,7 @@ impl RecordingSession {
         Ok(Self {
             audio_pipeline,
             audio_sender: None,
+            commit_sender: None,
             is_active: Arc::new(AtomicBool::new(false)),
             committed_text: Arc::new(Mutex::new(String::new())),
             cancel_token: Arc::new(AtomicBool::new(false)),
@@ -128,6 +133,10 @@ impl RecordingSession {
         let (audio_tx, audio_rx) = mpsc::channel::<Vec<i16>>(100);
         self.audio_sender = Some(audio_tx);
 
+        // Create channel for commit signals
+        let (commit_tx, commit_rx) = mpsc::channel::<()>(1);
+        self.commit_sender = Some(commit_tx);
+
         // Clone for async task
         let is_active = self.is_active.clone();
         let committed_text = self.committed_text.clone();
@@ -139,6 +148,7 @@ impl RecordingSession {
             if let Err(e) = Self::run_websocket_task(
                 api_key,
                 audio_rx,
+                commit_rx,
                 is_active,
                 committed_text,
                 cancel_token,
@@ -172,6 +182,7 @@ impl RecordingSession {
     async fn run_websocket_task(
         api_key: String,
         audio_rx: mpsc::Receiver<Vec<i16>>,
+        commit_rx: mpsc::Receiver<()>,
         is_active: Arc<AtomicBool>,
         committed_text: Arc<Mutex<String>>,
         cancel_token: Arc<AtomicBool>,
@@ -181,6 +192,7 @@ impl RecordingSession {
         let result = run_transcription_task(
             api_key,
             audio_rx,
+            commit_rx,
             committed_text,
             cancel_token,
             app_handle.clone(),
@@ -194,5 +206,64 @@ impl RecordingSession {
         let _ = app_handle.emit("recording-state-changed", false);
 
         result.map_err(SessionError::ConnectionFailed)
+    }
+
+    /// Stop the recording session.
+    ///
+    /// This commits the transcription, stops audio capture, and copies
+    /// the final text to the clipboard.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SessionError::NotActive`] if no session is active.
+    /// Returns [`SessionError::Clipboard`] if clipboard write fails.
+    pub async fn stop(&mut self, app_handle: AppHandle) -> Result<String, SessionError> {
+        if !self.is_active.load(Ordering::SeqCst) {
+            return Err(SessionError::NotActive);
+        }
+
+        tracing::info!("Stopping recording session...");
+
+        // Send commit signal before stopping
+        if let Some(tx) = &self.commit_sender {
+            let _ = tx.send(()).await;
+            tracing::debug!("Sent commit signal");
+            // Wait a bit for the committed transcript
+            tokio::time::sleep(Duration::from_millis(500)).await;
+        }
+
+        // Signal cancellation
+        self.cancel_token.store(true, Ordering::SeqCst);
+
+        // Stop audio pipeline
+        self.audio_pipeline.stop();
+
+        // Clear audio sender
+        self.audio_sender = None;
+
+        // Clear commit sender
+        self.commit_sender = None;
+
+        // Mark as inactive
+        self.is_active.store(false, Ordering::SeqCst);
+
+        // Get committed text
+        let text = self.committed_text.lock().await.clone();
+
+        // Copy to clipboard if not empty
+        if !text.is_empty() {
+            clipboard::write_to_clipboard(&text)
+                .map_err(|e| SessionError::Clipboard(e.to_string()))?;
+            tracing::info!("Copied transcription to clipboard: {} chars", text.len());
+        }
+
+        // Clear committed text for next session
+        self.committed_text.lock().await.clear();
+
+        // Emit recording stopped event
+        let _ = app_handle.emit("recording-state-changed", false);
+
+        tracing::info!("Recording session stopped");
+        Ok(text)
     }
 }

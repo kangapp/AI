@@ -18,6 +18,7 @@ use tokio_tungstenite::tungstenite::Message as WsMessage;
 ///
 /// * `api_key` - ElevenLabs API key for authentication
 /// * `audio_rx` - Channel receiver for PCM audio data from the audio pipeline
+/// * `commit_rx` - Channel receiver for commit signals
 /// * `committed_text` - Shared storage for committed transcript text
 /// * `cancel_token` - Atomic flag to signal task cancellation
 /// * `app_handle` - Tauri app handle for emitting events to frontend
@@ -32,6 +33,7 @@ use tokio_tungstenite::tungstenite::Message as WsMessage;
 pub async fn run_transcription_task(
     api_key: String,
     mut audio_rx: mpsc::Receiver<Vec<i16>>,
+    mut commit_rx: mpsc::Receiver<()>,
     committed_text: Arc<Mutex<String>>,
     cancel_token: Arc<AtomicBool>,
     app_handle: AppHandle,
@@ -87,6 +89,21 @@ pub async fn run_transcription_task(
                     .send(WsMessage::Text(json.into()))
                     .await
                     .map_err(|e| format!("Send error: {}", e))?;
+            }
+
+            // Receive commit signal
+            Some(_) = commit_rx.recv() => {
+                // Send commit message
+                let message = OutgoingMessage::commit();
+                let json = serde_json::to_string(&message)
+                    .map_err(|e| format!("Serialize error: {}", e))?;
+
+                sender
+                    .send(WsMessage::Text(json.into()))
+                    .await
+                    .map_err(|e| format!("Send error: {}", e))?;
+
+                tracing::info!("Sent commit signal to server");
             }
 
             // Receive transcription
