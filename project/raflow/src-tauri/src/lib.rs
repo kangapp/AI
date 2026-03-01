@@ -10,6 +10,9 @@ use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut}
 use tracing::{error, info};
 
 pub fn run() {
+    // 加载 .env 文件
+    config::init();
+
     // 初始化日志
     tracing_subscriber::fmt::init();
     info!("Starting RaFlow application");

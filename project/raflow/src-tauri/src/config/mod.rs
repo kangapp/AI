@@ -2,6 +2,12 @@
 //!
 //! Handles loading and saving API keys and other settings.
 //!
+//! # Configuration Sources
+//!
+//! API keys are loaded from multiple sources in this priority order:
+//! 1. Environment variables (`.env` file or system)
+//! 2. Configuration file (`config.json`)
+//!
 //! # Configuration File Location
 //!
 //! The configuration file is stored in the user's config directory:
@@ -12,7 +18,7 @@
 //! # Example
 //!
 //! ```no_run
-//! use raflow_lib::config::{AppConfig, load_config, save_config};
+//! use raflow_lib::config::{AppConfig, load_config, save_config, get_api_key};
 //!
 //! // Load or create default config
 //! let mut config = load_config()?;
@@ -22,14 +28,21 @@
 //!
 //! // Save config
 //! save_config(&config)?;
+//!
+//! // Get API key (checks env var first, then config file)
+//! let api_key = get_api_key()?;
 //! # Ok::<(), raflow_lib::config::ConfigError>(())
 //! ```
 
 use directories::ProjectDirs;
 use serde::{Deserialize, Serialize};
+use std::env;
 use std::fs;
 use std::path::PathBuf;
 use thiserror::Error;
+
+/// Environment variable name for ElevenLabs API key.
+pub const ENV_ELEVENLABS_API_KEY: &str = "ELEVENLABS_API_KEY";
 
 /// Configuration errors.
 #[derive(Error, Debug)]
@@ -143,6 +156,40 @@ pub fn save_config(config: &AppConfig) -> Result<(), ConfigError> {
     })?;
 
     Ok(())
+}
+
+/// Gets the ElevenLabs API key from environment variable or config file.
+///
+/// Priority:
+/// 1. `ELEVENLABS_API_KEY` environment variable
+/// 2. `elevenlabs_api_key` in config file
+///
+/// # Errors
+///
+/// Returns `ConfigError` if the config file cannot be read.
+///
+/// # Returns
+///
+/// `Some(key)` if found, `None` if not set anywhere.
+pub fn get_api_key() -> Result<Option<String>, ConfigError> {
+    // First check environment variable
+    if let Ok(key) = env::var(ENV_ELEVENLABS_API_KEY) {
+        if !key.is_empty() && key != "your-api-key-here" {
+            return Ok(Some(key));
+        }
+    }
+
+    // Fall back to config file
+    let config = load_config()?;
+    Ok(config.elevenlabs_api_key)
+}
+
+/// Initializes configuration by loading .env file.
+///
+/// Call this once at application startup.
+pub fn init() {
+    // Load .env file from current directory or parent directories
+    let _ = dotenvy::dotenv();
 }
 
 #[cfg(test)]
