@@ -8,6 +8,8 @@ function App() {
   const { status, partialText, committedText, audioLevel } = useTranscription();
   const isRecording = status === "recording";
 
+  console.log("[App] status:", status, "isRecording:", isRecording);
+
   useEffect(() => {
     const win = getCurrentWindow();
 
@@ -20,6 +22,9 @@ function App() {
 
   return (
     <div className="window-container">
+      <div className={`text-center text-xs mb-1 ${isRecording ? "text-red-400" : "text-gray-500"}`}>
+        {isRecording ? "● Recording..." : "Idle"}
+      </div>
       <WaveformVisualizer level={audioLevel} isRecording={isRecording} />
       <TranscriptDisplay partial={partialText} committed={committedText} />
       {!isRecording && !committedText && !partialText && (

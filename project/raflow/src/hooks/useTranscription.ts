@@ -55,10 +55,13 @@ export function useTranscription(): TranscriptionState {
   });
 
   useEffect(() => {
+    console.log("[useTranscription] Setting up event listeners...");
+
     // 监听录音状态变化事件
     const unlistenRecordingState = listen<boolean>(
       "recording-state-changed",
       (event) => {
+        console.log("[useTranscription] recording-state-changed:", event.payload);
         setState((prev) => ({
           ...prev,
           status: event.payload ? "recording" : "idle",

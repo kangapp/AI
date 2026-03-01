@@ -39,13 +39,17 @@ pub fn run() {
                 if is_recording {
                     // Stop recording
                     state.is_recording.store(false, std::sync::atomic::Ordering::SeqCst);
-                    let _ = app_handle.emit("recording-state-changed", false);
-                    info!("Hotkey: Stop recording");
+                    match app_handle.emit("recording-state-changed", false) {
+                        Ok(_) => info!("Hotkey: Stop recording, event sent"),
+                        Err(e) => error!("Failed to emit stop event: {}", e),
+                    }
                 } else {
                     // Start recording
                     state.is_recording.store(true, std::sync::atomic::Ordering::SeqCst);
-                    let _ = app_handle.emit("recording-state-changed", true);
-                    info!("Hotkey: Start recording");
+                    match app_handle.emit("recording-state-changed", true) {
+                        Ok(_) => info!("Hotkey: Start recording, event sent"),
+                        Err(e) => error!("Failed to emit start event: {}", e),
+                    }
                 }
             })?;
 
