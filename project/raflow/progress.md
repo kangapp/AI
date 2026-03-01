@@ -42,6 +42,15 @@
 | `npx tsc --noEmit` | ✅ 通过 |
 | `npm run build` | ✅ 3.09s, 277KB |
 | `cargo check` | ✅ 通过 |
+| 波形图响应 | ✅ 正常 |
+| 连接状态区分 | ✅ connecting → recording |
+| 开头语音转录 | ✅ 正常 |
+
+**后续修复**:
+| SHA | 描述 |
+|-----|------|
+| `f822a8c` | fix(ui): add connecting state and enhance waveform sensitivity |
+| `6fd6d1d` | fix(audio): add audio level calculation and emission |
 
 ---
 
