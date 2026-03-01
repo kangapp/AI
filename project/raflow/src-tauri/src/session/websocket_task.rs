@@ -39,7 +39,7 @@ pub async fn run_transcription_task(
     app_handle: AppHandle,
 ) -> Result<(), String> {
     // Build WebSocket request with proper headers
-    let ws_url = "wss://api.elevenlabs.io/v1/speech-to-text/realtime?model_id=scribe_v2_realtime";
+    let ws_url = "wss://api.elevenlabs.io/v1/speech-to-text/realtime?model_id=scribe_v2_realtime&language_hints=[\"zh\"]";
     tracing::info!("Connecting to WebSocket: {}", ws_url);
 
     // Use into_client_request() to create a proper WebSocket request
