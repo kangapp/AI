@@ -37,33 +37,38 @@ pub fn run() {
                 let app_handle = app_handle.clone();
                 tokio::spawn(async move {
                     let state = app_handle.state::<SessionState>();
-                    let mut session_guard = state.session.lock().await;
 
-                    if let Some(session) = session_guard.as_ref() {
-                        if session.is_active() {
-                            // Stop recording
-                            if let Some(session) = session_guard.as_mut() {
-                                let _ = session.stop(app_handle.clone()).await;
-                            }
-                            return;
-                        }
-                    }
-
-                    // Start recording
-                    let mut session = match RecordingSession::new() {
-                        Ok(s) => s,
-                        Err(e) => {
-                            tracing::error!("Failed to create session: {}", e);
-                            return;
-                        }
+                    // Quick check with lock - only hold lock for the check
+                    let should_stop = {
+                        let session_guard = state.session.lock().await;
+                        session_guard.as_ref().map_or(false, |s| s.is_active())
                     };
 
-                    if let Err(e) = session.start(app_handle.clone()).await {
-                        tracing::error!("Failed to start session: {}", e);
-                        return;
+                    if should_stop {
+                        // Stop recording - acquire lock only for the stop operation
+                        let mut session_guard = state.session.lock().await;
+                        if let Some(session) = session_guard.as_mut() {
+                            if let Err(e) = session.stop(app_handle.clone()).await {
+                                tracing::error!("Failed to stop session: {}", e);
+                            }
+                        }
+                    } else {
+                        // Start recording - create session outside lock
+                        match RecordingSession::new() {
+                            Ok(mut session) => {
+                                if let Err(e) = session.start(app_handle.clone()).await {
+                                    tracing::error!("Failed to start session: {}", e);
+                                } else {
+                                    // Only acquire lock to store the session
+                                    let mut session_guard = state.session.lock().await;
+                                    *session_guard = Some(session);
+                                }
+                            }
+                            Err(e) => {
+                                tracing::error!("Failed to create session: {}", e);
+                            }
+                        }
                     }
-
-                    *session_guard = Some(session);
                 });
             })?;
 

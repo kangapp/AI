@@ -269,8 +269,12 @@ impl RecordingSession {
         self.cancel_token.store(true, Ordering::SeqCst);
 
         // Wait for audio thread to finish
+        // Use spawn_blocking to avoid blocking tokio runtime
         if let Some(handle) = self.audio_thread_handle.take() {
-            let _ = handle.join();
+            let _ = tokio::task::spawn_blocking(move || {
+                let _ = handle.join();
+            })
+            .await;
         }
 
         // Clear audio sender
