@@ -1,3 +1,5 @@
+pub mod audio;
+
 use tracing::{info, error};
 
 pub fn run() {
