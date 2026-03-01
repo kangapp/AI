@@ -425,4 +425,39 @@ mod tests {
         let err = TranscriptionError::ParseError("invalid JSON".to_string());
         assert_eq!(err.to_string(), "Failed to parse message: invalid JSON");
     }
+
+    #[test]
+    fn test_vad_config_default() {
+        let config = VadConfig::default();
+        assert_eq!(config.vad_threshold, Some(0.55));
+        assert_eq!(config.vad_silence_threshold_secs, Some(1.0));
+        assert_eq!(config.min_speech_duration_ms, Some(80));
+        assert_eq!(config.min_silence_duration_ms, Some(150));
+    }
+
+    #[test]
+    fn test_outgoing_message_audio_with_config() {
+        let config = VadConfig::default();
+        let msg = OutgoingMessage::audio_with_config("dGVzdA==".to_string(), &config);
+
+        assert_eq!(msg.message_type, "input_audio_chunk");
+        assert_eq!(msg.audio_base_64, Some("dGVzdA==".to_string()));
+        assert_eq!(msg.sample_rate, Some(16000));
+        assert_eq!(msg.vad_threshold, Some(0.55));
+        assert_eq!(msg.vad_silence_threshold_secs, Some(1.0));
+        assert_eq!(msg.min_speech_duration_ms, Some(80));
+        assert_eq!(msg.min_silence_duration_ms, Some(150));
+    }
+
+    #[test]
+    fn test_outgoing_message_audio_with_config_serialization() {
+        let config = VadConfig::default();
+        let msg = OutgoingMessage::audio_with_config("dGVzdA==".to_string(), &config);
+        let json = serde_json::to_string(&msg).unwrap();
+
+        assert!(json.contains(r#""message_type":"input_audio_chunk""#));
+        assert!(json.contains(r#""audio_base_64":"dGVzdA==""#));
+        assert!(json.contains(r#""sample_rate":16000"#));
+        assert!(json.contains(r#""vad_threshold":0.55"#));
+    }
 }
