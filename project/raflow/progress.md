@@ -6,6 +6,34 @@
 
 ## 会话记录
 
+### 2026-03-01 - Phase 2 完成 (Subagent-Driven Development)
+
+**活动**:
+- ✅ Task 2.1: 音频模块结构 (mod.rs, lib.rs 更新)
+- ✅ Task 2.2: 音频采集器 (cpal + ringbuf Producer)
+- ✅ Task 2.3: 音频重采样器 (rubato FftFixedIn 48→16kHz)
+- ✅ Task 2.4: 音频管道整合 (capture → resample → callback)
+
+**提交记录**:
+| SHA | 描述 |
+|-----|------|
+| `19cb97c` | feat(audio): add audio module structure |
+| `fb04f8c` | feat(audio): implement cpal-based audio capture |
+| `a052c56` | feat(audio): implement rubato-based resampler (48kHz to 16kHz) |
+| `bcf6d0e` | feat(audio): integrate audio pipeline with callback output |
+
+**架构概览**:
+```
+[麦克风 48kHz] → cpal AudioCapture → ringbuf (8192 f32)
+                                            ↓
+[回调函数 Vec<i16>] ← Resampler (16kHz) ← processor thread
+```
+
+**下一步**:
+- Phase 3: WebSocket 转录模块
+
+---
+
 ### 2026-03-01 - Brainstorming & Planning
 
 **活动**:
@@ -27,7 +55,23 @@
 | 架构方案 | Rust 全栈 |
 
 **下一步**:
-- 选择执行方式并开始实现
+- Phase 2: 音频管道实现
+
+---
+
+### 2026-03-01 - Phase 1 完成
+
+**活动**:
+- ✅ 创建 Tauri v2 项目结构 (所有文件)
+- ✅ 配置 Rust 依赖 (Cargo.toml)
+- ✅ 配置前端依赖 (package.json, vite, tailwind)
+- ✅ 修复 Critical 问题 (错误处理, 类型安全, 版本锁定)
+- ✅ 规格审查通过
+- ✅ 代码质量审查通过
+
+**提交**:
+- `0502ceb` - feat: initialize Tauri v2 project with React frontend
+- `7b37e98` - fix: improve error handling and type safety in Phase 1
 
 ---
 
