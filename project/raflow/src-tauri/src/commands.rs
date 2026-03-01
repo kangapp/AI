@@ -58,5 +58,5 @@ pub async fn is_recording(app: AppHandle) -> bool {
     let state = app.state::<SessionState>();
     let session_guard = state.session.lock().await;
 
-    session_guard.as_ref().map_or(false, |s| s.is_active())
+    session_guard.as_ref().is_some_and(|s| s.is_active())
 }

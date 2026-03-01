@@ -3,7 +3,7 @@
 //! This module provides the [`RecordingSession`] state machine that coordinates
 //! audio capture, WebSocket transcription, and clipboard output.
 
-mod session;
+mod recording;
 mod websocket_task;
 
-pub use session::{RecordingSession, SessionError, SessionState};
+pub use recording::{RecordingSession, SessionError, SessionState};

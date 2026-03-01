@@ -41,7 +41,7 @@ pub fn run() {
                     // Quick check with lock - only hold lock for the check
                     let should_stop = {
                         let session_guard = state.session.lock().await;
-                        session_guard.as_ref().map_or(false, |s| s.is_active())
+                        session_guard.as_ref().is_some_and(|s| s.is_active())
                     };
 
                     if should_stop {
