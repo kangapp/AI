@@ -6,7 +6,7 @@ pub mod session;
 pub mod transcription;
 
 use session::{RecordingSession, SessionState};
-use tauri::Manager;
+use tauri::{Emitter, Manager};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 use tracing::info;
 
@@ -62,6 +62,16 @@ pub fn run() {
                                 tracing::info!("Session created, starting...");
                                 if let Err(e) = session.start(app_handle.clone()).await {
                                     tracing::error!("Failed to start session: {}", e);
+                                    // Emit error event to frontend
+                                    let error_type = if e.to_string().contains("API key") {
+                                        "auth"
+                                    } else {
+                                        "server"
+                                    };
+                                    let _ = app_handle.emit("transcription-error", serde_json::json!({
+                                        "type": error_type,
+                                        "message": e.to_string()
+                                    }));
                                 } else {
                                     tracing::info!("Session started successfully, storing state");
                                     // Only acquire lock to store the session
@@ -71,6 +81,16 @@ pub fn run() {
                             }
                             Err(e) => {
                                 tracing::error!("Failed to create session: {}", e);
+                                // Emit error event to frontend
+                                let error_type = if e.to_string().contains("API key") {
+                                    "auth"
+                                } else {
+                                    "server"
+                                };
+                                let _ = app_handle.emit("transcription-error", serde_json::json!({
+                                    "type": error_type,
+                                    "message": e.to_string()
+                                }));
                             }
                         }
                     }

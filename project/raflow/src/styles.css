@@ -2,8 +2,34 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Apple-style Design System */
 :root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+  /* Apple System Colors */
+  --apple-blue: #007AFF;
+  --apple-blue-light: #5AC8FA;
+  --apple-green: #34C759;
+  --apple-orange: #FF9500;
+  --apple-purple: #AF52DE;
+  --apple-red: #FF3B30;
+  --apple-yellow: #FFCC00;
+
+  /* Apple Gray Scale */
+  --apple-gray-1: #8E8E93;
+  --apple-gray-2: #AEAEB2;
+  --apple-gray-3: #C7C7CC;
+  --apple-gray-4: #D1D1D6;
+  --apple-gray-5: #E5E5EA;
+  --apple-gray-6: #F2F2F7;
+
+  /* Dark Mode Grays */
+  --apple-dark-bg: rgba(28, 28, 30, 0.92);
+  --apple-dark-elevated: rgba(44, 44, 46, 0.95);
+  --apple-dark-border: rgba(255, 255, 255, 0.1);
+
+  /* Typography */
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 html,
@@ -15,22 +41,115 @@ body,
   height: 100%;
   background: transparent;
   overflow: hidden;
+  user-select: none;
+  /* Disable elastic scrolling */
+  overscroll-behavior: none;
 }
 
+/* Apple-style Window Container */
 .window-container {
   width: 100%;
   height: 100%;
-  background: rgba(30, 30, 30, 0.9);
-  border-radius: 12px;
-  backdrop-filter: blur(20px);
+  background: var(--apple-dark-bg);
+  border-radius: 18px;
+  backdrop-filter: blur(50px) saturate(180%);
+  -webkit-backdrop-filter: blur(50px) saturate(180%);
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 16px;
+  justify-content: flex-start;
+  padding: 18px 24px;
+  box-shadow:
+    0 0 0 0.5px var(--apple-dark-border),
+    0 30px 60px -15px rgba(0, 0, 0, 0.5),
+    0 0 0 1px rgba(0, 0, 0, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  position: relative;
+  overflow: hidden;
+  box-sizing: border-box;
+  /* Disable elastic scrolling on container */
+  overscroll-behavior: none;
 }
 
-.status-text {
-  color: rgba(255, 255, 255, 0.6);
-  font-size: 14px;
+/* Subtle gradient overlay for depth */
+.window-container::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 50%;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.03) 0%,
+    transparent 100%
+  );
+  pointer-events: none;
+  border-radius: 18px 18px 0 0;
+}
+
+/* Custom scrollbar - Apple style */
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 1.5px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* For Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  /* Disable elastic scrolling */
+  overscroll-behavior: none;
+}
+
+/* Text break optimization */
+.break-words {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Apple-style animations */
+@keyframes apple-pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.7;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes apple-breathe {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Selection styling */
+::selection {
+  background: rgba(0, 122, 255, 0.3);
+}
+
+/* Focus ring */
+:focus-visible {
+  outline: 2px solid var(--apple-blue);
+  outline-offset: 2px;
 }

@@ -258,6 +258,22 @@ impl RecordingSession {
         // Emit recording stopped event
         let _ = app_handle.emit("recording-state-changed", false);
 
+        // Emit error event if failed
+        if let Err(ref e) = result {
+            tracing::error!("Transcription task failed: {}", e);
+            let error_type = if e.contains("Authentication") || e.contains("API key") {
+                "auth"
+            } else if e.contains("Connection") || e.contains("network") {
+                "network"
+            } else {
+                "server"
+            };
+            let _ = app_handle.emit("transcription-error", serde_json::json!({
+                "type": error_type,
+                "message": e
+            }));
+        }
+
         result.map_err(SessionError::ConnectionFailed)
     }
 

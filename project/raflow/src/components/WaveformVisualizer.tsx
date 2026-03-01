@@ -8,69 +8,70 @@ interface WaveformVisualizerProps {
 }
 
 /**
- * 获取波形颜色
+ * Apple-style waveform colors
  */
-function getBarColors(status: RecordingStatus): { from: string; to: string } {
+function getBarGradient(status: RecordingStatus): string {
   switch (status) {
     case "connecting":
-      return { from: "rgb(250, 204, 21)", to: "rgb(251, 191, 36)" }; // yellow-400 -> yellow-300
+      return "linear-gradient(180deg, #FF9F0A 0%, #FFD60A 100%)"; // Orange to Yellow
     case "recording":
-      return { from: "rgb(96, 165, 250)", to: "rgb(168, 85, 247)" }; // blue-400 -> purple-500
+      return "linear-gradient(180deg, #0A84FF 0%, #5AC8FA 100%)"; // Blue to Light Blue
     case "processing":
-      return { from: "rgb(250, 204, 21)", to: "rgb(251, 191, 36)" }; // yellow-400 -> yellow-300
+      return "linear-gradient(180deg, #BF5AF2 0%, #5E5CE6 100%)"; // Purple to Indigo
     case "error":
-      return { from: "rgb(239, 68, 68)", to: "rgb(220, 38, 38)" }; // red-500 -> red-600
+      return "linear-gradient(180deg, #FF453A 0%, #FF6961 100%)"; // Red
     default:
-      return { from: "rgb(107, 114, 128)", to: "rgb(156, 163, 175)" }; // gray-500 -> gray-400
+      return "linear-gradient(180deg, #636366 0%, #8E8E93 100%)"; // Gray
   }
 }
 
 export function WaveformVisualizer({ level, status }: WaveformVisualizerProps) {
-  const bars = 20;
+  const bars = 24;
   const isActive = status === "recording";
 
-  // 计算每个柱的高度
+  // Calculate bar heights with Apple-style animation
   const heights = useMemo(() => {
     return Array.from({ length: bars }, (_, i) => {
+      // Idle or error: subtle breathing animation
       if (status === "idle" || status === "error") {
-        // 空闲或错误状态：固定低高度
-        return 0.15 + Math.random() * 0.1;
+        return 0.12 + Math.sin(Date.now() / 1000 + i * 0.3) * 0.05;
       }
 
+      // Connecting/Processing: gentle wave
       if (status === "connecting" || status === "processing") {
-        // 连接中/处理中：脉冲效果
-        const pulse = 0.3 + Math.sin(Date.now() / 200 + i * 0.5) * 0.2;
-        return Math.max(0.1, pulse);
+        const wave = Math.sin(Date.now() / 300 + i * 0.4) * 0.3 + 0.35;
+        return Math.max(0.15, wave);
       }
 
-      // 录音中：基于音频电平，增强敏感度
+      // Recording: responsive to audio level
       const centerBias = 1 - Math.abs(i - bars / 2) / (bars / 2);
-      // 增强敏感度：使用平方根来放大低音量的变化
-      const amplifiedLevel = Math.pow(level, 0.5);
-      const baseHeight = amplifiedLevel * 0.9 * centerBias;
-      const randomOffset = Math.random() * 0.2;
-      return Math.min(1, Math.max(0.1, baseHeight + randomOffset));
+      const amplifiedLevel = Math.pow(level, 0.4); // More sensitive
+      const baseHeight = amplifiedLevel * 0.85 * centerBias;
+      const organicOffset = Math.sin(Date.now() / 100 + i * 0.5) * 0.08;
+      return Math.min(1, Math.max(0.1, baseHeight + organicOffset));
     });
-  }, [level, status, bars]);
+  }, [level, status]);
 
-  const colors = getBarColors(status);
+  const gradient = getBarGradient(status);
 
   return (
-    <div className="flex items-center justify-center gap-[2px] h-10 mb-2">
+    <div className="flex items-end justify-center gap-[3px] h-12 mb-3 px-2">
       {heights.map((h, i) => (
         <motion.div
           key={i}
-          className="w-1 rounded-full"
+          className="rounded-full"
           style={{
-            background: `linear-gradient(to top, ${colors.from}, ${colors.to})`,
+            background: gradient,
+            width: "3px",
+            boxShadow: isActive ? "0 0 8px rgba(10, 132, 255, 0.3)" : "none",
           }}
           animate={{
-            height: `${Math.max(4, h * 40)}px`,
+            height: `${Math.max(6, h * 44)}px`,
             opacity: isActive ? 1 : 0.6,
           }}
           transition={{
-            duration: status === "processing" ? 0.3 : 0.05,
-            ease: "easeOut",
+            duration: 0.08,
+            ease: [0.4, 0, 0.2, 1], // Apple-style easing
           }}
         />
       ))}

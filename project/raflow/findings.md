@@ -390,3 +390,91 @@ let (ws_stream, _) = tokio_tungstenite::connect_async(request).await?;
 | `src-tauri/src/session/websocket_task.rs` | URL 添加 language_hints，首次消息携带 VAD 配置 |
 
 **来源**: [ElevenLabs Scribe v2 Realtime API](https://elevenlabs.io/docs/eleven-api/guides/cookbooks/speech-to-text/realtime/transcripts-and-commit-strategies)
+
+---
+
+## 8. Phase 11-13 Bug 修复与 UI 优化发现
+
+### 8.1 URL 编码问题
+
+**问题**: `language_hints=["zh"]` 中的 `[` `]` `"` 字符在 URL 中非法
+
+**解决方案**: URL 编码
+```
+["zh"] → %5B%22zh%22%5D
+```
+
+### 8.2 错误事件传递
+
+**问题**: WebSocket 连接失败时，前端不知道发生了什么
+
+**解决方案**: 在 WebSocket 任务失败时发送 `transcription-error` 事件
+
+```rust
+// recording.rs - run_websocket_task
+if let Err(ref e) = result {
+    let error_type = if e.contains("Authentication") { "auth" }
+                    else if e.contains("Connection") { "network" }
+                    else { "server" };
+    let _ = app_handle.emit("transcription-error", json!({
+        "type": error_type,
+        "message": e
+    }));
+}
+```
+
+### 8.3 macOS 弹性滚动问题
+
+**问题**: macOS 的弹性滚动 (rubber banding) 导致滚动到底部会回弹
+
+**解决方案**:
+```css
+/* 禁用弹性滚动 */
+overflow-y: auto;
+overscroll-behavior: none;
+-webkit-overflow-scrolling: auto; /* 不使用 touch */
+```
+
+### 8.4 滚动到底部不完整
+
+**问题**: 滚动到底部后，最后一行文字被截断
+
+**解决方案**:
+1. 添加底部内边距 `pb-4` (16px)
+2. 直接设置 `scrollTop` 而非使用平滑滚动
+
+```tsx
+// 直接滚动，避免回弹
+container.scrollTop = content.scrollHeight - container.clientHeight;
+```
+
+### 8.5 Apple 风格 UI 设计系统
+
+**颜色系统** (macOS 系统色):
+| 颜色 | 色值 | 用途 |
+|------|------|------|
+| Blue | #007AFF | 主色调，录音状态 |
+| Orange | #FF9500 | 连接中 |
+| Purple | #AF52DE | 处理中 |
+| Red | #FF3B30 | 错误 |
+| Gray | #8E8E93 | 空闲 |
+
+**视觉效果**:
+```css
+/* 毛玻璃效果 */
+backdrop-filter: blur(50px) saturate(180%);
+
+/* 圆角 */
+border-radius: 18px;
+
+/* 阴影 */
+box-shadow:
+  0 0 0 0.5px rgba(255,255,255,0.1),
+  0 30px 60px -15px rgba(0,0,0,0.5);
+```
+
+**字体**:
+```css
+font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text";
+```
+

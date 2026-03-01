@@ -1,6 +1,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useTypewriter } from "../hooks/useTypewriter";
 import { RecordingStatus } from "../hooks/useTranscription";
+import { useEffect, useRef } from "react";
 
 interface TranscriptDisplayProps {
   partial: string;
@@ -8,87 +9,161 @@ interface TranscriptDisplayProps {
   status: RecordingStatus;
 }
 
-// 动画配置
+// Apple-style animation variants
 const textVariants = {
-  enter: { opacity: 0, y: 10, scale: 1.05 },
-  center: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -10, scale: 0.95 },
+  enter: { opacity: 0, y: 4 },
+  center: { opacity: 1, y: 0 },
 };
 
-const transition = { type: "spring", stiffness: 300, damping: 20 };
+const springTransition = {
+  type: "spring" as const,
+  stiffness: 500,
+  damping: 35,
+};
+
+/**
+ * Get text color based on status
+ */
+function getTextColor(status: RecordingStatus): string {
+  switch (status) {
+    case "error": return "text-red-400";
+    case "processing": return "text-purple-400";
+    case "connecting": return "text-orange-400";
+    case "recording": return "text-white";
+    default: return "text-gray-300";
+  }
+}
+
+/**
+ * Get secondary text color for partial text
+ */
+function getPartialColor(status: RecordingStatus): string {
+  switch (status) {
+    case "recording": return "text-blue-300/70";
+    default: return "text-gray-500";
+  }
+}
 
 export function TranscriptDisplay({ partial, committed, status }: TranscriptDisplayProps) {
-  // 打字机效果仅对 partial 文本启用
+  const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Typewriter effect
   const { displayText } = useTypewriter(partial, {
-    charDelay: 25,
+    charDelay: 15,
     enabled: status === "recording",
   });
 
-  // 获取文字颜色
-  const getTextColor = () => {
-    if (status === "error") return "text-red-400";
-    if (status === "processing") return "text-yellow-400";
-    return "text-white";
-  };
+  const mainColor = getTextColor(status);
+  const partialColor = getPartialColor(status);
+
+  // Always scroll to bottom when content changes
+  useEffect(() => {
+    if (containerRef.current && contentRef.current) {
+      const container = containerRef.current;
+      const content = contentRef.current;
+      // Calculate the required scroll position
+      const scrollTarget = content.scrollHeight - container.clientHeight;
+      // Direct scroll without animation to avoid bounce
+      container.scrollTop = Math.max(0, scrollTarget);
+    }
+  }, [committed, displayText, partial]);
+
+  const hasContent = committed || displayText || partial;
 
   return (
-    <div className="flex flex-col items-center justify-center w-full min-h-[3rem]">
-      {/* 已确认的文字 */}
-      <AnimatePresence mode="popLayout">
-        {committed && (
-          <motion.p
-            key="committed"
-            variants={textVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={transition}
-            className={`${getTextColor()} text-sm font-medium text-center mb-1`}
-          >
-            {committed}
-          </motion.p>
-        )}
-      </AnimatePresence>
-
-      {/* 部分识别的文字 (带打字机效果) */}
-      <AnimatePresence mode="wait">
-        {(displayText || partial) && (
-          <motion.p
-            key="partial"
-            variants={textVariants}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={transition}
-            className="text-gray-400 text-sm text-center"
-          >
-            {displayText || partial}
-            {/* 闪烁光标 */}
-            <motion.span
-              animate={{ opacity: [1, 0.3, 1] }}
-              transition={{ duration: 0.8, repeat: Infinity }}
-              className="inline-block ml-0.5"
+    <div
+      ref={containerRef}
+      className="w-full flex-1 overflow-y-auto overflow-x-hidden"
+      style={{
+        maxHeight: "5rem",
+        minHeight: "3rem",
+        overscrollBehavior: "none",
+        WebkitOverflowScrolling: "auto",
+      }}
+    >
+      {/* Content wrapper with bottom padding to ensure last line is fully visible */}
+      <div
+        ref={contentRef}
+        className="text-center px-3 pb-4 pt-1"
+        style={{
+          wordWrap: "break-word",
+          overflowWrap: "anywhere",
+          lineHeight: 1.6,
+        }}
+      >
+        <AnimatePresence mode="wait">
+          {hasContent ? (
+            <motion.div
+              key="text-container"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
             >
-              |
-            </motion.span>
-          </motion.p>
-        )}
-      </AnimatePresence>
+              {/* Committed text */}
+              {committed && (
+                <motion.span
+                  variants={textVariants}
+                  initial="enter"
+                  animate="center"
+                  transition={springTransition}
+                  className={`${mainColor} text-[15px] font-medium tracking-tight`}
+                >
+                  {committed}
+                </motion.span>
+              )}
 
-      {/* 空状态提示 */}
-      {!committed && !partial && !displayText && (
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 0.5 }}
-          className="text-gray-500 text-xs"
-        >
-          {status === "connecting"
-            ? "连接中..."
-            : status === "recording"
-            ? "正在聆听..."
-            : "按 ⌘⇧H 开始录音"}
-        </motion.p>
-      )}
+              {/* Partial text */}
+              {(displayText || partial) && (
+                <motion.span
+                  variants={textVariants}
+                  initial="enter"
+                  animate="center"
+                  transition={springTransition}
+                  className={`${partialColor} text-[15px] tracking-tight`}
+                >
+                  {committed && " "}
+                  {displayText || partial}
+                  {/* Blinking cursor */}
+                  <motion.span
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{
+                      duration: 0.8,
+                      repeat: Infinity,
+                      ease: "easeInOut",
+                    }}
+                    className="inline-block ml-0.5 text-blue-400 font-light align-middle"
+                  >
+                    |
+                  </motion.span>
+                </motion.span>
+              )}
+            </motion.div>
+          ) : (
+            /* Empty state */
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 0.6 }}
+              className="flex flex-col items-center gap-1.5"
+            >
+              <span className="text-gray-500 text-[13px] font-medium">
+                {status === "connecting"
+                  ? "正在连接..."
+                  : status === "recording"
+                  ? "正在聆听..."
+                  : status === "error"
+                  ? "发生错误"
+                  : "按 ⌘⇧H 开始录音"}
+              </span>
+              {status === "idle" && (
+                <span className="text-gray-600 text-[11px]">
+                  语音将自动转录为文字
+                </span>
+              )}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 }

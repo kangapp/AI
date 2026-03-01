@@ -12,91 +12,52 @@
 - 全局热键触发录音 (Cmd+Shift+H)
 - 实时语音转文字 (<150ms 延迟)
 - 转录文本自动复制到剪贴板
-- 最小悬浮窗显示转录状态
+- Apple 风格悬浮窗显示转录状态
 
 **技术栈**: Tauri v2 + Rust + React + ElevenLabs Scribe v2
 
-**详细计划**: [docs/plans/2026-03-01-mvp-implementation.md](docs/plans/2026-03-01-mvp-implementation.md)
-
 ---
 
-## 阶段路线图 (MVP)
+## 阶段路线图
 
-### Phase 1: 项目初始化
-- [ ] 1.1 创建 Tauri 项目 (Cargo.toml, tauri.conf.json, package.json)
-- [ ] 1.2 配置前端 (Vite, TypeScript, Tailwind)
-- [ ] 1.3 创建基础 UI 结构
-
-### Phase 2: 音频管道
-- [x] 2.1 音频模块结构 (mod.rs)
-- [x] 2.2 音频采集器 (cpal + mono 转换)
-- [x] 2.3 音频重采样器 (rubato 48→16kHz)
-- [x] 2.4 音频管道整合 (ringbuf)
-
-### Phase 3: WebSocket 转录
-- [x] 3.1 转录模块结构
-- [x] 3.2 消息类型定义 (JSON)
-- [x] 3.3 WebSocket 客户端 (tokio-tungstenite)
-
-### Phase 4: 全局热键与命令
-- [x] 4.1 Tauri 命令 (start/stop recording)
-- [x] 4.2 全局热键注册 (Cmd+Shift+H)
-
-### Phase 5: 剪贴板输出
-- [x] 5.1 剪贴板模块 (arboard)
-
-### Phase 6: 前端 UI
-- [x] 6.1 状态管理 Hook
-- [x] 6.2 悬浮窗组件 (波形 + 转录文本)
-
-### Phase 7: 验证
-- [x] 7.1 构建验证 (Rust + Frontend)
-- [x] 7.2 功能测试 (cargo test + tsc)
-
----
+### Phase 1-7: MVP 核心 ✅
+- [x] 项目初始化、音频管道、WebSocket 转录、热键、剪贴板、前端 UI、验证
 
 ### Phase 8: 端到端集成 ✅
-- [x] 8.1 创建 session 模块 (RecordingSession 状态机)
-- [x] 8.2 实现 start 流程 (连接 WebSocket + 启动音频)
-- [x] 8.3 实现 WebSocket 接收与事件发送
-- [x] 8.4 实现 stop 流程 (commit + 剪贴板输出)
-- [x] 8.5 集成到 Tauri 命令
-- [x] 8.6 测试验证 (cargo test + clippy + build)
-- [x] 8.7 文档更新
-
----
-
----
+- [x] Session 模块、WebSocket 双向通信、状态机、事件发送
 
 ### Phase 9: UI/UX 优化 ✅
-- [x] 9.1 扩展状态类型和清除逻辑 (useTranscription.ts)
-- [x] 9.2 创建 useTypewriter Hook
-- [x] 9.3 重写 WaveformVisualizer (20 条频谱柱)
-- [x] 9.4 重写 TranscriptDisplay (打字机 + 滚动动画)
-- [x] 9.5 更新 App 组件 (状态指示器 + 错误提示)
-- [x] 9.6 集成测试
-
-**详细计划**: [docs/plans/2026-03-01-ui-ux-enhancement-implementation.md](docs/plans/2026-03-01-ui-ux-enhancement-implementation.md)
-
----
+- [x] 频谱柱状图、状态动画、打字机效果
 
 ### Phase 10: 转录识别率优化 ✅
-- [x] 10.1 扩展 OutgoingMessage 添加 VAD 配置字段
-- [x] 10.2 修改 WebSocket 连接添加 language_hints
-- [x] 10.3 修改音频发送逻辑携带 VAD 配置
-- [x] 10.4 添加配置测试
-- [x] 10.5 运行完整测试并验证
+- [x] VAD 配置、language_hints=[zh]
 
-**详细计划**: [docs/plans/2026-03-01-transcription-optimization-impl.md](docs/plans/2026-03-01-transcription-optimization-impl.md)
-**设计文档**: [docs/plans/2026-03-01-transcription-optimization-design.md](docs/plans/2026-03-01-transcription-optimization-design.md)
+### Phase 11: Bug 修复 ✅
+- [x] 11.1 修复错误事件发送到前端
+- [x] 11.2 修复 URL 编码问题 (language_hints=%5B%22zh%22%5D)
+
+### Phase 12: Apple 风格 UI 重设计 ✅
+- [x] 12.1 SF Pro 字体风格
+- [x] 12.2 Apple 系统颜色 (Blue/Orange/Purple/Red)
+- [x] 12.3 毛玻璃效果 + 精致阴影
+- [x] 12.4 状态指示器动画
+- [x] 12.5 Apple 风格波形可视化
+
+### Phase 13: 长句显示优化 ✅
+- [x] 13.1 增加窗口尺寸 (440×180px)
+- [x] 13.2 文本自动换行和溢出处理
+- [x] 13.3 滚动容器支持
+- [x] 13.4 禁用 macOS 弹性滚动
+- [x] 13.5 实时转录自动滚动到底部
+- [x] 13.6 底部留白确保文字完整显示
 
 ---
 
 ## 当前焦点
 
-**阶段**: Phase 10 - 转录识别率优化 ✅ 完成
-**状态**: 已合并到 master 分支
-**下一步**: 进行实际语音转录测试验证优化效果
+**阶段**: Phase 13 - 长句显示优化 ✅ 完成
+**状态**: 开发中
+**下一步**: 进行实际语音转录测试
 
 ---
 
@@ -104,12 +65,14 @@
 
 | 时间 | 错误描述 | 解决方案 | 状态 |
 |------|----------|----------|------|
-| 2026-03-01 | 快捷键触发但 UI 无响应 | 添加 Tauri v2 capabilities 权限配置 | ✅ 已解决 |
-| 2026-03-01 | 热键回调中 tokio::spawn panic | 改用 tauri::async_runtime::spawn | ✅ 已解决 |
-| 2026-03-01 | API 返回 auth_error 解析失败 | 添加 AuthError 消息类型支持 | ✅ 已解决 |
-| 2026-03-01 | WebSocket URL 缺少 model_id 参数 | 添加 `model_id=scribe_v2_realtime` URL 参数 | ✅ 已修复 |
-| 2026-03-01 | 使用 Request::builder 缺少 sec-websocket-key | 使用 `into_client_request()` 自动生成 WebSocket headers | ✅ 已修复 |
-| 2026-03-01 | API Key 认证失败 | 使用 HTTP Header `xi-api-key` 传递 (非 URL 参数) | ✅ 已修复 |
+| 2026-03-01 | 快捷键触发但 UI 无响应 | 添加 Tauri v2 capabilities 权限配置 | ✅ |
+| 2026-03-01 | 热键回调中 tokio::spawn panic | 改用 tauri::async_runtime::spawn | ✅ |
+| 2026-03-01 | API 返回 auth_error 解析失败 | 添加 AuthError 消息类型支持 | ✅ |
+| 2026-03-01 | WebSocket 认证失败 | 使用 HTTP Header `xi-api-key` | ✅ |
+| 2026-03-01 | invalid uri character | URL 编码 language_hints 参数 | ✅ |
+| 2026-03-01 | 错误信息不显示 | 添加 transcription-error 事件发送 | ✅ |
+| 2026-03-01 | 长句显示不全 | 增加窗口高度 + 滚动容器 | ✅ |
+| 2026-03-01 | 滚动回弹导致显示不全 | 禁用弹性滚动 + 底部留白 | ✅ |
 
 ---
 
@@ -121,3 +84,5 @@
 | 2026-03-01 | MVP 优先策略 | 快速验证核心功能 |
 | 2026-03-01 | 纯剪贴板输出 | 简单稳定，适合 MVP |
 | 2026-03-01 | Rust 全栈架构 | 后台稳定，性能最优 |
+| 2026-03-01 | Apple 风格 UI | 原生 macOS 体验 |
+| 2026-03-01 | 禁用弹性滚动 | 避免回弹导致内容显示不全 |

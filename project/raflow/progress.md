@@ -6,31 +6,97 @@
 
 ## 会话记录
 
-### 2026-03-01 - Phase 10 转录识别率优化 ✅ (完成)
+### 2026-03-01 晚 - Phase 13 长句显示优化 ✅
 
-**目标**: 优化语音识别率，解决语速快和环境噪音导致的识别错误
+**目标**: 解决长句显示不全和滚动问题
 
 **问题分析**:
-- 用户反馈：部分词语识别成同音字或其他词
-- 触发场景：语速较快时、环境噪音干扰时
+- 长句被截断无法完整显示
+- 滚动到底部会回弹
+- 实时转录不会自动滚动
 
-**方案选择**:
-| 方案 | 描述 | 选择 |
+**解决方案**:
+
+| 问题 | 解决方案 |
+|------|----------|
+| 窗口太小 | 增加到 440×180px |
+| 长句截断 | `overflow-wrap: anywhere` + 自动换行 |
+| 弹性滚动 | `overscroll-behavior: none` |
+| 不自动滚动 | 移除用户滚动检测，每次更新都滚动 |
+| 底部截断 | 添加 `pb-4` 底部留白 |
+
+**代码变更**:
+| 文件 | 变更 |
+|------|------|
+| `src-tauri/tauri.conf.json` | 窗口尺寸 440×180, maxHeight 300 |
+| `src/components/TranscriptDisplay.tsx` | 滚动容器 + 自动滚动逻辑 |
+| `src/styles.css` | Apple 风格滚动条 + 禁用弹性滚动 |
+| `src/App.tsx` | Apple 风格状态指示器 |
+| `src/components/WaveformVisualizer.tsx` | 24 条渐变波形 |
+
+**验证结果**:
+| 检查项 | 结果 |
+|--------|------|
+| `npx tsc --noEmit` | ✅ 通过 |
+| 长句显示 | ✅ 自动换行 |
+| 滚动功能 | ✅ 正常 |
+| 自动滚动 | ✅ 实时滚动到底部 |
+
+---
+
+### 2026-03-01 晚 - Phase 12 Apple 风格 UI 重设计 ✅
+
+**目标**: 将 UI 改造为 Apple 设计风格
+
+**设计特点**:
+- SF Pro 字体风格 (-apple-system)
+- Apple 系统颜色 (Blue #007AFF, Orange #FF9500, Purple #AF52DE, Red #FF3B30)
+- 毛玻璃效果 (blur 50px + saturate 180%)
+- 16-18px 大圆角
+- 精致阴影和边框
+
+**状态颜色**:
+| 状态 | 颜色 | 用途 |
 |------|------|------|
-| A | API 参数调优 | ✅ 已实施 |
-| B | 客户端音频预处理 | 备选 |
-| C | 混合方案 | 备选 |
+| idle | Gray | 空闲 |
+| connecting | Orange | 连接中 |
+| recording | Blue | 录音中 |
+| processing | Purple | 处理中 |
+| error | Red | 错误 |
 
-**任务进度**:
-- [x] Brainstorming 需求澄清
-- [x] 设计方案确认 (方案 A: API 参数调优)
-- [x] 创建设计文档 (docs/plans/2026-03-01-transcription-optimization-design.md)
-- [x] 创建实现计划 (docs/plans/2026-03-01-transcription-optimization-impl.md)
-- [x] Task 10.1: 扩展 OutgoingMessage 添加 VAD 配置字段
-- [x] Task 10.2: 修改 WebSocket 连接添加 language_hints
-- [x] Task 10.3: 修改音频发送逻辑携带 VAD 配置
-- [x] Task 10.4: 添加配置测试
-- [x] Task 10.5: 运行完整测试并验证
+**代码变更**:
+| 文件 | 变更 |
+|------|------|
+| `src/styles.css` | 完整 Apple 设计系统 |
+| `src/App.tsx` | 状态指示器 + 错误 Toast |
+| `src/components/WaveformVisualizer.tsx` | 24 条渐变波形柱 |
+| `src/components/TranscriptDisplay.tsx` | 打字机效果 + 闪烁光标 |
+
+---
+
+### 2026-03-01 晚 - Phase 11 Bug 修复 ✅
+
+**目标**: 修复会话恢复后发现的 bug
+
+**修复列表**:
+
+| Bug | 原因 | 解决方案 |
+|-----|------|----------|
+| 错误信息不显示 | WebSocket 失败时未发送事件 | 添加 transcription-error 事件 |
+| invalid uri character | URL 中的 `["zh"]` 未编码 | 改为 `%5B%22zh%22%5D` |
+
+**代码变更**:
+| 文件 | 变更 |
+|------|------|
+| `src-tauri/src/lib.rs` | 添加 `use tauri::Emitter`, 错误事件发送 |
+| `src-tauri/src/session/recording.rs` | WebSocket 失败时发送错误事件 |
+| `src-tauri/src/session/websocket_task.rs` | URL 编码 language_hints |
+
+---
+
+### 2026-03-01 - Phase 10 转录识别率优化 ✅
+
+**目标**: 优化语音识别率，解决语速快和环境噪音导致的识别错误
 
 **VAD 参数优化**:
 | 参数 | 默认值 | 新值 | 调整理由 |
@@ -41,463 +107,63 @@
 | `min_speech_duration_ms` | 100 | 80 | 适应快语速短音节 |
 | `min_silence_duration_ms` | 100 | 150 | 避免自然停顿被切断 |
 
-**提交记录**:
-| SHA | 描述 |
-|-----|------|
-| `91361a4` | feat(transcription): add VadConfig and extend OutgoingMessage with VAD fields |
-| `0fff446` | feat(transcription): add language_hints=[zh] to WebSocket URL |
-| `2f7c3c3` | feat(transcription): send VAD config in first audio message |
-| `36b40ec` | test(transcription): add tests for VadConfig and audio_with_config |
-| `f7073f5` | docs: mark transcription optimization as implemented |
-
-**验证结果**:
-| 检查项 | 结果 |
-|--------|------|
-| `cargo test` | ✅ 43 passed |
-| `cargo clippy` | ✅ 无警告 |
-| `cargo build` | ✅ 通过 |
-| 分支合并 | ✅ 已合并到 master |
-
-**代码变更**:
-| 文件 | 变更 |
-|------|------|
-| `src-tauri/src/transcription/types.rs` | 添加 VadConfig 结构体，扩展 OutgoingMessage |
-| `src-tauri/src/session/websocket_task.rs` | URL 添加 language_hints，首次消息携带 VAD 配置 |
-| `docs/plans/2026-03-01-transcription-optimization-design.md` | 添加实施状态标记 |
-
-**下一步**: 进行实际语音转录测试验证优化效果
+**提交记录**: `91361a4`, `0fff446`, `2f7c3c3`, `36b40ec`, `f7073f5`, `01951f0`
 
 ---
 
-### 2026-03-01 - Phase 9 UI/UX 优化 ✅ (完成)
+### 2026-03-01 - Phase 9 UI/UX 优化 ✅
 
 **目标**: 优化应用显示 UI/UX
 - 频谱柱状图 (20 条动态柱)
-- 状态切换动画 (idle/recording/processing/error)
+- 状态切换动画
 - 打字机效果 + 滚动动画
-- 新录音清除上次结果
 
-**设计文档**: [docs/plans/2026-03-01-ui-ux-enhancement-design.md](docs/plans/2026-03-01-ui-ux-enhancement-design.md)
-**实现计划**: [docs/plans/2026-03-01-ui-ux-enhancement-implementation.md](docs/plans/2026-03-01-ui-ux-enhancement-implementation.md)
-
-**任务进度**:
-- [x] Task 1: 扩展状态类型和清除逻辑
-- [x] Task 2: 创建 useTypewriter Hook
-- [x] Task 3: 重写 WaveformVisualizer
-- [x] Task 4: 重写 TranscriptDisplay
-- [x] Task 5: 更新 App 组件
-- [x] Task 6: 集成测试
-
-**提交记录**:
-| SHA | 描述 |
-|-----|------|
-| `941f8b9` | docs: add UI/UX enhancement design document |
-| `7fcc9f5` | docs: add UI/UX enhancement implementation plan |
-| `721b81e` | feat(transcription): add error state and clear logic on new recording |
-| `45bc571` | feat(hooks): add useTypewriter hook for typewriter effect |
-| `a5b60d4` | feat(ui): enhance WaveformVisualizer with 20-bar spectrum and status colors |
-| `a14b5f8` | feat(ui): add typewriter, scroll and bounce animations to TranscriptDisplay |
-| `53e0f15` | feat(ui): add status indicator, error toast and status-based theming |
-
-**验证结果**:
-| 检查项 | 结果 |
-|--------|------|
-| `npx tsc --noEmit` | ✅ 通过 |
-| `npm run build` | ✅ 3.09s, 277KB |
-| `cargo check` | ✅ 通过 |
-| 波形图响应 | ✅ 正常 |
-| 连接状态区分 | ✅ connecting → recording |
-| 开头语音转录 | ✅ 正常 |
-
-**后续修复**:
-| SHA | 描述 |
-|-----|------|
-| `f822a8c` | fix(ui): add connecting state and enhance waveform sensitivity |
-| `6fd6d1d` | fix(audio): add audio level calculation and emission |
+**提交记录**: `941f8b9`, `7fcc9f5`, `721b81e`, `45bc571`, `a5b60d4`, `a14b5f8`, `53e0f15`
 
 ---
 
-### 2026-03-01 - Phase 8 完成 (端到端集成)
+### 2026-03-01 - Phase 8 端到端集成 ✅
 
-**活动**:
-- ✅ Task 8.1: 创建 session 模块 (RecordingSession 状态机)
-- ✅ Task 8.2: 实现 start 流程 (channel-based 音频到 WebSocket)
-- ✅ Task 8.3: WebSocket 接收与事件发送 (tokio::select! 双向通信)
-- ✅ Task 8.4: stop 流程与剪贴板输出
-- ✅ Task 8.5: 集成到 Tauri 命令
-- ✅ Task 8.6: 测试验证
-- ✅ Task 8.7: 文档更新
+**活动**: 创建 session 模块，实现录音状态机，WebSocket 双向通信
 
-**提交记录**:
-| SHA | 描述 |
-|-----|------|
-| `148d140` | feat(session): add RecordingSession state machine structure |
-| `65bd0eb` | feat(session): implement start flow with audio-to-websocket pipeline |
-| `27a9238` | feat(session): implement WebSocket receiver with event emission |
-| `8964c44` | feat(session): implement stop flow with commit and clipboard output |
-| `6a746ba` | feat(commands): integrate RecordingSession into Tauri commands |
-| `97395ab` | fix(session): improve lock handling and async thread join |
-| `c93623d` | refactor(session): fix clippy warnings and rename session module |
-| `8929307` | docs: update planning files with Phase 8 completion |
-| `f96634b` | fix(hotkey): use tauri::async_runtime::spawn for hotkey callback |
-| `a4f776e` | fix(transcription): add auth_error message type support |
-
-**架构概览**:
+**架构**:
 ```
 src-tauri/src/session/
 ├── mod.rs              # 模块入口
 ├── recording.rs        # RecordingSession 状态机
-│   ├── SessionError    # 错误类型
-│   ├── SessionState    # Tauri 状态管理
-│   ├── RecordingSession
-│   │   ├── new()       # 初始化 (检查 API Key, 音频设备)
-│   │   ├── start()     # 启动录音 (创建 WebSocket 任务, 音频线程)
-│   │   ├── stop()      # 停止录音 (commit, 剪贴板)
-│   │   └── is_active() # 检查状态
-│   └── run_websocket_task() # WebSocket 通信委托
 └── websocket_task.rs   # WebSocket 双向通信
-    ├── run_transcription_task()
-    │   ├── 连接 ElevenLabs API
-    │   ├── tokio::select! 双向通信
-    │   ├── 发送音频数据
-    │   ├── 接收转录结果
-    │   └── emit 事件到前端
-    └── encode_pcm_to_base64()
 ```
-
-**关键架构决策**:
-| 决策 | 理由 |
-|------|------|
-| AudioPipeline 在专用线程 | cpal::Stream 不是 Send+Sync |
-| channel-based 通信 | 解耦音频采集和 WebSocket 发送 |
-| tokio::select! | 实现双向 WebSocket 通信 |
-| spawn_blocking | 避免阻塞 tokio runtime |
-
-**验证结果**:
-| 检查项 | 结果 |
-|--------|------|
-| `cargo check` | ✅ 通过 |
-| `cargo clippy` | ✅ 无警告 |
-| `cargo test` | ✅ 39 passed |
-| Doc tests | ✅ 13 passed |
-| `pnpm tsc --noEmit` | ✅ 通过 |
-| `pnpm build` | ✅ 9.11s, 271KB |
-
-**下一步**:
-- MVP 完成，可进行实际语音转录测试
 
 ---
 
-### 2026-03-01 - Phase 7 完成 (验证)
+### 2026-03-01 - Phase 1-7 MVP 核心 ✅
 
-**活动**:
-- ✅ Task 7.1: 构建验证 (Rust + Frontend)
-- ✅ Task 7.2: 功能测试 (cargo test + tsc)
-
-**修复**:
-- 📝 修复 doc test 中 `capture` 变量缺少 `mut` 声明
-
-**验证结果**:
-| 检查项 | 结果 |
-|--------|------|
-| `cargo check` | ✅ 通过 |
-| `cargo clippy` | ✅ 无警告 |
-| `pnpm tsc --noEmit` | ✅ 通过 |
-| `pnpm build` | ✅ 396 modules, 2.48s |
-| `cargo test` | ✅ 32 passed |
-| Doc tests | ✅ 12 passed, 5 ignored |
-
-**下一步**:
-- MVP 完成，可进行集成测试
-
----
-
-### 2026-03-01 - Phase 6 完成 (前端 UI)
-
-**活动**:
-- ✅ Task 6.1: 状态管理 Hook (src/hooks/useTranscription.ts)
-- ✅ Task 6.2: 悬浮窗组件 (TranscriptDisplay, WaveformVisualizer, App.tsx)
-
-**提交记录**:
-| SHA | 描述 |
-|-----|------|
-| `d064b5d` | feat(ui): add transcription state hook |
-| `58ea877` | feat(ui): add floating window with waveform and transcript display |
-
-**架构概览**:
-```
-src/
-├── hooks/
-│   └── useTranscription.ts    # 转录状态管理 Hook
-│       ├── RecordingStatus (类型: "idle" | "recording" | "processing")
-│       ├── TranscriptionState (接口: status, partialText, committedText, audioLevel)
-│       └── useTranscription() (监听 4 个 Tauri 事件)
-├── components/
-│   ├── TranscriptDisplay.tsx  # 转录文本显示
-│   │   └── committed (白色) + partial (灰色+闪烁光标)
-│   └── WaveformVisualizer.tsx # 波形可视化
-│       └── 5 条动态柱状 (根据 audioLevel 变化)
-└── App.tsx                    # 主应用
-    ├── 集成 useTranscription hook
-    ├── 录音时自动显示窗口
-    └── 空闲状态显示快捷键提示
-```
-
-**审查结果**:
-- ✅ 规格审查通过 (所有组件符合规格)
-- ✅ 代码质量审查通过
-
-**测试结果**: pnpm tsc --noEmit 通过
-
-**下一步**:
-- Phase 7: 验证 (构建验证 + 功能测试)
-
----
-
-### 2026-03-01 - Task 6.1 完成 (前端状态管理 Hook)
-
-**活动**:
-- ✅ Task 6.1: 状态管理 Hook (src/hooks/useTranscription.ts)
-
-**提交记录**:
-| SHA | 描述 |
-|-----|------|
-| `d064b5d` | feat(ui): add transcription state hook |
-
-**架构概览**:
-```
-src/hooks/
-└── useTranscription.ts    # 转录状态管理 Hook
-    ├── RecordingStatus (类型: "idle" | "recording" | "processing")
-    ├── TranscriptionState (接口: status, partialText, committedText, audioLevel)
-    └── useTranscription() (Hook: 监听 4 个 Tauri 事件)
-        ├── recording-state-changed (boolean)
-        ├── partial-transcript (string)
-        ├── committed-transcript (string)
-        └── audio-level (number)
-```
-
-**测试结果**: pnpm tsc --noEmit 通过
-
-**下一步**:
-- Task 6.2: 悬浮窗组件 (波形 + 转录文本)
-
----
-
-### 2026-03-01 - Phase 5 完成 (Subagent-Driven Development)
-
-**活动**:
-- ✅ Task 5.1: 剪贴板模块 (clipboard/mod.rs, ClipboardError, write_to_clipboard)
-
-**提交记录**:
-| SHA | 描述 |
-|-----|------|
-| `a0fa248` | feat(clipboard): add clipboard module with arboard integration |
-
-**架构概览**:
-```
-src-tauri/src/
-├── clipboard/
-│   └── mod.rs           # 剪贴板模块
-│       ├── ClipboardError (thiserror 错误类型)
-│       │   ├── Access(String) - 访问剪贴板失败
-│       │   └── SetText(String) - 设置文本失败
-│       └── write_to_clipboard(text: &str) -> Result<(), ClipboardError>
-└── lib.rs               # 添加 pub mod clipboard;
-```
-
-**审查结果**:
-- ✅ 规格审查通过
-- ✅ 代码质量审查通过 (Approved)
-- ⚠️ 建议: 后续补充单元测试
-
-**测试结果**: cargo check 通过, clippy 无警告
-
-**下一步**:
-- Phase 6: 前端 UI
-
----
-
-### 2026-03-01 - Phase 4 完成 (Subagent-Driven Development)
-
-**活动**:
-- ✅ Task 4.1: Tauri 命令 (commands.rs, RecordingState, start/stop/is_recording)
-- ✅ Task 4.2: 全局热键注册 (Cmd+Shift+H, setup 块)
-
-**提交记录**:
-| SHA | 描述 |
-|-----|------|
-| `771b2c7` | feat(commands): add Tauri commands for recording control |
-| `201aacd` | feat(hotkey): register Cmd+Shift+H global shortcut |
-
-**架构概览**:
-```
-src-tauri/src/
-├── commands.rs           # Tauri 命令模块
-│   ├── RecordingState (Arc<AtomicBool> 全局状态)
-│   ├── start_recording (async, 发送事件)
-│   ├── stop_recording (async, 发送事件)
-│   └── is_recording (sync, 返回状态)
-└── lib.rs               # 应用入口
-    ├── .manage(RecordingState) 状态管理
-    ├── .invoke_handler() 命令注册
-    └── .setup() 热键注册 (Cmd+Shift+H)
-```
-
-**测试结果**: cargo check 通过
-
-**下一步**:
-- Phase 5: 剪贴板输出
-
----
-
-### 2026-03-01 - Phase 3 完成 (Subagent-Driven Development)
-
-**活动**:
-- ✅ Task 3.1: 转录模块结构 (mod.rs, lib.rs 更新)
-- ✅ Task 3.2: 消息类型定义 (IncomingMessage, OutgoingMessage, TranscriptionEvent)
-- ✅ Task 3.3: WebSocket 客户端 (TranscriptionClient, ClientError)
-
-**提交记录**:
-| SHA | 描述 |
-|-----|------|
-| `63586de` | feat(transcription): add transcription module structure |
-| `bf85dd2` | feat(transcription): add WebSocket message type definitions |
-| `4b4e76e` | fix(transcription): improve code quality for message types |
-| `9710d2f` | feat(transcription): implement WebSocket client for ElevenLabs API |
-
-**架构概览**:
-```
-src-tauri/src/transcription/
-├── mod.rs          # 模块入口，导出 client + types
-├── types.rs        # WebSocket 消息类型定义
-│   ├── IncomingMessage (session_started, partial_transcript, committed_transcript, error)
-│   ├── OutgoingMessage (input_audio_chunk, commit)
-│   └── TranscriptionEvent (内部事件枚举)
-└── client.rs       # ElevenLabs WebSocket 客户端
-    ├── ClientError (thiserror 错误类型)
-    └── TranscriptionClient (new, connect, send_audio, commit, close)
-```
-
-**测试结果**: 32 passed; 0 failed
-
-**下一步**:
-- Phase 4: 全局热键与命令
-
----
-
-### 2026-03-01 - Phase 2 完成 (Subagent-Driven Development)
-
-**活动**:
-- ✅ Task 2.1: 音频模块结构 (mod.rs, lib.rs 更新)
-- ✅ Task 2.2: 音频采集器 (cpal + ringbuf Producer)
-- ✅ Task 2.3: 音频重采样器 (rubato FftFixedIn 48→16kHz)
-- ✅ Task 2.4: 音频管道整合 (capture → resample → callback)
-
-**提交记录**:
-| SHA | 描述 |
-|-----|------|
-| `19cb97c` | feat(audio): add audio module structure |
-| `fb04f8c` | feat(audio): implement cpal-based audio capture |
-| `a052c56` | feat(audio): implement rubato-based resampler (48kHz to 16kHz) |
-| `bcf6d0e` | feat(audio): integrate audio pipeline with callback output |
-
-**架构概览**:
-```
-[麦克风 48kHz] → cpal AudioCapture → ringbuf (8192 f32)
-                                            ↓
-[回调函数 Vec<i16>] ← Resampler (16kHz) ← processor thread
-```
-
-**下一步**:
-- Phase 3: WebSocket 转录模块
-
----
-
-### 2026-03-01 - Brainstorming & Planning
-
-**活动**:
-- ✅ 阅读技术规格文档 (specs/003-raflow/0001-spec.md)
-- ✅ 创建规划文件 (task_plan.md, findings.md, progress.md)
-- ✅ Brainstorming 需求澄清 (5 个关键决策)
-- ✅ 设计方案确认 (Rust 全栈架构)
-- ✅ 创建设计文档 (docs/plans/2026-03-01-mvp-design.md)
-- ✅ 创建实现计划 (docs/plans/2026-03-01-mvp-implementation.md)
-
-**设计决策**:
-| 决策项 | 选择 |
-|--------|------|
-| 启动策略 | MVP 优先 |
-| API Key | 硬编码/环境变量 |
-| 目标平台 | macOS 优先 |
-| 输出方式 | 纯剪贴板 |
-| UI 复杂度 | 最小悬浮窗 |
-| 架构方案 | Rust 全栈 |
-
-**下一步**:
-- Phase 2: 音频管道实现
-
----
-
-### 2026-03-01 - Phase 1 完成
-
-**活动**:
-- ✅ 创建 Tauri v2 项目结构 (所有文件)
-- ✅ 配置 Rust 依赖 (Cargo.toml)
-- ✅ 配置前端依赖 (package.json, vite, tailwind)
-- ✅ 修复 Critical 问题 (错误处理, 类型安全, 版本锁定)
-- ✅ 规格审查通过
-- ✅ 代码质量审查通过
-
-**提交**:
-- `0502ceb` - feat: initialize Tauri v2 project with React frontend
-- `7b37e98` - fix: improve error handling and type safety in Phase 1
+- Phase 1: 项目初始化
+- Phase 2: 音频管道 (cpal + rubato)
+- Phase 3: WebSocket 转录 (tokio-tungstenite)
+- Phase 4: 全局热键 (Cmd+Shift+H)
+- Phase 5: 剪贴板输出 (arboard)
+- Phase 6: 前端 UI (React + Framer Motion)
+- Phase 7: 验证测试
 
 ---
 
 ## 测试结果
 
-| 日期 | 测试项 | 结果 | 备注 |
-|------|--------|------|------|
-| - | - | - | - |
+| 日期 | 测试项 | 结果 |
+|------|--------|------|
+| 2026-03-01 | cargo test | ✅ 43 passed |
+| 2026-03-01 | cargo clippy | ✅ 无警告 |
+| 2026-03-01 | npx tsc --noEmit | ✅ 通过 |
+| 2026-03-01 | pnpm build | ✅ 通过 |
 
 ---
 
-## 文件变更
+## ✅ MVP 功能验证
 
-| 日期 | 文件 | 操作 | 描述 |
-|------|------|------|------|
-| 2026-03-01 | task_plan.md | 创建 | 任务规划文件 |
-| 2026-03-01 | findings.md | 创建 | 技术发现文件 |
-| 2026-03-01 | progress.md | 创建 | 进度日志文件 |
-| 2026-03-01 | docs/plans/2026-03-01-mvp-design.md | 创建 | 设计文档 |
-| 2026-03-01 | docs/plans/2026-03-01-mvp-implementation.md | 创建 | 实现计划 |
-| 2026-03-01 | src/session/websocket_task.rs | 修复 | WebSocket 认证修复 (xi-api-key Header) |
-| 2026-03-01 | src/transcription/client.rs | 修复 | WebSocket 认证修复 (xi-api-key Header) |
-
----
-
-## 阻塞项
-
-| 问题 | 影响 | 解决方案 | 状态 |
-|------|------|----------|------|
-| WebSocket URL 缺少 model_id 参数 | 无法连接 ElevenLabs API | 添加 `model_id=scribe_v2_realtime` URL 参数 | ✅ 已修复 |
-| Request::builder 缺少 sec-websocket-key | WebSocket 握手失败 | 使用 `into_client_request()` 自动生成 headers | ✅ 已修复 |
-| API Key 认证失败 | 转录功能不可用 | 使用 HTTP Header `xi-api-key` 传递 | ✅ 已修复 |
-
----
-
-## ✅ MVP 测试成功 (2026-03-01)
-
-**测试结果**:
 - ✅ 全局热键 (Cmd+Shift+H) 正常触发
 - ✅ WebSocket 连接成功
 - ✅ 实时转录功能正常
 - ✅ 剪贴板输出功能正常
-
-**关键修复**:
-```rust
-// 使用 into_client_request() 自动生成 WebSocket headers
-let mut request = ws_url.into_client_request()?;
-request.headers_mut().insert("xi-api-key", api_key.parse()?);
-```
+- ✅ Apple 风格 UI 显示
+- ✅ 长句自动换行和滚动

@@ -6,74 +6,88 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { motion, AnimatePresence } from "framer-motion";
 
 /**
- * 状态指示器组件
+ * Apple-style status configuration
+ */
+function getStatusConfig(status: RecordingStatus) {
+  switch (status) {
+    case "connecting":
+      return {
+        dotColor: "bg-orange-500",
+        glowColor: "shadow-orange-500/50",
+        text: "Connecting",
+        textColor: "text-orange-400",
+      };
+    case "recording":
+      return {
+        dotColor: "bg-blue-500",
+        glowColor: "shadow-blue-500/50",
+        text: "Recording",
+        textColor: "text-blue-400",
+      };
+    case "processing":
+      return {
+        dotColor: "bg-purple-500",
+        glowColor: "shadow-purple-500/50",
+        text: "Processing",
+        textColor: "text-purple-400",
+      };
+    case "error":
+      return {
+        dotColor: "bg-red-500",
+        glowColor: "shadow-red-500/50",
+        text: "Error",
+        textColor: "text-red-400",
+      };
+    default:
+      return {
+        dotColor: "bg-gray-500",
+        glowColor: "shadow-gray-500/30",
+        text: "Ready",
+        textColor: "text-gray-400",
+      };
+  }
+}
+
+/**
+ * Apple-style Status Indicator
  */
 function StatusIndicator({ status }: { status: RecordingStatus }) {
-  const getStatusConfig = () => {
-    switch (status) {
-      case "connecting":
-        return {
-          color: "bg-yellow-500",
-          text: "Connecting",
-          textColor: "text-yellow-400",
-          animate: { scale: [1, 1.2, 1], opacity: [1, 0.6, 1] },
-        };
-      case "recording":
-        return {
-          color: "bg-blue-500",
-          text: "Recording",
-          textColor: "text-blue-400",
-          animate: { scale: [1, 1.2, 1], opacity: [1, 0.7, 1] },
-        };
-      case "processing":
-        return {
-          color: "bg-yellow-500",
-          text: "Processing",
-          textColor: "text-yellow-400",
-          animate: { rotate: 360 },
-        };
-      case "error":
-        return {
-          color: "bg-red-500",
-          text: "Error",
-          textColor: "text-red-400",
-          animate: {},
-        };
-      default:
-        return {
-          color: "bg-gray-500",
-          text: "Idle",
-          textColor: "text-gray-500",
-          animate: {},
-        };
-    }
-  };
-
-  const config = getStatusConfig();
-  const isRecording = status === "recording";
-  const isConnecting = status === "connecting";
-  const isProcessing = status === "processing";
+  const config = getStatusConfig(status);
+  const isActive = status === "recording" || status === "connecting" || status === "processing";
 
   return (
-    <div className={`flex items-center justify-center gap-1.5 mb-1 ${config.textColor}`}>
+    <motion.div
+      className={`flex items-center justify-center gap-2 ${config.textColor}`}
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+    >
+      {/* Status dot with glow */}
       <motion.div
-        className={`w-2 h-2 rounded-full ${config.color}`}
-        animate={config.animate}
-        transition={
-          isRecording || isConnecting
-            ? { duration: 0.8, repeat: Infinity }
-            : isProcessing
-            ? { duration: 1, repeat: Infinity, ease: "linear" }
-            : {}
-        }
-      />
-      <span className="text-xs">{config.text}</span>
-    </div>
+        className="relative flex items-center justify-center"
+        animate={isActive ? { scale: [1, 1.15, 1] } : {}}
+        transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+      >
+        {/* Glow effect */}
+        <motion.div
+          className={`absolute w-3.5 h-3.5 rounded-full ${config.dotColor} opacity-20 blur-md`}
+          animate={isActive ? { scale: [1, 1.8, 1], opacity: [0.2, 0.4, 0.2] } : {}}
+          transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
+        />
+        {/* Main dot */}
+        <div className={`w-2 h-2 rounded-full ${config.dotColor} shadow-lg ${config.glowColor}`} />
+      </motion.div>
+
+      {/* Status text */}
+      <span className="text-[11px] font-semibold tracking-widest uppercase">
+        {config.text}
+      </span>
+    </motion.div>
   );
 }
 
 /**
- * 错误提示组件
+ * Apple-style Error Toast
  */
 function ErrorToast({
   message,
@@ -83,18 +97,23 @@ function ErrorToast({
   onDismiss: () => void;
 }) {
   useEffect(() => {
-    const timer = setTimeout(onDismiss, 3000);
+    const timer = setTimeout(onDismiss, 5000);
     return () => clearTimeout(timer);
   }, [onDismiss]);
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className="text-red-400 text-xs bg-red-500/10 px-2 py-1 rounded mt-2"
+      initial={{ opacity: 0, scale: 0.9, y: 10 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.9, y: -10 }}
+      transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-red-500/15 border border-red-500/20 backdrop-blur-sm mt-3"
     >
-      {message}
+      {/* SF Symbols style warning icon */}
+      <svg className="w-4 h-4 text-red-400 flex-shrink-0" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M8 1a7 7 0 100 14A7 7 0 008 1zm.75 10.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM8 3.5c.414 0 .75.336.75.75v3.5a.75.75 0 01-1.5 0v-3.5c0-.414.336-.75.75-.75z" />
+      </svg>
+      <span className="text-red-400 text-[13px] font-medium">{message}</span>
     </motion.div>
   );
 }
@@ -104,60 +123,55 @@ function App() {
   const isRecording = status === "recording";
   const [showError, setShowError] = useState(false);
 
-  console.log("[App] status:", status, "isRecording:", isRecording);
-
-  // 显示错误时自动显示 toast
+  // Auto-show error toast
   useEffect(() => {
     if (error) {
       setShowError(true);
     }
   }, [error]);
 
+  // Show window when recording starts
   useEffect(() => {
     const win = getCurrentWindow();
-
-    // Show window when recording starts
     if (isRecording) {
       win.show();
       win.setFocus();
     }
   }, [isRecording]);
 
-  // 获取背景颜色
-  const getBgClass = () => {
-    switch (status) {
-      case "connecting":
-        return "rgba(59, 50, 30, 0.9)"; // 微黄 (连接中)
-      case "recording":
-        return "rgba(30, 58, 95, 0.9)"; // 微蓝
-      case "processing":
-        return "rgba(59, 50, 30, 0.9)"; // 微黄
-      case "error":
-        return "rgba(59, 30, 30, 0.9)"; // 微红
-      default:
-        return "rgba(30, 30, 30, 0.9)";
-    }
-  };
-
   return (
-    <div
+    <motion.div
       className="window-container"
-      style={{ background: getBgClass() }}
+      initial={{ opacity: 0, scale: 0.98 }}
+      animate={{ opacity: 1, scale: 1 }}
+      transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
     >
-      <StatusIndicator status={status} />
-      <WaveformVisualizer level={audioLevel} status={status} />
-      <TranscriptDisplay
-        partial={partialText}
-        committed={committedText}
-        status={status}
-      />
+      {/* Header: Status indicator */}
+      <div className="flex-shrink-0 mb-1.5">
+        <StatusIndicator status={status} />
+      </div>
 
+      {/* Waveform visualizer */}
+      <div className="flex-shrink-0">
+        <WaveformVisualizer level={audioLevel} status={status} />
+      </div>
+
+      {/* Transcript display - flexible height with scroll */}
+      <div className="flex-1 min-h-0 w-full flex items-start justify-center overflow-hidden">
+        <TranscriptDisplay
+          partial={partialText}
+          committed={committedText}
+          status={status}
+        />
+      </div>
+
+      {/* Error toast */}
       <AnimatePresence>
         {showError && error && (
           <ErrorToast message={error.message} onDismiss={() => setShowError(false)} />
         )}
       </AnimatePresence>
-    </div>
+    </motion.div>
   );
 }
 
