@@ -19,7 +19,7 @@ const transition = { type: "spring", stiffness: 300, damping: 20 };
 
 export function TranscriptDisplay({ partial, committed, status }: TranscriptDisplayProps) {
   // 打字机效果仅对 partial 文本启用
-  const { displayText, isTyping } = useTypewriter(partial, {
+  const { displayText } = useTypewriter(partial, {
     charDelay: 25,
     enabled: status === "recording",
   });
