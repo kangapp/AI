@@ -6,7 +6,7 @@
 
 ## 会话记录
 
-### 2026-03-01 - Phase 10 转录识别率优化 (进行中)
+### 2026-03-01 - Phase 10 转录识别率优化 ✅ (完成)
 
 **目标**: 优化语音识别率，解决语速快和环境噪音导致的识别错误
 
@@ -17,7 +17,7 @@
 **方案选择**:
 | 方案 | 描述 | 选择 |
 |------|------|------|
-| A | API 参数调优 | ✅ 已选择 |
+| A | API 参数调优 | ✅ 已实施 |
 | B | 客户端音频预处理 | 备选 |
 | C | 混合方案 | 备选 |
 
@@ -26,12 +26,11 @@
 - [x] 设计方案确认 (方案 A: API 参数调优)
 - [x] 创建设计文档 (docs/plans/2026-03-01-transcription-optimization-design.md)
 - [x] 创建实现计划 (docs/plans/2026-03-01-transcription-optimization-impl.md)
-- [x] 更新规划文件 (task_plan.md, findings.md, progress.md)
-- [ ] Task 10.1: 扩展 OutgoingMessage 添加 VAD 配置字段
-- [ ] Task 10.2: 修改 WebSocket 连接添加 language_hints
-- [ ] Task 10.3: 修改音频发送逻辑携带 VAD 配置
-- [ ] Task 10.4: 添加配置测试
-- [ ] Task 10.5: 运行完整测试并验证
+- [x] Task 10.1: 扩展 OutgoingMessage 添加 VAD 配置字段
+- [x] Task 10.2: 修改 WebSocket 连接添加 language_hints
+- [x] Task 10.3: 修改音频发送逻辑携带 VAD 配置
+- [x] Task 10.4: 添加配置测试
+- [x] Task 10.5: 运行完整测试并验证
 
 **VAD 参数优化**:
 | 参数 | 默认值 | 新值 | 调整理由 |
@@ -42,7 +41,31 @@
 | `min_speech_duration_ms` | 100 | 80 | 适应快语速短音节 |
 | `min_silence_duration_ms` | 100 | 150 | 避免自然停顿被切断 |
 
-**下一步**: 在独立会话中执行实现计划
+**提交记录**:
+| SHA | 描述 |
+|-----|------|
+| `91361a4` | feat(transcription): add VadConfig and extend OutgoingMessage with VAD fields |
+| `0fff446` | feat(transcription): add language_hints=[zh] to WebSocket URL |
+| `2f7c3c3` | feat(transcription): send VAD config in first audio message |
+| `36b40ec` | test(transcription): add tests for VadConfig and audio_with_config |
+| `f7073f5` | docs: mark transcription optimization as implemented |
+
+**验证结果**:
+| 检查项 | 结果 |
+|--------|------|
+| `cargo test` | ✅ 43 passed |
+| `cargo clippy` | ✅ 无警告 |
+| `cargo build` | ✅ 通过 |
+| 分支合并 | ✅ 已合并到 master |
+
+**代码变更**:
+| 文件 | 变更 |
+|------|------|
+| `src-tauri/src/transcription/types.rs` | 添加 VadConfig 结构体，扩展 OutgoingMessage |
+| `src-tauri/src/session/websocket_task.rs` | URL 添加 language_hints，首次消息携带 VAD 配置 |
+| `docs/plans/2026-03-01-transcription-optimization-design.md` | 添加实施状态标记 |
+
+**下一步**: 进行实际语音转录测试验证优化效果
 
 ---
 
