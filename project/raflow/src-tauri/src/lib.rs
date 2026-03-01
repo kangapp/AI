@@ -2,6 +2,7 @@ pub mod audio;
 pub mod clipboard;
 pub mod commands;
 pub mod config;
+pub mod session;
 pub mod transcription;
 
 use commands::RecordingState;
