@@ -74,6 +74,47 @@ pub enum IncomingMessage {
     },
 }
 
+/// VAD (Voice Activity Detection) 配置参数
+///
+/// 用于优化语音检测灵敏度，适应不同语速和噪音环境。
+#[derive(Debug, Clone, Serialize)]
+pub struct VadConfig {
+    /// VAD 置信度阈值 (0.0-1.0)
+    /// 更高的值要求更强的信号才被识别为语音
+    /// 推荐值: 0.55 (默认 0.4)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vad_threshold: Option<f32>,
+
+    /// 静音时长阈值（秒）
+    /// 超过此时长的静音会触发提交
+    /// 推荐值: 1.0 (默认 1.5)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vad_silence_threshold_secs: Option<f32>,
+
+    /// 最小语音片段时长（毫秒）
+    /// 短于此值的语音片段会被忽略
+    /// 推荐值: 80 (默认 100)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_speech_duration_ms: Option<u32>,
+
+    /// 最小静音片段时长（毫秒）
+    /// 短于此值的静音不会被视为句子结束
+    /// 推荐值: 150 (默认 100)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_silence_duration_ms: Option<u32>,
+}
+
+impl Default for VadConfig {
+    fn default() -> Self {
+        Self {
+            vad_threshold: Some(0.55),
+            vad_silence_threshold_secs: Some(1.0),
+            min_speech_duration_ms: Some(80),
+            min_silence_duration_ms: Some(150),
+        }
+    }
+}
+
 /// Outgoing message to ElevenLabs WebSocket
 ///
 /// These messages are sent to the ElevenLabs API to transmit audio data
@@ -88,6 +129,18 @@ pub struct OutgoingMessage {
     /// Whether to commit the current audio buffer
     #[serde(skip_serializing_if = "Option::is_none")]
     pub commit: Option<bool>,
+    /// Audio sample rate in Hz
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub sample_rate: Option<u32>,
+    /// VAD configuration (only sent in first message)
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vad_threshold: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub vad_silence_threshold_secs: Option<f32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_speech_duration_ms: Option<u32>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub min_silence_duration_ms: Option<u32>,
 }
 
 impl OutgoingMessage {
@@ -105,6 +158,29 @@ impl OutgoingMessage {
             message_type: "input_audio_chunk",
             audio_base_64: Some(base64),
             commit: None,
+            sample_rate: None,
+            vad_threshold: None,
+            vad_silence_threshold_secs: None,
+            min_speech_duration_ms: None,
+            min_silence_duration_ms: None,
+        }
+    }
+
+    /// Create an audio chunk message with VAD configuration
+    ///
+    /// This should be used for the first audio message to configure
+    /// the transcription engine.
+    #[must_use]
+    pub fn audio_with_config(base64: String, config: &VadConfig) -> Self {
+        Self {
+            message_type: "input_audio_chunk",
+            audio_base_64: Some(base64),
+            commit: None,
+            sample_rate: Some(16000),
+            vad_threshold: config.vad_threshold,
+            vad_silence_threshold_secs: config.vad_silence_threshold_secs,
+            min_speech_duration_ms: config.min_speech_duration_ms,
+            min_silence_duration_ms: config.min_silence_duration_ms,
         }
     }
 
@@ -118,6 +194,11 @@ impl OutgoingMessage {
             message_type: "input_audio_chunk",
             audio_base_64: Some(String::new()),
             commit: Some(true),
+            sample_rate: None,
+            vad_threshold: None,
+            vad_silence_threshold_secs: None,
+            min_speech_duration_ms: None,
+            min_silence_duration_ms: None,
         }
     }
 }
