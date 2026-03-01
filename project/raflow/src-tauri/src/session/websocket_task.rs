@@ -63,8 +63,15 @@ pub async fn run_transcription_task(
         if let WsMessage::Text(text) = msg {
             let incoming: IncomingMessage = serde_json::from_str(&text)
                 .map_err(|e| format!("Parse error: {}", e))?;
-            if let IncomingMessage::SessionStarted { session_id } = incoming {
-                break session_id;
+            match incoming {
+                IncomingMessage::SessionStarted { session_id } => break session_id,
+                IncomingMessage::AuthError { message } => {
+                    return Err(format!("Authentication failed: {}. Please check your API key.", message));
+                }
+                IncomingMessage::Error { message } => {
+                    return Err(format!("Server error: {}", message));
+                }
+                _ => {} // Ignore other messages while waiting for session_started
             }
         }
     };
@@ -128,6 +135,10 @@ pub async fn run_transcription_task(
                                 }
                                 IncomingMessage::Error { message } => {
                                     tracing::error!("Transcription error: {}", message);
+                                }
+                                IncomingMessage::AuthError { message } => {
+                                    tracing::error!("Authentication error: {}", message);
+                                    return Err(format!("Authentication failed: {}", message));
                                 }
                                 _ => {}
                             }

@@ -62,6 +62,16 @@ pub enum IncomingMessage {
         #[serde(default)]
         message: String,
     },
+
+    /// Authentication error from the API
+    ///
+    /// Received when the API key is invalid or expired.
+    #[serde(rename = "auth_error")]
+    AuthError {
+        /// Human-readable error description
+        #[serde(default)]
+        message: String,
+    },
 }
 
 /// Outgoing message to ElevenLabs WebSocket
@@ -153,6 +163,9 @@ impl From<IncomingMessage> for TranscriptionEvent {
                 TranscriptionEvent::Committed { text }
             }
             IncomingMessage::Error { message } => TranscriptionEvent::Error { message },
+            IncomingMessage::AuthError { message } => TranscriptionEvent::Error {
+                message: format!("Authentication error: {}", message),
+            },
         }
     }
 }
