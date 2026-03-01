@@ -1,13 +1,13 @@
 //! Recording session implementation.
 
 use crate::audio::AudioPipeline;
-use crate::clipboard;
 use crate::config;
 use crate::transcription::TranscriptionClient;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use tauri::{AppHandle, Emitter};
 use thiserror::Error;
-use tokio::sync::Mutex;
+use tokio::sync::{mpsc, Mutex};
 
 /// Session errors.
 #[derive(Error, Debug)]
@@ -59,12 +59,14 @@ impl Default for SessionState {
 pub struct RecordingSession {
     /// Audio pipeline for capturing and resampling.
     audio_pipeline: AudioPipeline,
-    /// WebSocket client for transcription.
-    ws_client: TranscriptionClient,
+    /// Channel sender for audio data.
+    audio_sender: Option<mpsc::Sender<Vec<i16>>>,
     /// Flag indicating if session is active.
     is_active: Arc<AtomicBool>,
     /// Latest committed transcript text.
     committed_text: Arc<Mutex<String>>,
+    /// Cancellation token for stopping tasks.
+    cancel_token: Arc<AtomicBool>,
 }
 
 impl RecordingSession {
@@ -76,7 +78,7 @@ impl RecordingSession {
     /// Returns [`SessionError::AudioCaptureFailed`] if audio device cannot be initialized.
     pub fn new() -> Result<Self, SessionError> {
         // Check API key first
-        let api_key = config::get_api_key()
+        let _api_key = config::get_api_key()
             .map_err(|e| SessionError::ConnectionFailed(e.to_string()))?
             .ok_or(SessionError::ApiKeyMissing)?;
 
@@ -86,9 +88,10 @@ impl RecordingSession {
 
         Ok(Self {
             audio_pipeline,
-            ws_client: TranscriptionClient::new(api_key),
+            audio_sender: None,
             is_active: Arc::new(AtomicBool::new(false)),
             committed_text: Arc::new(Mutex::new(String::new())),
+            cancel_token: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -96,5 +99,126 @@ impl RecordingSession {
     #[must_use]
     pub fn is_active(&self) -> bool {
         self.is_active.load(Ordering::SeqCst)
+    }
+
+    /// Start the recording session.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`SessionError::AlreadyActive`] if session is already active.
+    /// Returns [`SessionError::ApiKeyMissing`] if API key is not configured.
+    /// Returns [`SessionError::ConnectionFailed`] if WebSocket connection fails.
+    /// Returns [`SessionError::AudioCaptureFailed`] if audio capture fails to start.
+    pub async fn start(&mut self, app_handle: AppHandle) -> Result<(), SessionError> {
+        if self.is_active.load(Ordering::SeqCst) {
+            return Err(SessionError::AlreadyActive);
+        }
+
+        tracing::info!("Starting recording session...");
+
+        // Get API key
+        let api_key = config::get_api_key()
+            .map_err(|e| SessionError::ConnectionFailed(e.to_string()))?
+            .ok_or(SessionError::ApiKeyMissing)?;
+
+        // Reset cancellation token
+        self.cancel_token.store(false, Ordering::SeqCst);
+
+        // Create channel for audio data (buffer size: ~100 chunks of 1024 samples)
+        let (audio_tx, audio_rx) = mpsc::channel::<Vec<i16>>(100);
+        self.audio_sender = Some(audio_tx);
+
+        // Clone for async task
+        let is_active = self.is_active.clone();
+        let committed_text = self.committed_text.clone();
+        let cancel_token = self.cancel_token.clone();
+        let app_handle_clone = app_handle.clone();
+
+        // Spawn WebSocket task
+        tokio::spawn(async move {
+            if let Err(e) = Self::run_websocket_task(
+                api_key,
+                audio_rx,
+                is_active,
+                committed_text,
+                cancel_token,
+                app_handle_clone,
+            )
+            .await
+            {
+                tracing::error!("WebSocket task error: {}", e);
+            }
+        });
+
+        // Mark as active
+        self.is_active.store(true, Ordering::SeqCst);
+
+        // Start audio pipeline with callback
+        let sender = self.audio_sender.clone().unwrap();
+        self.audio_pipeline
+            .start(move |pcm_data: Vec<i16>| {
+                let _ = sender.blocking_send(pcm_data);
+            })
+            .map_err(|e| SessionError::AudioCaptureFailed(e.to_string()))?;
+
+        // Emit recording started event
+        let _ = app_handle.emit("recording-state-changed", true);
+
+        tracing::info!("Recording session started successfully");
+        Ok(())
+    }
+
+    /// Run the WebSocket communication task.
+    async fn run_websocket_task(
+        api_key: String,
+        mut audio_rx: mpsc::Receiver<Vec<i16>>,
+        is_active: Arc<AtomicBool>,
+        committed_text: Arc<Mutex<String>>,
+        cancel_token: Arc<AtomicBool>,
+        app_handle: AppHandle,
+    ) -> Result<(), SessionError> {
+        // Connect to WebSocket
+        let mut client = TranscriptionClient::new(api_key);
+        client
+            .connect()
+            .await
+            .map_err(|e| SessionError::ConnectionFailed(e.to_string()))?;
+
+        tracing::info!(
+            "WebSocket connected, session_id: {:?}",
+            client.session_id()
+        );
+
+        // Main loop - just send audio for now (receiving will be added in Task 3)
+        loop {
+            if cancel_token.load(Ordering::SeqCst) {
+                break;
+            }
+
+            // Receive audio from pipeline
+            match audio_rx.recv().await {
+                Some(pcm_data) => {
+                    if let Err(e) = client.send_audio(&pcm_data).await {
+                        tracing::error!("Failed to send audio: {}", e);
+                    }
+                }
+                None => break, // Channel closed
+            }
+        }
+
+        // Close WebSocket
+        client.close().await;
+        tracing::info!("WebSocket task ended");
+
+        // Reset active flag
+        is_active.store(false, Ordering::SeqCst);
+
+        // Emit recording stopped event
+        let _ = app_handle.emit("recording-state-changed", false);
+
+        // Suppress unused variable warning
+        let _ = committed_text;
+
+        Ok(())
     }
 }
