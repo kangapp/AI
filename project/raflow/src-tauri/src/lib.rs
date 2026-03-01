@@ -1,4 +1,5 @@
 pub mod audio;
+pub mod transcription;
 
 use tracing::{info, error};
 
