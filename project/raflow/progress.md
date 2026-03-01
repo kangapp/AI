@@ -6,6 +6,46 @@
 
 ## 会话记录
 
+### 2026-03-01 深夜 - Phase 14 图标优化 ✅
+
+**目标**: 修复托盘图标全蓝问题，创建专业的麦克风图标
+
+**问题分析**:
+- 原托盘图标是全蓝色方块
+- 应用图标也需要更新为更专业的麦克风图案
+
+**解决方案**:
+
+| 图标类型 | 尺寸 | 描述 |
+|----------|------|------|
+| 应用图标 | 512x512 | 蓝色圆角背景 + 白色麦克风 |
+| 托盘图标 | 16x16 | 黑色麦克风剪影 (模板) |
+| 托盘图标 @2x | 32x32 | 黑色麦克风剪影 (Retina) |
+
+**创建流程**:
+1. 创建麦克风 SVG 源图标 (microphone.svg)
+2. 使用 `pnpm tauri icon` 生成多平台图标
+3. 使用 ImageMagick 创建托盘模板图标
+
+**代码变更**:
+| 文件 | 变更 |
+|------|------|
+| `src-tauri/icons/microphone.svg` | 新增 SVG 源图标 |
+| `src-tauri/icons/icon.png` | 更新为蓝色+麦克风 |
+| `src-tauri/icons/icon.icns` | macOS 应用图标 |
+| `src-tauri/icons/icon.ico` | Windows 应用图标 |
+| `src-tauri/icons/trayTemplate.png` | 托盘模板图标 (16x16) |
+| `src-tauri/icons/trayTemplate@2x.png` | 托盘模板图标 (32x32) |
+| `src-tauri/tauri.conf.json` | 配置托盘图标路径 |
+
+**验证结果**:
+| 检查项 | 结果 |
+|--------|------|
+| 应用启动 | ✅ 正常 |
+| 托盘图标显示 | ✅ 黑色麦克风剪影 |
+
+---
+
 ### 2026-03-01 晚 - Phase 13 长句显示优化 ✅
 
 **目标**: 解决长句显示不全和滚动问题
@@ -25,22 +65,7 @@
 | 不自动滚动 | 移除用户滚动检测，每次更新都滚动 |
 | 底部截断 | 添加 `pb-4` 底部留白 |
 
-**代码变更**:
-| 文件 | 变更 |
-|------|------|
-| `src-tauri/tauri.conf.json` | 窗口尺寸 440×180, maxHeight 300 |
-| `src/components/TranscriptDisplay.tsx` | 滚动容器 + 自动滚动逻辑 |
-| `src/styles.css` | Apple 风格滚动条 + 禁用弹性滚动 |
-| `src/App.tsx` | Apple 风格状态指示器 |
-| `src/components/WaveformVisualizer.tsx` | 24 条渐变波形 |
-
-**验证结果**:
-| 检查项 | 结果 |
-|--------|------|
-| `npx tsc --noEmit` | ✅ 通过 |
-| 长句显示 | ✅ 自动换行 |
-| 滚动功能 | ✅ 正常 |
-| 自动滚动 | ✅ 实时滚动到底部 |
+**提交**: `db1bdfc feat(ui): Apple 风格 UI 重设计 + 长句显示优化`
 
 ---
 
@@ -64,39 +89,20 @@
 | processing | Purple | 处理中 |
 | error | Red | 错误 |
 
-**代码变更**:
-| 文件 | 变更 |
-|------|------|
-| `src/styles.css` | 完整 Apple 设计系统 |
-| `src/App.tsx` | 状态指示器 + 错误 Toast |
-| `src/components/WaveformVisualizer.tsx` | 24 条渐变波形柱 |
-| `src/components/TranscriptDisplay.tsx` | 打字机效果 + 闪烁光标 |
-
 ---
 
 ### 2026-03-01 晚 - Phase 11 Bug 修复 ✅
 
 **目标**: 修复会话恢复后发现的 bug
 
-**修复列表**:
-
 | Bug | 原因 | 解决方案 |
 |-----|------|----------|
 | 错误信息不显示 | WebSocket 失败时未发送事件 | 添加 transcription-error 事件 |
 | invalid uri character | URL 中的 `["zh"]` 未编码 | 改为 `%5B%22zh%22%5D` |
 
-**代码变更**:
-| 文件 | 变更 |
-|------|------|
-| `src-tauri/src/lib.rs` | 添加 `use tauri::Emitter`, 错误事件发送 |
-| `src-tauri/src/session/recording.rs` | WebSocket 失败时发送错误事件 |
-| `src-tauri/src/session/websocket_task.rs` | URL 编码 language_hints |
-
 ---
 
 ### 2026-03-01 - Phase 10 转录识别率优化 ✅
-
-**目标**: 优化语音识别率，解决语速快和环境噪音导致的识别错误
 
 **VAD 参数优化**:
 | 参数 | 默认值 | 新值 | 调整理由 |
@@ -107,8 +113,6 @@
 | `min_speech_duration_ms` | 100 | 80 | 适应快语速短音节 |
 | `min_silence_duration_ms` | 100 | 150 | 避免自然停顿被切断 |
 
-**提交记录**: `91361a4`, `0fff446`, `2f7c3c3`, `36b40ec`, `f7073f5`, `01951f0`
-
 ---
 
 ### 2026-03-01 - Phase 9 UI/UX 优化 ✅
@@ -117,8 +121,6 @@
 - 频谱柱状图 (20 条动态柱)
 - 状态切换动画
 - 打字机效果 + 滚动动画
-
-**提交记录**: `941f8b9`, `7fcc9f5`, `721b81e`, `45bc571`, `a5b60d4`, `a14b5f8`, `53e0f15`
 
 ---
 
@@ -167,3 +169,4 @@ src-tauri/src/session/
 - ✅ 剪贴板输出功能正常
 - ✅ Apple 风格 UI 显示
 - ✅ 长句自动换行和滚动
+- ✅ 专业麦克风图标

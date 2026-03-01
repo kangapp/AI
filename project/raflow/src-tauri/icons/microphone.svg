@@ -1,0 +1,14 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- 蓝色圆形背景 -->
+  <rect width="512" height="512" rx="102" fill="#007AFF"/>
+  
+  <!-- 白色麦克风主体 -->
+  <rect x="190" y="80" width="132" height="200" rx="66" fill="white"/>
+  
+  <!-- 白色麦克风支架 -->
+  <path d="M 120 280 Q 120 380 256 380 Q 392 380 392 280" 
+        stroke="white" stroke-width="28" fill="none" stroke-linecap="round"/>
+  
+  <!-- 底部横线 -->
+  <line x1="120" y1="420" x2="392" y2="420" stroke="white" stroke-width="28" stroke-linecap="round"/>
+</svg>

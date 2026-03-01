@@ -12,7 +12,7 @@
   "app": {
     "macOSPrivateApi": true,
     "trayIcon": {
-      "iconPath": "icons/icon.png",
+      "iconPath": "icons/trayTemplate.png",
       "iconAsTemplate": true
     },
     "windows": [
