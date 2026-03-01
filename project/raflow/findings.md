@@ -228,6 +228,23 @@ tokio::select! {
 }
 ```
 
+```
+tokio::select! {
+    // 发送音频
+    Some(pcm) = audio_rx.recv() => {
+        sender.send(WsMessage::Text(json)).await?;
+    }
+    // 接收转录
+    msg = receiver.next() => {
+        // 处理 incoming message
+    }
+    // commit 信号
+    _ = commit_rx.recv() => {
+        sender.send(WsMessage::Text(commit_json)).await?;
+    }
+}
+```
+
 ### 6.3 异步锁最佳实践
 
 **问题**: 在热键处理中持有锁时间过长，阻塞 UI。
@@ -293,3 +310,35 @@ tokio::task::spawn_blocking(move || {
 │                              └─────────────────────────────┘     │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+### 6.6 ElevenLabs API 认证修复
+
+**问题链**:
+1. WebSocket 连接缺少 `model_id` 参数
+2. 使用 `Request::builder()` 缺少 `sec-websocket-key` header
+3. API Key 通过 URL 参数传递认证失败
+
+**最终解决方案**:
+使用 `into_client_request()` 自动生成所有必需的 WebSocket headers，然后添加自定义认证 header：
+
+```rust
+use tokio_tungstenite::tungstenite::{client::IntoClientRequest, http, Message as WsMessage};
+
+// 使用 into_client_request() 自动设置所有 WebSocket headers
+let ws_url = "wss://api.elevenlabs.io/v1/speech-to-text/realtime?model_id=scribe_v2_realtime";
+let mut request = ws_url.into_client_request()
+    .map_err(|e| format!("Failed to create request: {}", e))?;
+
+// 添加 xi-api-key header 进行认证
+request.headers_mut().insert("xi-api-key", api_key.parse()?);
+
+// 连接
+let (ws_stream, _) = tokio_tungstenite::connect_async(request).await?;
+```
+
+**关键发现**:
+- `tokio-tungstenite` 0.26 的 `connect_async()` 需要使用 `into_client_request()` 来自动生成 WebSocket 必需的 headers
+- ElevenLabs API 使用 `xi-api-key` HTTP Header 认证，而非 URL 参数
+- `model_id=scribe_v2_realtime` 必须作为 URL 参数传递
+
+**来源**: [ElevenLabs Scribe v2 Realtime API](https://elevenlabs.io/docs/speech-to-text/websockets), [tokio-tungstenite 文档](https://docs.rs/tokio-tungstenite)

@@ -361,6 +361,8 @@ src-tauri/src/transcription/
 | 2026-03-01 | progress.md | 创建 | 进度日志文件 |
 | 2026-03-01 | docs/plans/2026-03-01-mvp-design.md | 创建 | 设计文档 |
 | 2026-03-01 | docs/plans/2026-03-01-mvp-implementation.md | 创建 | 实现计划 |
+| 2026-03-01 | src/session/websocket_task.rs | 修复 | WebSocket 认证修复 (xi-api-key Header) |
+| 2026-03-01 | src/transcription/client.rs | 修复 | WebSocket 认证修复 (xi-api-key Header) |
 
 ---
 
@@ -368,4 +370,23 @@ src-tauri/src/transcription/
 
 | 问题 | 影响 | 解决方案 | 状态 |
 |------|------|----------|------|
-| - | - | - | - |
+| WebSocket URL 缺少 model_id 参数 | 无法连接 ElevenLabs API | 添加 `model_id=scribe_v2_realtime` URL 参数 | ✅ 已修复 |
+| Request::builder 缺少 sec-websocket-key | WebSocket 握手失败 | 使用 `into_client_request()` 自动生成 headers | ✅ 已修复 |
+| API Key 认证失败 | 转录功能不可用 | 使用 HTTP Header `xi-api-key` 传递 | ✅ 已修复 |
+
+---
+
+## ✅ MVP 测试成功 (2026-03-01)
+
+**测试结果**:
+- ✅ 全局热键 (Cmd+Shift+H) 正常触发
+- ✅ WebSocket 连接成功
+- ✅ 实时转录功能正常
+- ✅ 剪贴板输出功能正常
+
+**关键修复**:
+```rust
+// 使用 into_client_request() 自动生成 WebSocket headers
+let mut request = ws_url.into_client_request()?;
+request.headers_mut().insert("xi-api-key", api_key.parse()?);
+```

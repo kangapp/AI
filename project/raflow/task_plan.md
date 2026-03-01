@@ -68,9 +68,8 @@
 
 ## 当前焦点
 
-**阶段**: Phase 8 - 端到端集成 ✅ 完成
-**下一阶段**: MVP 完成，可进行实际测试
-**状态**: 已完成
+**阶段**: MVP 开发完成 ✅
+**状态**: 测试通过 - 实时转录和剪贴板功能正常
 
 ---
 
@@ -81,7 +80,9 @@
 | 2026-03-01 | 快捷键触发但 UI 无响应 | 添加 Tauri v2 capabilities 权限配置 | ✅ 已解决 |
 | 2026-03-01 | 热键回调中 tokio::spawn panic | 改用 tauri::async_runtime::spawn | ✅ 已解决 |
 | 2026-03-01 | API 返回 auth_error 解析失败 | 添加 AuthError 消息类型支持 | ✅ 已解决 |
-| 2026-03-01 | API Key 认证失败 | 需要用户更新有效的 ElevenLabs API Key | ⏳ 待用户处理 |
+| 2026-03-01 | WebSocket URL 缺少 model_id 参数 | 添加 `model_id=scribe_v2_realtime` URL 参数 | ✅ 已修复 |
+| 2026-03-01 | 使用 Request::builder 缺少 sec-websocket-key | 使用 `into_client_request()` 自动生成 WebSocket headers | ✅ 已修复 |
+| 2026-03-01 | API Key 认证失败 | 使用 HTTP Header `xi-api-key` 传递 (非 URL 参数) | ✅ 已修复 |
 
 ---
 
