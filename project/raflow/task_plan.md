@@ -79,6 +79,9 @@
 | 时间 | 错误描述 | 解决方案 | 状态 |
 |------|----------|----------|------|
 | 2026-03-01 | 快捷键触发但 UI 无响应 | 添加 Tauri v2 capabilities 权限配置 | ✅ 已解决 |
+| 2026-03-01 | 热键回调中 tokio::spawn panic | 改用 tauri::async_runtime::spawn | ✅ 已解决 |
+| 2026-03-01 | API 返回 auth_error 解析失败 | 添加 AuthError 消息类型支持 | ✅ 已解决 |
+| 2026-03-01 | API Key 认证失败 | 需要用户更新有效的 ElevenLabs API Key | ⏳ 待用户处理 |
 
 ---
 

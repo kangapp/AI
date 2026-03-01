@@ -27,6 +27,9 @@
 | `6a746ba` | feat(commands): integrate RecordingSession into Tauri commands |
 | `97395ab` | fix(session): improve lock handling and async thread join |
 | `c93623d` | refactor(session): fix clippy warnings and rename session module |
+| `8929307` | docs: update planning files with Phase 8 completion |
+| `f96634b` | fix(hotkey): use tauri::async_runtime::spawn for hotkey callback |
+| `a4f776e` | fix(transcription): add auth_error message type support |
 
 **架构概览**:
 ```
