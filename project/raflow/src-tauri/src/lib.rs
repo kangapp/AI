@@ -35,7 +35,9 @@ pub fn run() {
 
             app.global_shortcut().on_shortcut(shortcut, move |_app, _shortcut, _event| {
                 let app_handle = app_handle.clone();
-                tokio::spawn(async move {
+                // Use tauri::async_runtime::spawn instead of tokio::spawn
+                // because hotkey callback is not in tokio runtime context
+                tauri::async_runtime::spawn(async move {
                     let state = app_handle.state::<SessionState>();
 
                     // Quick check with lock - only hold lock for the check
