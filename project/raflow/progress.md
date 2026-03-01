@@ -6,7 +6,47 @@
 
 ## 会话记录
 
-### 2026-03-01 - Phase 9 UI/UX 优化 (进行中)
+### 2026-03-01 - Phase 10 转录识别率优化 (进行中)
+
+**目标**: 优化语音识别率，解决语速快和环境噪音导致的识别错误
+
+**问题分析**:
+- 用户反馈：部分词语识别成同音字或其他词
+- 触发场景：语速较快时、环境噪音干扰时
+
+**方案选择**:
+| 方案 | 描述 | 选择 |
+|------|------|------|
+| A | API 参数调优 | ✅ 已选择 |
+| B | 客户端音频预处理 | 备选 |
+| C | 混合方案 | 备选 |
+
+**任务进度**:
+- [x] Brainstorming 需求澄清
+- [x] 设计方案确认 (方案 A: API 参数调优)
+- [x] 创建设计文档 (docs/plans/2026-03-01-transcription-optimization-design.md)
+- [x] 创建实现计划 (docs/plans/2026-03-01-transcription-optimization-impl.md)
+- [x] 更新规划文件 (task_plan.md, findings.md, progress.md)
+- [ ] Task 10.1: 扩展 OutgoingMessage 添加 VAD 配置字段
+- [ ] Task 10.2: 修改 WebSocket 连接添加 language_hints
+- [ ] Task 10.3: 修改音频发送逻辑携带 VAD 配置
+- [ ] Task 10.4: 添加配置测试
+- [ ] Task 10.5: 运行完整测试并验证
+
+**VAD 参数优化**:
+| 参数 | 默认值 | 新值 | 调整理由 |
+|------|--------|------|----------|
+| `language_hints` | - | `["zh"]` | 明确中文优先 |
+| `vad_threshold` | 0.4 | 0.55 | 提高检测门槛过滤噪音 |
+| `vad_silence_threshold_secs` | 1.5 | 1.0 | 语速快时更快提交 |
+| `min_speech_duration_ms` | 100 | 80 | 适应快语速短音节 |
+| `min_silence_duration_ms` | 100 | 150 | 避免自然停顿被切断 |
+
+**下一步**: 在独立会话中执行实现计划
+
+---
+
+### 2026-03-01 - Phase 9 UI/UX 优化 ✅ (完成)
 
 **目标**: 优化应用显示 UI/UX
 - 频谱柱状图 (20 条动态柱)

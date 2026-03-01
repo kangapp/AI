@@ -342,3 +342,51 @@ let (ws_stream, _) = tokio_tungstenite::connect_async(request).await?;
 - `model_id=scribe_v2_realtime` 必须作为 URL 参数传递
 
 **来源**: [ElevenLabs Scribe v2 Realtime API](https://elevenlabs.io/docs/speech-to-text/websockets), [tokio-tungstenite 文档](https://docs.rs/tokio-tungstenite)
+
+---
+
+## 7. Phase 10 转录优化发现
+
+### 7.1 ElevenLabs API 可配置参数
+
+**WebSocket URL 参数**:
+| 参数 | 说明 | 示例值 |
+|------|------|--------|
+| `model_id` | 模型标识 | `scribe_v2_realtime` |
+| `language_hints` | 语言提示数组 | `["zh"]` |
+| `include_timestamps` | 包含时间戳 | `true` |
+
+**消息级 VAD 配置** (首次 audio_chunk 携带):
+| 参数 | 类型 | 默认值 | 推荐值 | 作用 |
+|------|------|--------|--------|------|
+| `vad_threshold` | f32 | 0.4 | 0.55 | VAD 灵敏度，越高越严格 |
+| `vad_silence_threshold_secs` | f32 | 1.5 | 1.0 | 静音判定时长阈值 |
+| `min_speech_duration_ms` | u32 | 100 | 80 | 最小语音片段时长 |
+| `min_silence_duration_ms` | u32 | 100 | 150 | 最小静音片段时长 |
+
+### 7.2 优化策略
+
+**问题**: 语速快 + 环境噪音导致识别错误（同音字、误判）
+
+**方案 A (已选择)**: API 参数调优
+- 添加 `language_hints=["zh"]` 指定中文优先
+- 调整 VAD 参数适应快语速和噪音过滤
+- 零依赖、快速验证、可渐进增强
+
+**参数调优逻辑**:
+```
+语速快 → 降低 vad_silence_threshold_secs (1.5→1.0)
+       → 降低 min_speech_duration_ms (100→80)
+       → 提高 min_silence_duration_ms (100→150)
+
+噪音大 → 提高 vad_threshold (0.4→0.55)
+```
+
+### 7.3 实现位置
+
+| 文件 | 改动 |
+|------|------|
+| `src-tauri/src/transcription/types.rs` | 添加 VadConfig 结构体，扩展 OutgoingMessage |
+| `src-tauri/src/session/websocket_task.rs` | URL 添加 language_hints，首次消息携带 VAD 配置 |
+
+**来源**: [ElevenLabs Scribe v2 Realtime API](https://elevenlabs.io/docs/eleven-api/guides/cookbooks/speech-to-text/realtime/transcripts-and-commit-strategies)

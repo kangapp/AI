@@ -80,10 +80,23 @@
 
 ---
 
+### Phase 10: 转录识别率优化 (进行中)
+- [ ] 10.1 扩展 OutgoingMessage 添加 VAD 配置字段
+- [ ] 10.2 修改 WebSocket 连接添加 language_hints
+- [ ] 10.3 修改音频发送逻辑携带 VAD 配置
+- [ ] 10.4 添加配置测试
+- [ ] 10.5 运行完整测试并验证
+
+**详细计划**: [docs/plans/2026-03-01-transcription-optimization-impl.md](docs/plans/2026-03-01-transcription-optimization-impl.md)
+**设计文档**: [docs/plans/2026-03-01-transcription-optimization-design.md](docs/plans/2026-03-01-transcription-optimization-design.md)
+
+---
+
 ## 当前焦点
 
-**阶段**: Phase 9 - UI/UX 优化 ✅
-**状态**: 完成 - 频谱波形、状态动画、打字机效果已实现
+**阶段**: Phase 10 - 转录识别率优化
+**状态**: 进行中 - 针对"语速快"和"环境噪音"场景优化
+**目标**: 通过 API 参数调优减少同音字误判和噪音干扰
 
 ---
 
