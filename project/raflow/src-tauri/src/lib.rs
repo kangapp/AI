@@ -56,11 +56,14 @@ pub fn run() {
                         }
                     } else {
                         // Start recording - create session outside lock
+                        tracing::info!("Hotkey pressed, creating recording session...");
                         match RecordingSession::new() {
                             Ok(mut session) => {
+                                tracing::info!("Session created, starting...");
                                 if let Err(e) = session.start(app_handle.clone()).await {
                                     tracing::error!("Failed to start session: {}", e);
                                 } else {
+                                    tracing::info!("Session started successfully, storing state");
                                     // Only acquire lock to store the session
                                     let mut session_guard = state.session.lock().await;
                                     *session_guard = Some(session);

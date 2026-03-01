@@ -8,7 +8,11 @@ use base64::Engine;
 use futures_util::{SinkExt, StreamExt};
 use thiserror::Error;
 use tokio::net::TcpStream;
-use tokio_tungstenite::{connect_async, tungstenite::Message as WsMessage, MaybeTlsStream};
+use tokio_tungstenite::{
+    connect_async,
+    tungstenite::{http::Request, Message as WsMessage},
+    MaybeTlsStream,
+};
 
 /// Type alias for the WebSocket sink (sender) part
 type WebSocketSender = futures_util::stream::SplitSink<
@@ -133,13 +137,15 @@ impl TranscriptionClient {
     /// # }
     /// ```
     pub async fn connect(&mut self) -> Result<(), ClientError> {
-        let url = format!(
-            "wss://api.elevenlabs.io/v1/speech-to-text/realtime?xi-api-key={}",
-            self.api_key
-        );
+        // Build WebSocket request with API key in header
+        let request = Request::builder()
+            .uri("wss://api.elevenlabs.io/v1/speech-to-text/realtime?model_id=scribe_v2_realtime")
+            .header("xi-api-key", &self.api_key)
+            .body(())
+            .map_err(|e| ClientError::Connection(e.to_string()))?;
 
         // Establish WebSocket connection
-        let (ws_stream, _) = connect_async(&url)
+        let (ws_stream, _) = connect_async(request)
             .await
             .map_err(|e| ClientError::Connection(e.to_string()))?;
 

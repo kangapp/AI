@@ -11,6 +11,13 @@ import { motion, AnimatePresence } from "framer-motion";
 function StatusIndicator({ status }: { status: RecordingStatus }) {
   const getStatusConfig = () => {
     switch (status) {
+      case "connecting":
+        return {
+          color: "bg-yellow-500",
+          text: "Connecting",
+          textColor: "text-yellow-400",
+          animate: { scale: [1, 1.2, 1], opacity: [1, 0.6, 1] },
+        };
       case "recording":
         return {
           color: "bg-blue-500",
@@ -44,6 +51,7 @@ function StatusIndicator({ status }: { status: RecordingStatus }) {
 
   const config = getStatusConfig();
   const isRecording = status === "recording";
+  const isConnecting = status === "connecting";
   const isProcessing = status === "processing";
 
   return (
@@ -52,7 +60,7 @@ function StatusIndicator({ status }: { status: RecordingStatus }) {
         className={`w-2 h-2 rounded-full ${config.color}`}
         animate={config.animate}
         transition={
-          isRecording
+          isRecording || isConnecting
             ? { duration: 0.8, repeat: Infinity }
             : isProcessing
             ? { duration: 1, repeat: Infinity, ease: "linear" }
@@ -118,6 +126,8 @@ function App() {
   // 获取背景颜色
   const getBgClass = () => {
     switch (status) {
+      case "connecting":
+        return "rgba(59, 50, 30, 0.9)"; // 微黄 (连接中)
       case "recording":
         return "rgba(30, 58, 95, 0.9)"; // 微蓝
       case "processing":

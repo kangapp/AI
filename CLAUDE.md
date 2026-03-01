@@ -1,171 +1,82 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## 核心原则
 
-## 项目概述
+### KISS 原则
 
-全栈数据库查询工具，支持 MySQL、PostgreSQL、SQLite，具备自然语言转SQL的AI功能。
+1. **简单优先** - 选择最直接的实现，避免过度抽象
+2. **单一职责** - 每个模块只做一件事
+3. **不做假想** - 不为未来可能的需求编写代码
+4. **可读性优先** - 清晰胜于聪明
 
-**技术栈**: Python 3.14+ (FastAPI) + React 18 (TypeScript + Vite + Ant Design + React Query)
+### 代码质量
 
-## 开发命令
+| 层面 | 要求 |
+|------|------|
+| 类型安全 | Rust: `#![deny(missing_docs)]` / TS: `strict: true` |
+| 错误处理 | 禁止 `unwrap()`/`any`，使用 `Result`/具体类型 |
+| 文档 | 所有 public API 必须有注释 |
+| 测试 | 核心模块必须有单元测试 |
 
-### 使用 Makefile（推荐）
-```bash
-make dev          # 同时启动前后端开发服务器
-make backend-run  # 仅启动后端（端口 8000）
-make frontend-run # 仅启动前端（端口 5173）
-make stop         # 停止所有服务器
-make install      # 安装所有依赖
-make lint         # 运行代码检查
-make format       # 格式化代码
-make test         # 运行测试
-make clean        # 清理构建产物
-```
+### 命名规范
 
-### 后端 (backend/)
-```bash
-uv sync                                    # 安装依赖
-uv run uvicorn src.api.main:app --reload  # 开发服务器（端口 8000）
-uv run mypy src                            # 类型检查（strict模式）
-uv run ruff check src                      # 代码检查
-uv run ruff format src                     # 格式化（100字符行宽）
-uv run pytest                              # 运行测试
-uv run pytest tests/test_query_service.py  # 运行单个测试文件
-```
+| 类型 | Rust | TypeScript |
+|------|------|------------|
+| 函数 | `snake_case` | `camelCase` |
+| 类型 | `PascalCase` | `PascalCase` |
+| 常量 | `SCREAMING_SNAKE_CASE` | `SCREAMING_SNAKE_CASE` |
+| Hook | - | `use` 前缀 |
 
-### 前端 (frontend/)
-```bash
-npm install          # 安装依赖
-npm run dev          # 开发服务器（端口 5173）
-npm run build        # 生产构建
-npm run type-check   # TypeScript类型检查
-npm run preview      # 预览生产构建
-```
+---
 
-## 架构概览
+## 核心工作流：规划与执行 (HOW)
 
-### 后端架构
+开发强制要求融合 planning-with-files (持久化记忆) 与 superpowers (协议化执行) 框架。
 
-**核心服务** (`backend/src/services/`):
-- `DatabaseService` - 数据库连接池管理，支持连接缓存和超时清理
-- `MetadataService` - 元数据提取和缓存，SQL注入防护（标识符验证）
-- `QueryService` - SQL执行、历史记录、结果导出
-- `LLMService` - 自然语言转SQL（智谱AI glm-4-flash），支持重试机制（tenacity）
+### 1. 规划阶段 (Brainstorming & Planning)
 
-**API层** (`backend/src/api/`):
-- `main.py` - FastAPI应用入口，生命周期管理，CORS配置
-- `dependencies.py` - 依赖注入工厂函数（get_db_service、get_query_service等）
-- `errors.py` - 统一错误处理（ErrorCode枚举，APIError基类，handle_api_error转换函数）
-- `v1/databases.py` - 数据库CRUD操作
-- `v1/queries.py` - 查询执行、自然语言查询、历史记录、导出
+- **设计优先**：在编写任何代码前，必须调用 /superpowers:brainstorm 进行苏格拉底式需求拆解
+- **设计持久化**：将 Brainstorm 的架构结论同步至 findings.md
+- **任务分发**：使用 /superpowers:write-plan 生成 2-5 分钟的微型任务，必须将其同步至 task_plan.md 的阶段路线图中, 以task_plan.md 为主
 
-**数据模型** (`backend/src/models/`):
-- 使用 Pydantic，所有模型继承 `CamelModel`（驼峰命名响应）
-- `database.py` - 数据库连接模型
-- `query.py` - 查询请求/响应模型
-- `metadata.py` - 元数据模型
+### 2. 状态维护规则 (Context Engineering)
 
-**核心功能** (`backend/src/core/`):
-- `config.py` - Pydantic Settings配置管理
-- `constants.py` - 应用常量（Database、Query、Pagination、Metadata、Validation类）
-- `sqlite_db.py` - 应用内部SQLite（存储连接信息和历史）
-- `sql_parser.py` - SQL解析器包装（sqlglot，只允许SELECT）
-- `logging.py` - 结构化日志配置（structlog）
+- **2-Action Rule**：每进行 2 次搜索（WebSearch）或查看（WebFetch/Read）操作后，必须立即更新 findings.md 以防止信息在上下文压缩时丢失
+- **Read-Before-Decide**：在启动新阶段或进行重大决策前，强制读取 task_plan.md 的前 30 行以对齐目标
+- **进度审计**：每完成一个子任务，需更新 progress.md 记录具体的文件变更和测试结果, 更新task_plan.md 更新任务清单
 
-**工具库** (`backend/src/lib/`):
-- `json_encoder.py` - CamelModel基类，自动转换snake_case到camelCase
+### 3. 错误处理协议 (3-Strike Protocol)
 
-**中间件** (`backend/src/middleware/`):
-- `rate_limit.py` - 基于slowapi的速率限制（IP级别）
+严禁盲目重试：遵循 3-Strike 协议。第一次失败尝试修复；第二次失败尝试替代方案；第三次失败必须在 task_plan.md 的错误表中记录失败日志，并主动询问用户。
 
-### 前端架构
+### 4. 编码与验证
 
-**主页面** (`frontend/src/pages/Dashboard/`):
-- `index.tsx` - 主仪表板，协调数据库选择、查询执行、结果展示
-- `Sidebar.tsx` - 侧边栏（数据库列表 + 架构浏览器）
-- `DatabaseInfo.tsx` - 数据库信息展示
-- `QueryTabs.tsx` - 查询标签页容器
-- `hooks/useDatabases.ts` - React Query数据库列表管理
-- `hooks/useMetadata.ts` - 元数据管理（选择、删除）
-- `hooks/useQueryExecution.ts` - 查询执行状态管理
+- **编码阶段**：复杂任务严格遵守 RED-GREEN-REFACTOR 流程，调用 /superpowers:test-driven-development 先写测试，验证失败，再实现代码，最后重构
+- **验证阶段**: 任务完成后调用 /superpowers:verification-before-completion，通过读取测试工具的实时输出来确认成功，严禁“推测式成功” 。
+- **原子提交**：每个阶段完成后，生成符合 Conventional Commits 标准的 Git 提交
 
-**组件** (`frontend/src/components/`):
-- `database/` - 数据库管理（DatabaseList、AddDatabaseForm、EditDatabaseForm、DatabaseDetail）
-- `query/` - 查询相关（SqlEditor使用Monaco、NaturalQueryInput、QueryResults、QueryHistoryTab）
-- `metadata/` - 元数据组件（TableList、TableSchema）
-- `shared/` - 共享组件（SchemaTree、ErrorBoundary）
+### 5.目录与文件说明
+- **task_plan.md**: 阶段追踪与任务清单。
+- **findings.md**: 技术决策、API 结构及研究结论。
+- **progress.md**: 会话日志、测试结果及错误记录 。
 
-**状态管理**:
-- React Query（@tanstack/react-query）管理服务端状态
-- 自定义Hooks封装业务逻辑
-- API客户端单例 (`frontend/src/services/api.ts`)
+---
 
-## 关键约定
+## 常用开发命令
 
-### 后端
-- **严格类型检查**: `mypy strict`，所有函数必须类型注解
-- **异步优先**: 所有数据库操作和I/O使用async/await
-- **驼峰命名API**: 响应使用驼峰命名（`CamelModel`）
-- **SQL注入防护**: 标识符验证（仅允许字母、数字、下划线）
-- **只读查询**: 仅允许SELECT，自动添加LIMIT 1000
-- **连接池**: 引擎缓存，1小时超时自动清理
-- **错误处理**: 使用APIError异常和ErrorCode枚举，统一错误响应格式
-- **速率限制**: 查询30/分钟，AI查询10/分钟，导出20/分钟
-- **结构化日志**: 使用structlog记录JSON格式日志
+| 操作 | 命令 |
+|------|------|
+| 初始化环境 | /planning-with-files:start |
+| 架构设计 | /superpowers:brainstorm |
+| 生成计划 | /superpowers:write-plan |
+| 执行任务 | /superpowers:execute-plan |
 
-### 前端
-- **TypeScript严格模式**: 启用所有严格检查
-- **路径别名**: `@/*` 映射到 `src/*`
-- **中文优先**: UI文本使用中文
-- **React Query**: 使用queryKey管理缓存，mutation执行操作
+---
 
-## 环境配置
+## 开发宪章
 
-**后端 `.env`**:
-```
-ZAI_API_KEY=your_api_key_here      # 必需：智谱AI API密钥
-DB_PATH=~/.db_query/db_query.db    # 可选：应用数据库路径
-LOG_LEVEL=INFO                     # 可选：日志级别
-```
+## 动态上下文引用
 
-**前端 `.env.development`**:
-```
-VITE_API_URL=http://localhost:8000
-```
-
-## 数据库连接字符串格式
-
-- **MySQL**: `mysql://username:password@localhost:3306/database_name`
-- **PostgreSQL**: `postgresql://username:password@localhost:5432/database_name`
-- **SQLite**:
-  - 相对路径: `sqlite:///path/to/database.db`
-  - 绝对路径: `sqlite:////absolute/path/to/db.db`
-
-## API端点
-
-- `GET /api/v1/dbs` - 列出数据库
-- `PUT /api/v1/dbs/{name}` - 创建数据库连接
-- `GET /api/v1/dbs/{name}` - 获取数据库详情和元数据
-- `PATCH / /api/v1/dbs/{name}` - 更新数据库
-- `DELETE /api/v1/dbs/{name}` - 删除数据库
-- `POST /api/v1/dbs/{name}/query` - 执行SQL
-- `POST /api/v1/dbs/{name}/query/natural` - 自然语言转SQL
-- `GET /api/v1/dbs/{name}/history` - 查询历史（分页）
-- `DELETE /api/v1/dbs/{name}/history` - 删除历史记录
-- `GET /api/v1/dbs/{name}/history/summary` - 历史统计
-- `POST /api/v1/dbs/{name}/query/export` - 导出结果（CSV/JSON）
-- `GET /api/v1/dbs/{name}/suggested-queries` - AI查询建议
-
-## 重要注意事项
-
-1. **Python版本**: 必须使用 3.14+（strict mypy要求）
-2. **API密钥**: 智谱AI的 `ZAI_API_KEY` 必须配置
-3. **查询类型**:
-   - `sql` - 直接SQL查询
-   - `natural` - AI生成的查询
-4. **历史记录**: 记录所有查询，包含输入、执行SQL、行数、耗时、状态
-5. **密码脱敏**: API响应中连接字符串密码会被隐藏
-6. **CORS**: 当前允许所有来源（`allow_origins=["*"]`）
-7. **错误响应格式**: `{"code": "ERROR_CODE", "message": "错误描述"}`
-8. **常量定义**: 所有配置常量在 `backend/src/core/constants.py` 中统一管理
+- @task_plan.md
+- @findings.md
+- @progress.md

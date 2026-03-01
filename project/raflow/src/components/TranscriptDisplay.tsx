@@ -82,7 +82,11 @@ export function TranscriptDisplay({ partial, committed, status }: TranscriptDisp
           animate={{ opacity: 0.5 }}
           className="text-gray-500 text-xs"
         >
-          {status === "recording" ? "正在聆听..." : "按 ⌘⇧H 开始录音"}
+          {status === "connecting"
+            ? "连接中..."
+            : status === "recording"
+            ? "正在聆听..."
+            : "按 ⌘⇧H 开始录音"}
         </motion.p>
       )}
     </div>

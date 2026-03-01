@@ -212,6 +212,38 @@ mod tests {
     }
 
     #[test]
+    fn test_session_started_with_config() {
+        // Test actual server response format with config object
+        let json = r#"{
+            "message_type": "session_started",
+            "session_id": "b1b982e08f2d44cab9fa256fac8f93f3",
+            "config": {
+                "sample_rate": 16000,
+                "audio_format": "pcm_16000",
+                "language_code": null,
+                "timestamps_granularity": "word",
+                "vad_commit_strategy": false,
+                "vad_silence_threshold_secs": 1.5,
+                "vad_threshold": 0.4,
+                "min_speech_duration_ms": 100,
+                "min_silence_duration_ms": 100,
+                "max_tokens_to_recompute": 5,
+                "model_id": "scribe_v2_realtime",
+                "disable_logging": false,
+                "include_timestamps": false,
+                "include_language_detection": false
+            }
+        }"#;
+        let msg: IncomingMessage = serde_json::from_str(json).unwrap();
+        match msg {
+            IncomingMessage::SessionStarted { session_id } => {
+                assert_eq!(session_id, "b1b982e08f2d44cab9fa256fac8f93f3");
+            }
+            _ => panic!("Expected SessionStarted variant"),
+        }
+    }
+
+    #[test]
     fn test_incoming_message_deserialization_partial() {
         let json = r#"{"message_type":"partial_transcript","text":"hello"}"#;
         let msg: IncomingMessage = serde_json::from_str(json).unwrap();

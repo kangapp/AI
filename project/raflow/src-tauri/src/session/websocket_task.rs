@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 use tokio::sync::{mpsc, Mutex};
-use tokio_tungstenite::tungstenite::Message as WsMessage;
+use tokio_tungstenite::tungstenite::{client::IntoClientRequest, http, Message as WsMessage};
 
 /// Run the WebSocket transcription task.
 ///
@@ -38,15 +38,32 @@ pub async fn run_transcription_task(
     cancel_token: Arc<AtomicBool>,
     app_handle: AppHandle,
 ) -> Result<(), String> {
-    let url = format!(
-        "wss://api.elevenlabs.io/v1/speech-to-text/realtime?xi-api-key={}",
-        api_key
-    );
+    // Build WebSocket request with proper headers
+    let ws_url = "wss://api.elevenlabs.io/v1/speech-to-text/realtime?model_id=scribe_v2_realtime";
+    tracing::info!("Connecting to WebSocket: {}", ws_url);
+
+    // Use into_client_request() to create a proper WebSocket request
+    // This automatically sets all required WebSocket headers (Sec-WebSocket-Key, etc.)
+    let mut request = ws_url
+        .into_client_request()
+        .map_err(|e| format!("Failed to create request: {}", e))?;
+
+    // Add xi-api-key header for authentication
+    request
+        .headers_mut()
+        .insert("xi-api-key", api_key.parse().map_err(|e: http::header::InvalidHeaderValue| {
+            format!("Invalid API key format: {}", e)
+        })?);
+
+    tracing::debug!("Request headers set, connecting...");
 
     // Connect to WebSocket
-    let (ws_stream, _) = tokio_tungstenite::connect_async(&url)
+    let (ws_stream, _) = tokio_tungstenite::connect_async(request)
         .await
-        .map_err(|e| format!("Connection failed: {}", e))?;
+        .map_err(|e| {
+            tracing::error!("WebSocket connection failed: {}", e);
+            format!("Connection failed: {}", e)
+        })?;
 
     let (mut sender, mut receiver) = ws_stream.split();
 
@@ -77,6 +94,9 @@ pub async fn run_transcription_task(
     };
 
     tracing::info!("Transcription session started: {}", session_id);
+
+    // Emit connected event to frontend (connecting -> recording)
+    let _ = app_handle.emit("transcription-connected", ());
 
     // Main loop
     loop {

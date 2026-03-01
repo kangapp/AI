@@ -12,6 +12,8 @@ interface WaveformVisualizerProps {
  */
 function getBarColors(status: RecordingStatus): { from: string; to: string } {
   switch (status) {
+    case "connecting":
+      return { from: "rgb(250, 204, 21)", to: "rgb(251, 191, 36)" }; // yellow-400 -> yellow-300
     case "recording":
       return { from: "rgb(96, 165, 250)", to: "rgb(168, 85, 247)" }; // blue-400 -> purple-500
     case "processing":
@@ -35,16 +37,18 @@ export function WaveformVisualizer({ level, status }: WaveformVisualizerProps) {
         return 0.15 + Math.random() * 0.1;
       }
 
-      if (status === "processing") {
-        // 处理中：脉冲效果
+      if (status === "connecting" || status === "processing") {
+        // 连接中/处理中：脉冲效果
         const pulse = 0.3 + Math.sin(Date.now() / 200 + i * 0.5) * 0.2;
         return Math.max(0.1, pulse);
       }
 
-      // 录音中：基于音频电平
+      // 录音中：基于音频电平，增强敏感度
       const centerBias = 1 - Math.abs(i - bars / 2) / (bars / 2);
-      const baseHeight = level * 0.7 * centerBias;
-      const randomOffset = Math.random() * 0.3;
+      // 增强敏感度：使用平方根来放大低音量的变化
+      const amplifiedLevel = Math.pow(level, 0.5);
+      const baseHeight = amplifiedLevel * 0.9 * centerBias;
+      const randomOffset = Math.random() * 0.2;
       return Math.min(1, Math.max(0.1, baseHeight + randomOffset));
     });
   }, [level, status, bars]);

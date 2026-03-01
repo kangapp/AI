@@ -359,3 +359,12 @@ review完成后生成markdown文件,必要时可结合mermaid图表说明,始终
 
 ### 生成更新的design doc
 仔细阅读目前 @project/raflow 项目的代码,think ultra hard,构建一个更新的design doc,放在 @specs/003-raflow/0004-design.md 文件中,使用 mermaid 绘制架构，设计，组件，流程等图表并详细说明。
+
+
+
+------- 
+### 生成design doc
+根据这份文档ultra think,并websearch 主流成熟方案的实现来不断优化
+
+### 生成implementation plan
+不要查看其他文件和历史状态,只根据../docs/plans/ 下的设计文档,进行项目初始化 ,并在 task_plan.md 的所有实现阶段中显式使用 @test-driven-development skill标签, 生成生命周期文件的时候使用 @context7 skill确保引用最新的依赖和文档
