@@ -6,8 +6,22 @@ import { listen } from "@tauri-apps/api/event";
  * - idle: 空闲状态
  * - recording: 录音中
  * - processing: 处理中
+ * - error: 错误状态
  */
-export type RecordingStatus = "idle" | "recording" | "processing";
+export type RecordingStatus = "idle" | "recording" | "processing" | "error";
+
+/**
+ * 错误类型
+ */
+export type TranscriptionErrorType = "auth" | "network" | "server";
+
+/**
+ * 错误信息接口
+ */
+export interface TranscriptionError {
+  type: TranscriptionErrorType;
+  message: string;
+}
 
 /**
  * 转录状态接口
@@ -21,6 +35,8 @@ export interface TranscriptionState {
   committedText: string;
   /** 音频电平 (0-1) */
   audioLevel: number;
+  /** 错误信息 (仅当 status 为 error 时) */
+  error: TranscriptionError | null;
 }
 
 /**
@@ -33,7 +49,7 @@ export interface TranscriptionState {
  * @example
  * ```tsx
  * function TranscriptionDisplay() {
- *   const { status, partialText, committedText, audioLevel } = useTranscription();
+ *   const { status, partialText, committedText, audioLevel, error } = useTranscription();
  *
  *   return (
  *     <div>
@@ -41,6 +57,7 @@ export interface TranscriptionState {
  *       <p>Partial: {partialText}</p>
  *       <p>Committed: {committedText}</p>
  *       <p>Audio Level: {audioLevel}</p>
+ *       {error && <p>Error: {error.message}</p>}
  *     </div>
  *   );
  * }
@@ -52,6 +69,7 @@ export function useTranscription(): TranscriptionState {
     partialText: "",
     committedText: "",
     audioLevel: 0,
+    error: null,
   });
 
   useEffect(() => {
@@ -62,9 +80,14 @@ export function useTranscription(): TranscriptionState {
       "recording-state-changed",
       (event) => {
         console.log("[useTranscription] recording-state-changed:", event.payload);
+        const isRecording = event.payload;
         setState((prev) => ({
           ...prev,
-          status: event.payload ? "recording" : "idle",
+          status: isRecording ? "recording" : "idle",
+          // 新录音开始时清空所有文字和错误
+          committedText: isRecording ? "" : prev.committedText,
+          partialText: isRecording ? "" : prev.partialText,
+          error: isRecording ? null : prev.error,
         }));
       }
     );
@@ -100,12 +123,22 @@ export function useTranscription(): TranscriptionState {
       }));
     });
 
+    // 监听错误事件
+    const unlistenError = listen<TranscriptionError>("transcription-error", (event) => {
+      setState((prev) => ({
+        ...prev,
+        status: "error",
+        error: event.payload,
+      }));
+    });
+
     // 清理函数：取消所有事件监听
     return () => {
       unlistenRecordingState.then((f) => f());
       unlistenPartialTranscript.then((f) => f());
       unlistenCommittedTranscript.then((f) => f());
       unlistenAudioLevel.then((f) => f());
+      unlistenError.then((f) => f());
     };
   }, []);
 
