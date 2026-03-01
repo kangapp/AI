@@ -1,63 +1,62 @@
 //! Tauri commands for frontend communication
 
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-use tauri::{AppHandle, Emitter, Manager};
-
-/// Global state for recording
-pub struct RecordingState {
-    pub is_recording: Arc<AtomicBool>,
-}
-
-impl Default for RecordingState {
-    fn default() -> Self {
-        Self {
-            is_recording: Arc::new(AtomicBool::new(false)),
-        }
-    }
-}
+use crate::session::{RecordingSession, SessionState};
+use tauri::{AppHandle, Manager};
 
 /// Start recording
 #[tauri::command]
 pub async fn start_recording(app: AppHandle) -> Result<String, String> {
-    let state = app.state::<RecordingState>();
+    let state = app.state::<SessionState>();
+    let mut session_guard = state.session.lock().await;
 
-    if state.is_recording.load(Ordering::SeqCst) {
-        return Err("Already recording".into());
+    // Check if already recording
+    if let Some(session) = session_guard.as_ref() {
+        if session.is_active() {
+            return Err("Already recording".into());
+        }
     }
 
-    state.is_recording.store(true, Ordering::SeqCst);
-
-    // Emit event to frontend
-    app.emit("recording-state-changed", true)
+    // Create new session
+    let mut session = RecordingSession::new()
         .map_err(|e| e.to_string())?;
 
-    tracing::info!("Recording started");
+    // Start the session
+    session.start(app.clone()).await
+        .map_err(|e| e.to_string())?;
+
+    // Store session
+    *session_guard = Some(session);
+
+    tracing::info!("Recording started via command");
     Ok("Recording started".into())
 }
 
 /// Stop recording
 #[tauri::command]
 pub async fn stop_recording(app: AppHandle) -> Result<String, String> {
-    let state = app.state::<RecordingState>();
+    let state = app.state::<SessionState>();
+    let mut session_guard = state.session.lock().await;
 
-    if !state.is_recording.load(Ordering::SeqCst) {
+    let session = session_guard.as_mut()
+        .ok_or_else(|| "No active session".to_string())?;
+
+    if !session.is_active() {
         return Err("Not recording".into());
     }
 
-    state.is_recording.store(false, Ordering::SeqCst);
-
-    // Emit event to frontend
-    app.emit("recording-state-changed", false)
+    // Stop the session and get transcribed text
+    let text = session.stop(app.clone()).await
         .map_err(|e| e.to_string())?;
 
-    tracing::info!("Recording stopped");
-    Ok("Recording stopped".into())
+    tracing::info!("Recording stopped via command, text length: {}", text.len());
+    Ok(text)
 }
 
-/// Get recording state
+/// Check if currently recording
 #[tauri::command]
-pub fn is_recording(app: AppHandle) -> bool {
-    let state = app.state::<RecordingState>();
-    state.is_recording.load(Ordering::SeqCst)
+pub async fn is_recording(app: AppHandle) -> bool {
+    let state = app.state::<SessionState>();
+    let session_guard = state.session.lock().await;
+
+    session_guard.as_ref().map_or(false, |s| s.is_active())
 }

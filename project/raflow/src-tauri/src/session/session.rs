@@ -1,11 +1,11 @@
 //! Recording session implementation.
 
-use crate::audio::AudioPipeline;
 use crate::clipboard;
 use crate::config;
 use crate::session::websocket_task::run_transcription_task;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::thread;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 use thiserror::Error;
@@ -44,6 +44,10 @@ pub enum SessionError {
 }
 
 /// Shared session state managed by Tauri.
+///
+/// This struct is designed to be `Send + Sync` so it can be safely
+/// stored in Tauri's state management. The non-Send/Sync components
+/// (audio stream) are managed in separate threads.
 pub struct SessionState {
     /// Current active session (None if not recording).
     pub session: Arc<Mutex<Option<RecordingSession>>>,
@@ -58,9 +62,10 @@ impl Default for SessionState {
 }
 
 /// Recording session that coordinates audio capture and transcription.
+///
+/// This struct is designed to be `Send + Sync` by spawning audio capture
+/// in a dedicated thread and communicating via channels.
 pub struct RecordingSession {
-    /// Audio pipeline for capturing and resampling.
-    audio_pipeline: AudioPipeline,
     /// Channel sender for audio data.
     audio_sender: Option<mpsc::Sender<Vec<i16>>>,
     /// Channel sender for commit signals.
@@ -71,6 +76,8 @@ pub struct RecordingSession {
     committed_text: Arc<Mutex<String>>,
     /// Cancellation token for stopping tasks.
     cancel_token: Arc<AtomicBool>,
+    /// Audio pipeline thread handle.
+    audio_thread_handle: Option<thread::JoinHandle<()>>,
 }
 
 impl RecordingSession {
@@ -79,24 +86,19 @@ impl RecordingSession {
     /// # Errors
     ///
     /// Returns [`SessionError::ApiKeyMissing`] if API key is not configured.
-    /// Returns [`SessionError::AudioCaptureFailed`] if audio device cannot be initialized.
     pub fn new() -> Result<Self, SessionError> {
         // Check API key first
         let _api_key = config::get_api_key()
             .map_err(|e| SessionError::ConnectionFailed(e.to_string()))?
             .ok_or(SessionError::ApiKeyMissing)?;
 
-        // Initialize audio pipeline
-        let audio_pipeline = AudioPipeline::new()
-            .map_err(|e| SessionError::AudioCaptureFailed(e.to_string()))?;
-
         Ok(Self {
-            audio_pipeline,
             audio_sender: None,
             commit_sender: None,
             is_active: Arc::new(AtomicBool::new(false)),
             committed_text: Arc::new(Mutex::new(String::new())),
             cancel_token: Arc::new(AtomicBool::new(false)),
+            audio_thread_handle: None,
         })
     }
 
@@ -131,7 +133,7 @@ impl RecordingSession {
 
         // Create channel for audio data (buffer size: ~100 chunks of 1024 samples)
         let (audio_tx, audio_rx) = mpsc::channel::<Vec<i16>>(100);
-        self.audio_sender = Some(audio_tx);
+        self.audio_sender = Some(audio_tx.clone());
 
         // Create channel for commit signals
         let (commit_tx, commit_rx) = mpsc::channel::<()>(1);
@@ -163,13 +165,44 @@ impl RecordingSession {
         // Mark as active
         self.is_active.store(true, Ordering::SeqCst);
 
-        // Start audio pipeline with callback
-        let sender = self.audio_sender.clone().unwrap();
-        self.audio_pipeline
-            .start(move |pcm_data: Vec<i16>| {
-                let _ = sender.blocking_send(pcm_data);
-            })
-            .map_err(|e| SessionError::AudioCaptureFailed(e.to_string()))?;
+        // Spawn audio pipeline in a dedicated thread
+        // This is necessary because cpal::Stream is not Send
+        let audio_cancel_token = self.cancel_token.clone();
+        let audio_cancel_token_for_callback = self.cancel_token.clone();
+        let handle = thread::spawn(move || {
+            use crate::audio::AudioPipeline;
+
+            // Create audio pipeline in this thread
+            let mut pipeline = match AudioPipeline::new() {
+                Ok(p) => p,
+                Err(e) => {
+                    tracing::error!("Failed to create audio pipeline: {}", e);
+                    return;
+                }
+            };
+
+            // Start audio capture
+            if let Err(e) = pipeline.start(move |pcm_data: Vec<i16>| {
+                if audio_cancel_token_for_callback.load(Ordering::SeqCst) {
+                    return;
+                }
+                let _ = audio_tx.blocking_send(pcm_data);
+            }) {
+                tracing::error!("Failed to start audio pipeline: {}", e);
+                return;
+            }
+
+            // Keep thread alive until cancelled
+            while !audio_cancel_token.load(Ordering::SeqCst) {
+                thread::sleep(Duration::from_millis(100));
+            }
+
+            // Stop pipeline
+            pipeline.stop();
+            tracing::info!("Audio pipeline thread stopped");
+        });
+
+        self.audio_thread_handle = Some(handle);
 
         // Emit recording started event
         let _ = app_handle.emit("recording-state-changed", true);
@@ -232,11 +265,13 @@ impl RecordingSession {
             tokio::time::sleep(Duration::from_millis(500)).await;
         }
 
-        // Signal cancellation
+        // Signal cancellation (this will stop the audio thread)
         self.cancel_token.store(true, Ordering::SeqCst);
 
-        // Stop audio pipeline
-        self.audio_pipeline.stop();
+        // Wait for audio thread to finish
+        if let Some(handle) = self.audio_thread_handle.take() {
+            let _ = handle.join();
+        }
 
         // Clear audio sender
         self.audio_sender = None;
