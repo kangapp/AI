@@ -169,6 +169,7 @@ impl RecordingSession {
         // This is necessary because cpal::Stream is not Send
         let audio_cancel_token = self.cancel_token.clone();
         let audio_cancel_token_for_callback = self.cancel_token.clone();
+        let app_handle_for_audio = app_handle.clone();
         let handle = thread::spawn(move || {
             use crate::audio::AudioPipeline;
 
@@ -186,6 +187,25 @@ impl RecordingSession {
                 if audio_cancel_token_for_callback.load(Ordering::SeqCst) {
                     return;
                 }
+
+                // Calculate audio level (RMS)
+                let rms = if !pcm_data.is_empty() {
+                    let sum_of_squares: f64 = pcm_data
+                        .iter()
+                        .map(|&s| {
+                            let normalized = f64::from(s) / 32768.0;
+                            normalized * normalized
+                        })
+                        .sum();
+                    (sum_of_squares / pcm_data.len() as f64).sqrt()
+                } else {
+                    0.0
+                };
+
+                // Emit audio level event (0.0 - 1.0)
+                let _ = app_handle_for_audio.emit("audio-level", rms);
+
+                // Send audio data to WebSocket task
                 let _ = audio_tx.blocking_send(pcm_data);
             }) {
                 tracing::error!("Failed to start audio pipeline: {}", e);
