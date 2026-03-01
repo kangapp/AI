@@ -25,7 +25,7 @@ tokio = { version = "1", features = ["full"] }
 tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
 futures-util = "0.3"
 cpal = "0.15"
-rubato = "0.15"
+rubato = { version = "0.15", features = ["fft_resampler"] }
 ringbuf = "0.4"
 arboard = "3.4"
 base64 = "0.22"
