@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "RaFlow",
-  "version": "0.1.0",
+  "version": "0.2.5",
   "identifier": "com.raflow.app",
   "build": {
     "beforeBuildCommand": "pnpm build",
@@ -31,7 +31,8 @@
         "skipTaskbar": true,
         "visible": true,
         "center": true,
-        "resizable": false
+        "resizable": false,
+        "devtools": true
       }
     ],
     "security": {
@@ -49,7 +50,8 @@
     ],
     "macOS": {
       "dmg": {},
-      "minimumSystemVersion": "10.13"
+      "minimumSystemVersion": "10.13",
+      "entitlements": "entitlements.plist"
     }
   },
   "plugins": {
