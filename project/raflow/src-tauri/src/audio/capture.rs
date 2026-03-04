@@ -76,11 +76,59 @@ impl AudioCapture {
     /// let capture = AudioCapture::new()?;
     /// # Ok::<(), raflow_lib::audio::CaptureError>(())
     /// ```
+    /// Create a new audio capture with retry logic
+    ///
+    /// On macOS, when the app is launched via `open`, the audio device
+    /// may not be immediately available. This method retries a few times
+    /// with a short delay to handle this edge case.
     pub fn new() -> Result<Self, CaptureError> {
+        // Retry logic for macOS open launch issue
+        const MAX_RETRIES: usize = 3;
+        const RETRY_DELAY_MS: u64 = 100;
+
+        let mut last_error = CaptureError::NoInputDevice;
+
+        for attempt in 0..MAX_RETRIES {
+            if attempt > 0 {
+                tracing::warn!(
+                    "[CAPTURE] Retry {} after {}ms delay",
+                    attempt + 1,
+                    RETRY_DELAY_MS
+                );
+                std::thread::sleep(std::time::Duration::from_millis(RETRY_DELAY_MS));
+            }
+
+            match Self::try_new() {
+                Ok(capture) => {
+                    tracing::info!("[CAPTURE] Device initialized on attempt {}", attempt + 1);
+                    return Ok(capture);
+                }
+                Err(e) => {
+                    last_error = e;
+                    tracing::warn!(
+                        "[CAPTURE] Attempt {} failed: {:?}",
+                        attempt + 1,
+                        last_error
+                    );
+                }
+            }
+        }
+
+        Err(last_error)
+    }
+
+    /// Internal: Try to create audio capture without retry
+    fn try_new() -> Result<Self, CaptureError> {
         let host = cpal::default_host();
+        tracing::info!("[CAPTURE] Using host: {:?}", host.id());
+
         let device = host
             .default_input_device()
             .ok_or(CaptureError::NoInputDevice)?;
+
+        // Get device name for debugging
+        let device_name = device.name().unwrap_or_else(|_| "unknown".to_string());
+        tracing::info!("[CAPTURE] Using input device: {}", device_name);
 
         let supported_config = device
             .default_input_config()
