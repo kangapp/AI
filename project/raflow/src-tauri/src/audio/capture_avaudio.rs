@@ -119,6 +119,8 @@ pub struct AudioCapture {
     sample_rate: u32,
     /// Number of channels
     channels: u32,
+    /// Callback context pointer (owned, must be freed in Drop)
+    callback_context: *mut AudioCallbackContext,
 }
 
 impl AudioCapture {
@@ -207,6 +209,9 @@ impl AudioCapture {
 
         if status != 0 {
             tracing::error!("[AVAudioEngine] SetRenderCallback failed: {}", status);
+            // Release callback_context since AudioUnit is not initialized yet
+            // and the callback was never registered
+            drop(unsafe { Box::from_raw(callback_context) });
             return Err(CaptureError::FormatError(format!(
                 "Failed to set render callback: {}",
                 status
@@ -217,6 +222,9 @@ impl AudioCapture {
         // Initialize audio unit (callback must be set BEFORE this!)
         let status = unsafe { AudioUnitInitialize(audio_unit) };
         if status != 0 {
+            // Release callback_context since AudioUnitInitialize failed
+            // and AudioCapture won't be created (no Drop will be called)
+            drop(unsafe { Box::from_raw(callback_context) });
             return Err(CaptureError::ComponentOpenFailed(format!(
                 "AudioUnitInitialize failed: {}",
                 status
@@ -235,6 +243,7 @@ impl AudioCapture {
             is_capturing,
             sample_rate,
             channels,
+            callback_context,
         })
     }
 
@@ -366,6 +375,10 @@ impl Drop for AudioCapture {
         unsafe {
             let _ = AudioUnitUninitialize(self.audio_unit);
             let _ = AudioComponentInstanceDispose(self.audio_unit);
+            // Release the callback context that was allocated in new()
+            if !self.callback_context.is_null() {
+                drop(Box::from_raw(self.callback_context));
+            }
         }
     }
 }
