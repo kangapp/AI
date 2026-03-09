@@ -25,6 +25,7 @@ tokio = { version = "1", features = ["full"] }
 tokio-tungstenite = { version = "0.26", features = ["native-tls"] }
 futures-util = "0.3"
 cpal = "0.15"
+av-foundation = "0.2"
 rubato = { version = "0.15", features = ["fft_resampler"] }
 ringbuf = "0.4"
 arboard = "3.4"
@@ -34,7 +35,7 @@ dotenvy = "0.15"
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
-objc2-avf-audio = "0.3"
+coreaudio-sys = "0.2"
 
 [profile.release]
 lto = true
