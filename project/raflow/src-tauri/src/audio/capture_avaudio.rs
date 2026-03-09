@@ -10,6 +10,7 @@
 use coreaudio_sys::*;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
+use std::thread;
 use thiserror::Error;
 
 /// Audio capture errors
@@ -104,6 +105,38 @@ impl RingBuffer {
         self.max = self.max * 0.9; // Decay
         m
     }
+}
+
+/// Wake up the audio device before starting capture
+/// This is a workaround for macOS where audio devices need to be "activated"
+/// when the app is launched via `open` command
+pub fn wake_up_audio_device() {
+    tracing::info!("[CAPTURE] Waking up audio device...");
+
+    // Try to create a temporary capture and immediately start/stop it
+    // This helps activate the audio subsystem on macOS
+    let wake_up_result = thread::spawn(|| {
+        match AudioCapture::new() {
+            Ok(mut capture) => {
+                tracing::info!("[CAPTURE] Wake-up: created capture, attempting to start...");
+                if let Err(e) = capture.start() {
+                    tracing::warn!("[CAPTURE] Wake-up start failed: {:?}", e);
+                    return;
+                }
+                // Brief delay to let audio system initialize
+                thread::sleep(std::time::Duration::from_millis(100));
+                capture.stop();
+                tracing::info!("[CAPTURE] Wake-up completed");
+            }
+            Err(e) => {
+                tracing::warn!("[CAPTURE] Wake-up failed: {:?}", e);
+            }
+        }
+    });
+
+    // Wait for wake-up to complete (with timeout)
+    let _ = wake_up_result.join();
+    tracing::info!("[CAPTURE] Audio device wake-up done");
 }
 
 /// Audio capture handle using CoreAudio AudioUnit
