@@ -28,8 +28,7 @@
 //! ```
 
 use crate::audio::{AudioCapture, CaptureError, Resampler, ResamplerError};
-use ringbuf::traits::{Consumer, Split};
-use ringbuf::HeapRb;
+// Ring buffer traits no longer needed
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread::{self, JoinHandle};
@@ -152,20 +151,17 @@ impl AudioPipeline {
         let output_rate = 16000; // Target sample rate for ElevenLabs
         let chunk_size = 1024;
 
-        // Create ring buffer for inter-thread communication
-        // Size: ~170ms of audio at 48kHz to handle processing latency
-        let buffer_size = 8192;
-        let rb = HeapRb::<f32>::new(buffer_size);
-        let (producer, mut consumer) = rb.split();
-
         // Mark as running before starting capture
         self.is_running.store(true, Ordering::SeqCst);
 
-        // Start audio capture
-        if let Err(e) = self.capture.start(producer) {
+        // Start audio capture (creates internal buffer)
+        if let Err(e) = self.capture.start() {
             self.is_running.store(false, Ordering::SeqCst);
             return Err(e.into());
         }
+
+        // Get buffer reference from capture
+        let buffer = self.capture.buffer();
 
         // Spawn processor thread
         let is_running = self.is_running.clone();
@@ -192,11 +188,24 @@ impl AudioPipeline {
                 chunk_size
             );
 
+            // DEBUG: Track if we ever get data from buffer
+            let mut debug_samples_count = 0usize;
+
             while is_running.load(Ordering::SeqCst) {
-                // Collect samples from ring buffer
+                // Collect samples from capture buffer
                 input_chunk.clear();
-                while let Some(sample) = consumer.try_pop() {
-                    input_chunk.push(sample);
+                {
+                    let mut buf = buffer.lock().unwrap();
+                    while let Some(sample) = buf.pop() {
+                        input_chunk.push(sample);
+                    }
+                    if !input_chunk.is_empty() && debug_samples_count < 3 {
+                        debug_samples_count += 1;
+                        let sum: f32 = input_chunk.iter().sum();
+                        let first5: Vec<f32> = input_chunk.iter().take(5).copied().collect();
+                        tracing::info!("[PIPELINE] Got {} samples from buffer, sum={:.6}, first5={:?}",
+                            input_chunk.len(), sum, first5);
+                    }
                 }
 
                 // Process using buffered method - handles partial chunks internally
@@ -204,6 +213,10 @@ impl AudioPipeline {
                     match resampler.process_buffered(&input_chunk, &mut resampler_internal_buffer) {
                         Ok(pcm) => {
                             if !pcm.is_empty() {
+                                if debug_samples_count <= 3 {
+                                    let pcm_sum: i16 = pcm.iter().sum();
+                                    tracing::info!("[PIPELINE] PCM output: {} samples, sum={}", pcm.len(), pcm_sum);
+                                }
                                 callback(pcm);
                             }
                         }
