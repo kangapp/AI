@@ -5,10 +5,74 @@
 
 use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
 use cpal::{Device, SampleFormat, Stream, StreamConfig};
-use ringbuf::traits::Producer;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
+use std::thread;
 use thiserror::Error;
+
+/// Request microphone permission on macOS by using a temporary audio capture
+/// This triggers the TCC permission dialog if not already granted
+#[cfg(target_os = "macos")]
+fn request_microphone_permission() {
+    use std::process::Command;
+
+    // Try to use system_profiler to query audio devices - this may trigger permission
+    let output = Command::new("system_profiler")
+        .args(["-json", "SPAudioDataType"])
+        .output();
+
+    match output {
+        Ok(o) if o.status.success() => {
+            tracing::info!("[CAPTURE] system_profiler queried for audio devices");
+        }
+        Ok(e) => {
+            tracing::warn!("[CAPTURE] system_profiler failed: {:?}", e);
+        }
+        Err(e) => {
+            tracing::warn!("[CAPTURE] system_profiler error: {:?}", e);
+        }
+    }
+
+    // Also try to access the default input device which may trigger permission
+    let host = cpal::default_host();
+    if let Some(_device) = host.default_input_device() {
+        tracing::info!("[CAPTURE] Default input device found, permission may be granted");
+    } else {
+        tracing::warn!("[CAPTURE] No default input device, permission may be needed");
+    }
+}
+
+/// Wake up the audio device before starting capture
+/// This is a workaround for macOS where audio devices need to be "activated"
+/// when the app is launched via `open` command
+pub fn wake_up_audio_device() {
+    tracing::info!("[CAPTURE] Waking up audio device...");
+
+    // Try to create a temporary capture and immediately start/stop it
+    // This helps activate the audio subsystem on macOS
+    let wake_up_result = thread::spawn(|| {
+        match AudioCapture::try_new() {
+            Ok(mut capture) => {
+                tracing::info!("[CAPTURE] Wake-up: created capture, attempting to start...");
+                if let Err(e) = capture.start() {
+                    tracing::warn!("[CAPTURE] Wake-up start failed: {:?}", e);
+                    return;
+                }
+                // Brief delay to let audio system initialize
+                thread::sleep(std::time::Duration::from_millis(100));
+                capture.stop();
+                tracing::info!("[CAPTURE] Wake-up completed");
+            }
+            Err(e) => {
+                tracing::warn!("[CAPTURE] Wake-up failed: {:?}", e);
+            }
+        }
+    });
+
+    // Wait for wake-up to complete (with timeout)
+    let _ = wake_up_result.join();
+    tracing::info!("[CAPTURE] Audio device wake-up done");
+}
 
 /// Audio capture errors
 #[derive(Error, Debug)]
@@ -54,6 +118,10 @@ pub struct AudioCapture {
     stream: Option<Stream>,
     /// Flag indicating if capture is active
     is_capturing: Arc<AtomicBool>,
+    /// Ring buffer for audio data
+    buffer: Arc<Mutex<Vec<f32>>>,
+    /// Sample rate
+    sample_rate_val: u32,
 }
 
 impl AudioCapture {
@@ -82,6 +150,13 @@ impl AudioCapture {
     /// may not be immediately available. This method retries a few times
     /// with a short delay to handle this edge case.
     pub fn new() -> Result<Self, CaptureError> {
+        // Request microphone permission on macOS by attempting a quick capture
+        // This triggers the TCC permission dialog if not already granted
+        #[cfg(target_os = "macos")]
+        {
+            request_microphone_permission();
+        }
+
         // Retry logic for macOS open launch issue
         const MAX_RETRIES: usize = 3;
         const RETRY_DELAY_MS: u64 = 100;
@@ -122,31 +197,51 @@ impl AudioCapture {
         let host = cpal::default_host();
         tracing::info!("[CAPTURE] Using host: {:?}", host.id());
 
-        let device = host
-            .default_input_device()
-            .ok_or(CaptureError::NoInputDevice)?;
+        // Use system default input device
+        let device = host.default_input_device().ok_or(CaptureError::NoInputDevice)?;
 
         // Get device name for debugging
-        let device_name = device.name().unwrap_or_else(|_| "unknown".to_string());
+        let device_name = device.description().map(|d| d.name().to_string()).unwrap_or_else(|_| "unknown".to_string());
         tracing::info!("[CAPTURE] Using input device: {}", device_name);
 
-        let supported_config = device
+        // Try to get all supported configs and log them
+        if let Ok(supported_configs) = device.supported_input_configs() {
+            for cfg in supported_configs {
+                tracing::info!("[CAPTURE] Supported config: {}ch, {}-{}Hz, {:?}",
+                    cfg.channels(),
+                    cfg.min_sample_rate(),
+                    cfg.max_sample_rate(),
+                    cfg.sample_format());
+            }
+        }
+
+        // Use default config
+        let config = device
             .default_input_config()
             .map_err(|e| CaptureError::StreamBuild(e.to_string()))?;
 
-        let config: StreamConfig = supported_config.into();
+        tracing::info!("[CAPTURE] Default config: {}ch, {}Hz, {:?}",
+            config.channels(), config.sample_rate(), config.sample_format());
+
+        // CPAL 0.17: sample_rate() returns SampleRate, use .0 to get Hz value
+
+        let stream_config: StreamConfig = config.into();
 
         tracing::info!(
             "Audio capture initialized: {} channels, {} Hz",
-            config.channels,
-            config.sample_rate.0
+            stream_config.channels,
+            stream_config.sample_rate
         );
+
+        let sample_rate = stream_config.sample_rate;
 
         Ok(Self {
             device,
-            config,
+            config: stream_config,
             stream: None,
             is_capturing: Arc::new(AtomicBool::new(false)),
+            buffer: Arc::new(Mutex::new(Vec::with_capacity(16384))),
+            sample_rate_val: sample_rate,
         })
     }
 
@@ -156,7 +251,12 @@ impl AudioCapture {
     /// Common values are 44100, 48000, or 96000 Hz.
     #[must_use]
     pub fn sample_rate(&self) -> u32 {
-        self.config.sample_rate.0
+        self.sample_rate_val
+    }
+
+    /// Get the buffer for external access
+    pub fn buffer(&self) -> Arc<Mutex<Vec<f32>>> {
+        self.buffer.clone()
     }
 
     /// Get the number of audio channels
@@ -203,19 +303,26 @@ impl AudioCapture {
     /// let rb = HeapRb::<f32>::new(buffer_size);
     /// let (producer, _consumer) = rb.split();
     ///
-    /// capture.start(producer)?;
+    /// capture.start()?;
     /// # Ok::<(), raflow_lib::audio::CaptureError>(())
     /// ```
-    pub fn start<P>(&mut self, mut producer: P) -> Result<(), CaptureError>
-    where
-        P: Producer<Item = f32> + Send + 'static,
-    {
+    pub fn start(&mut self) -> Result<(), CaptureError> {
         if self.is_capturing() {
             tracing::warn!("Audio capture already in progress");
             return Ok(());
         }
 
+        // Clear buffer
+        {
+            let mut buf = self.buffer.lock().unwrap();
+            buf.clear();
+        }
+
+        let buffer = self.buffer.clone();
         let channels = self.config.channels as usize;
+
+        // DEBUG: Track first few callbacks to verify audio data
+        let debug_counter = std::sync::atomic::AtomicU32::new(0);
 
         // Build the input stream
         let stream = self
@@ -223,13 +330,25 @@ impl AudioCapture {
             .build_input_stream(
                 &self.config,
                 move |data: &[f32], _: &cpal::InputCallbackInfo| {
-                    // Write samples to ring buffer
+                    // DEBUG: Log first few callbacks to see actual sample values
+                    let count = debug_counter.fetch_add(1, Ordering::SeqCst);
+                    if count < 3 {
+                        if !data.is_empty() {
+                            let first10: Vec<f32> = data.iter().take(10).copied().collect();
+                            let sum: f32 = data.iter().sum();
+                            tracing::info!("[CAPTURE-CB] callback #{}: {} samples, first10={:?}, sum={:.6}",
+                                count, data.len(), first10, sum);
+                        } else {
+                            tracing::info!("[CAPTURE-CB] callback #{}: empty data", count);
+                        }
+                    }
+
+                    // Write samples to internal buffer
                     // Note: For stereo input, we store interleaved samples
                     // The pipeline will handle channel conversion
-                    for &sample in data {
-                        if producer.try_push(sample).is_err() {
-                            // Buffer overflow - drop samples
-                            // Using trace level to avoid log spam
+                    if let Ok(mut buf) = buffer.lock() {
+                        for &sample in data {
+                            buf.push(sample);
                         }
                     }
                 },
@@ -245,13 +364,17 @@ impl AudioCapture {
             .play()
             .map_err(|e| CaptureError::StreamStart(e.to_string()))?;
 
+        // Give audio system time to start capturing after play()
+        // This is critical for macOS open launch
+        std::thread::sleep(std::time::Duration::from_millis(2000));
+
         self.stream = Some(stream);
         self.is_capturing.store(true, Ordering::SeqCst);
 
         tracing::info!(
             "Audio capture started: {} channels, {} Hz",
             channels,
-            self.config.sample_rate.0
+            self.config.sample_rate
         );
 
         Ok(())
@@ -279,7 +402,8 @@ impl AudioCapture {
     #[must_use]
     pub fn device_name(&self) -> String {
         self.device
-            .name()
+            .description()
+            .map(|d| d.name().to_string())
             .unwrap_or_else(|_| "Unknown Device".to_string())
     }
 }
