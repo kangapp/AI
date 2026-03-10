@@ -2,32 +2,18 @@
 
 ## 核心原则
 
+### 第一性原理
+- 请使用第一性原理思考
+- 你不能总是假设我非常清楚自己想要什么和该怎么得到
+- 保持审慎,从原始需求和问题出发,如果动机和目标不清晰,停下来和我讨论
+- 如果目标清晰但是路径不是最短,告诉我,并且建议更好的办法
+
 ### KISS 原则
 
 1. **简单优先** - 选择最直接的实现，避免过度抽象
 2. **单一职责** - 每个模块只做一件事
 3. **不做假想** - 不为未来可能的需求编写代码
 4. **可读性优先** - 清晰胜于聪明
-
-### 代码质量
-
-| 层面 | 要求 |
-|------|------|
-| 类型安全 | Rust: `#![deny(missing_docs)]` / TS: `strict: true` |
-| 错误处理 | 禁止 `unwrap()`/`any`，使用 `Result`/具体类型 |
-| 文档 | 所有 public API 必须有注释 |
-| 测试 | 核心模块必须有单元测试 |
-
-### 命名规范
-
-| 类型 | Rust | TypeScript |
-|------|------|------------|
-| 函数 | `snake_case` | `camelCase` |
-| 类型 | `PascalCase` | `PascalCase` |
-| 常量 | `SCREAMING_SNAKE_CASE` | `SCREAMING_SNAKE_CASE` |
-| Hook | - | `use` 前缀 |
-
----
 
 ## 核心工作流：规划与执行 (HOW)
 
@@ -37,7 +23,7 @@
 
 - **设计优先**：在编写任何代码前，必须调用 /superpowers:brainstorm 进行苏格拉底式需求拆解
 - **设计持久化**：将 Brainstorm 的架构结论同步至 findings.md
-- **任务分发**：使用 /superpowers:write-plan 生成 2-5 分钟的微型任务，必须将其同步至 task_plan.md 的阶段路线图中, 以task_plan.md 为主
+- **任务分发**：使用 /superpowers:write-plan 生成 2-5 分钟的微型任务，必须将其同步至 task_plan.md 的阶段路线图中
 
 ### 2. 状态维护规则 (Context Engineering)
 
@@ -60,8 +46,6 @@
 - **findings.md**: 技术决策、API 结构及研究结论。
 - **progress.md**: 会话日志、测试结果及错误记录 。
 
----
-
 ## 常用开发命令
 
 | 操作 | 命令 |
@@ -70,10 +54,6 @@
 | 架构设计 | /superpowers:brainstorm |
 | 生成计划 | /superpowers:write-plan |
 | 执行任务 | /superpowers:execute-plan |
-
----
-
-## 开发宪章
 
 ## 动态上下文引用
 

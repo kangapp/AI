@@ -118,9 +118,12 @@ function ErrorToast({
   );
 }
 
+// Version from package.json (injected by Vite)
+const APP_VERSION = "0.2.5";
+
 function App() {
-  const { status, partialText, committedText, audioLevel, error } = useTranscription();
-  const isRecording = status === "recording";
+  const { status, partialText, committedText, audioLevel, error, debugEventCount, sessionStarting, audioThreadStarted, audioPipelineCreated, audioTimerStarted } = useTranscription();
+  const isActive = status === "recording" || status === "connecting" || status === "processing";
   const [showError, setShowError] = useState(false);
 
   // Auto-show error toast
@@ -133,11 +136,11 @@ function App() {
   // Show window when recording starts
   useEffect(() => {
     const win = getCurrentWindow();
-    if (isRecording) {
+    if (isActive) {
       win.show();
       win.setFocus();
     }
-  }, [isRecording]);
+  }, [isActive]);
 
   return (
     <motion.div
@@ -171,6 +174,11 @@ function App() {
           <ErrorToast message={error.message} onDismiss={() => setShowError(false)} />
         )}
       </AnimatePresence>
+
+      {/* Version number and debug info */}
+      <div className="absolute bottom-1 right-2 text-[9px] text-gray-500/50 font-mono">
+        v{APP_VERSION} | s:{sessionStarting ? "1" : "0"} t:{audioThreadStarted ? "1" : "0"} p:{audioPipelineCreated ? "1" : "0"} m:{audioTimerStarted ? "1" : "0"} | cnt:{debugEventCount} | rms:{audioLevel.toFixed(6)}
+      </div>
     </motion.div>
   );
 }

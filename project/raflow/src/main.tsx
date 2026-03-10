@@ -1,4 +1,3 @@
-import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import "./styles.css";
@@ -8,8 +7,6 @@ if (!rootElement) {
   throw new Error("Root element not found");
 }
 
-ReactDOM.createRoot(rootElement).render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
+// Note: StrictMode is disabled because it causes event listeners to be
+// registered twice in development mode, which can lead to missed events
+ReactDOM.createRoot(rootElement).render(<App />);

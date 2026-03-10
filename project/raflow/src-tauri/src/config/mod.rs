@@ -172,24 +172,41 @@ pub fn save_config(config: &AppConfig) -> Result<(), ConfigError> {
 ///
 /// `Some(key)` if found, `None` if not set anywhere.
 pub fn get_api_key() -> Result<Option<String>, ConfigError> {
+    let config_file_path = config_path().unwrap_or_else(|e| {
+        tracing::warn!("Failed to get config path: {}", e);
+        std::path::PathBuf::from("(unknown)")
+    });
+    tracing::info!("Config file path: {}", config_file_path.display());
+
     // First check environment variable
     if let Ok(key) = env::var(ENV_ELEVENLABS_API_KEY) {
         if !key.is_empty() && key != "your-api-key-here" {
+            tracing::info!("API key found in environment variable");
             return Ok(Some(key));
         }
     }
+    tracing::info!("API key not in environment, checking config file...");
 
     // Fall back to config file
     let config = load_config()?;
+    tracing::info!("Config loaded, api_key present: {}", config.elevenlabs_api_key.is_some());
     Ok(config.elevenlabs_api_key)
 }
 
-/// Initializes configuration by loading .env file.
+/// Initializes configuration.
 ///
 /// Call this once at application startup.
+/// Note: .env file loading is disabled in production builds.
+/// Use config file at ~/Library/Application Support/com.raflow.raflow/config.json
+#[cfg(debug_assertions)]
 pub fn init() {
-    // Load .env file from current directory or parent directories
+    // Only load .env in debug builds for development
     let _ = dotenvy::dotenv();
+}
+
+#[cfg(not(debug_assertions))]
+pub fn init() {
+    // In release builds, only use config file
 }
 
 #[cfg(test)]
