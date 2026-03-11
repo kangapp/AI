@@ -53,6 +53,15 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);
     await invoke('save_window_settings', { settings: newSettings });
+
+    // 当隐藏设置变化时，同步窗口显示状态
+    if (key === 'hidden') {
+      if (value) {
+        await invoke('hide_window');
+      } else {
+        await invoke('show_window');
+      }
+    }
   };
 
   const handleDragStart = async () => {

@@ -1,10 +1,21 @@
 import { useEffect, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { useTranscription, RecordingStatus } from "./hooks/useTranscription";
 import { TranscriptDisplay } from "./components/TranscriptDisplay";
 import { WaveformVisualizer } from "./components/WaveformVisualizer";
 import { SettingsPanel } from './components/SettingsPanel';
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { motion, AnimatePresence } from "framer-motion";
+
+interface WindowSettings {
+  position: { x: number; y: number } | null;
+  window_size: { width: number; height: number };
+  font_size: number;
+  text_color: string;
+  background_color: string;
+  background_opacity: number;
+  hidden: boolean;
+}
 
 /**
  * Apple-style status configuration
@@ -124,6 +135,15 @@ function App() {
   const isRecording = status === "recording";
   const [view, setView] = useState<'main' | 'settings'>('main');
   const [showError, setShowError] = useState(false);
+
+  // Load window settings on mount
+  useEffect(() => {
+    invoke<WindowSettings>('get_window_settings').then((settings) => {
+      if (settings.hidden) {
+        invoke('hide_window');
+      }
+    }).catch(console.error);
+  }, []);
 
   // Auto-show error toast
   useEffect(() => {
