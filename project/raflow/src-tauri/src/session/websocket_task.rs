@@ -126,7 +126,6 @@ pub async fn run_transcription_task(
                     OutgoingMessage::audio(base64_audio)
                 } else {
                     config_sent = true;
-                    tracing::info!("Sending first audio chunk with VAD config");
                     OutgoingMessage::audio_with_config(base64_audio, &vad_config)
                 };
 
@@ -183,8 +182,6 @@ pub async fn run_transcription_task(
                                 }
                                 _ => {}
                             }
-                        } else {
-                            tracing::warn!("Failed to parse WebSocket message: {}", &text[..text.len().min(100)]);
                         }
                     }
                     Some(Ok(_)) => {} // Ignore non-text messages

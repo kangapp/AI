@@ -82,10 +82,91 @@ pub struct AppConfig {
     /// Enable debug logging.
     #[serde(default)]
     pub debug_logging: bool,
+
+    /// 悬浮窗设置
+    #[serde(default)]
+    pub floating_window: FloatingWindowSettings,
 }
 
 fn default_sample_rate() -> u32 {
     48000
+}
+
+/// 窗口位置 (物理像素)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WindowPosition {
+    pub x: i32,
+    pub y: i32,
+}
+
+/// 窗口尺寸
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WindowSize {
+    pub width: u32,
+    pub height: u32,
+}
+
+fn default_window_width() -> u32 { 440 }
+fn default_window_height() -> u32 { 180 }
+fn default_font_size() -> u32 { 14 }
+fn default_text_color() -> String { "#FFFFFF".to_string() }
+fn default_bg_color() -> String { "#1C1C1E".to_string() }
+fn default_bg_opacity() -> u32 { 85 }
+
+/// 悬浮窗设置
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FloatingWindowSettings {
+    /// 窗口位置 (物理像素)
+    #[serde(default)]
+    pub position: Option<WindowPosition>,
+
+    /// 窗口尺寸
+    #[serde(default = "default_window_size")]
+    pub window_size: WindowSize,
+
+    /// 字体大小 (px)
+    #[serde(default = "default_font_size")]
+    pub font_size: u32,
+
+    /// 文字颜色 (hex)
+    #[serde(default = "default_text_color")]
+    pub text_color: String,
+
+    /// 背景颜色 (hex)
+    #[serde(default = "default_bg_color")]
+    pub background_color: String,
+
+    /// 背景透明度 (0-100)
+    #[serde(default = "default_bg_opacity")]
+    pub background_opacity: u32,
+
+    /// 是否隐藏悬浮窗
+    #[serde(default)]
+    pub hidden: bool,
+}
+
+fn default_window_size() -> WindowSize {
+    WindowSize {
+        width: default_window_width(),
+        height: default_window_height(),
+    }
+}
+
+impl Default for FloatingWindowSettings {
+    fn default() -> Self {
+        Self {
+            position: None,
+            window_size: WindowSize {
+                width: default_window_width(),
+                height: default_window_height(),
+            },
+            font_size: default_font_size(),
+            text_color: default_text_color(),
+            background_color: default_bg_color(),
+            background_opacity: default_bg_opacity(),
+            hidden: false,
+        }
+    }
 }
 
 impl Default for AppConfig {
@@ -94,6 +175,7 @@ impl Default for AppConfig {
             elevenlabs_api_key: None,
             sample_rate: default_sample_rate(),
             debug_logging: false,
+            floating_window: FloatingWindowSettings::default(),
         }
     }
 }
@@ -172,41 +254,24 @@ pub fn save_config(config: &AppConfig) -> Result<(), ConfigError> {
 ///
 /// `Some(key)` if found, `None` if not set anywhere.
 pub fn get_api_key() -> Result<Option<String>, ConfigError> {
-    let config_file_path = config_path().unwrap_or_else(|e| {
-        tracing::warn!("Failed to get config path: {}", e);
-        std::path::PathBuf::from("(unknown)")
-    });
-    tracing::info!("Config file path: {}", config_file_path.display());
-
     // First check environment variable
     if let Ok(key) = env::var(ENV_ELEVENLABS_API_KEY) {
         if !key.is_empty() && key != "your-api-key-here" {
-            tracing::info!("API key found in environment variable");
             return Ok(Some(key));
         }
     }
-    tracing::info!("API key not in environment, checking config file...");
 
     // Fall back to config file
     let config = load_config()?;
-    tracing::info!("Config loaded, api_key present: {}", config.elevenlabs_api_key.is_some());
     Ok(config.elevenlabs_api_key)
 }
 
-/// Initializes configuration.
+/// Initializes configuration by loading .env file.
 ///
 /// Call this once at application startup.
-/// Note: .env file loading is disabled in production builds.
-/// Use config file at ~/Library/Application Support/com.raflow.raflow/config.json
-#[cfg(debug_assertions)]
 pub fn init() {
-    // Only load .env in debug builds for development
+    // Load .env file from current directory or parent directories
     let _ = dotenvy::dotenv();
-}
-
-#[cfg(not(debug_assertions))]
-pub fn init() {
-    // In release builds, only use config file
 }
 
 #[cfg(test)]

@@ -165,9 +165,6 @@ impl RecordingSession {
         // Mark as active
         self.is_active.store(true, Ordering::SeqCst);
 
-        // 发送会话启动事件（在主线程中）
-        let _ = app_handle.emit("session-starting", 1);
-
         // Spawn audio pipeline in a dedicated thread
         // This is necessary because cpal::Stream is not Send
         let audio_cancel_token = self.cancel_token.clone();
@@ -175,46 +172,12 @@ impl RecordingSession {
         let app_handle_for_audio = app_handle.clone();
         let handle = thread::spawn(move || {
             use crate::audio::AudioPipeline;
-            use std::sync::Mutex;
-
-            // 发送音频线程启动事件
-            let _ = app_handle_for_audio.emit("audio-thread-started", 1);
-            tracing::info!("[AUDIO-THREAD] Thread started, creating pipeline...");
-
-            // Shared RMS value for throttled emit (protected by Mutex)
-            let latest_rms = Arc::new(Mutex::new(0.0f64));
-            let latest_rms_clone = latest_rms.clone();
-            let app_handle_for_timer = app_handle_for_audio.clone();
-
-            // Spawn a timer thread to emit audio-level events at 20 FPS (every 50ms)
-            // This avoids high-frequency emit from audio callback which may not work in production
-            let timer_cancel_token = audio_cancel_token.clone();
-            let timer_handle = thread::spawn(move || {
-                // 发送 timer 线程启动事件
-                let _ = app_handle_for_timer.emit("audio-timer-started", 1);
-
-                while !timer_cancel_token.load(Ordering::SeqCst) {
-                    thread::sleep(Duration::from_millis(50));
-                    if timer_cancel_token.load(Ordering::SeqCst) {
-                        break;
-                    }
-                    let rms = *latest_rms_clone.lock().unwrap();
-                    // 始终发送事件
-                    let _ = app_handle_for_timer.emit("audio-level", rms);
-                }
-                tracing::debug!("Audio level timer thread stopped");
-            });
 
             // Create audio pipeline in this thread
             let mut pipeline = match AudioPipeline::new() {
-                Ok(p) => {
-                    tracing::info!("[AUDIO-THREAD] Pipeline created successfully");
-                    let _ = app_handle_for_audio.emit("audio-pipeline-created", 1);
-                    p
-                },
+                Ok(p) => p,
                 Err(e) => {
                     tracing::error!("Failed to create audio pipeline: {}", e);
-                    let _ = app_handle_for_audio.emit("audio-pipeline-failed", e.to_string());
                     return;
                 }
             };
@@ -234,16 +197,13 @@ impl RecordingSession {
                             normalized * normalized
                         })
                         .sum();
-                    let calc_rms = (sum_of_squares / pcm_data.len() as f64).sqrt();
-                    // DEBUG: 始终打印 RMS 计算结果
-                    tracing::info!("[RMS] pcm_size={}, rms={:.6}", pcm_data.len(), calc_rms);
-                    calc_rms
+                    (sum_of_squares / pcm_data.len() as f64).sqrt()
                 } else {
                     0.0
                 };
 
-                // Update shared RMS value (timer thread will emit it)
-                *latest_rms.lock().unwrap() = rms;
+                // Emit audio level event (0.0 - 1.0)
+                let _ = app_handle_for_audio.emit("audio-level", rms);
 
                 // Send audio data to WebSocket task
                 let _ = audio_tx.blocking_send(pcm_data);
@@ -259,11 +219,7 @@ impl RecordingSession {
 
             // Stop pipeline
             pipeline.stop();
-
-            // Wait for timer thread
-            let _ = timer_handle.join();
-
-            tracing::debug!("Audio pipeline thread stopped");
+            tracing::info!("Audio pipeline thread stopped");
         });
 
         self.audio_thread_handle = Some(handle);
@@ -299,8 +255,8 @@ impl RecordingSession {
         // Reset active state
         is_active.store(false, Ordering::SeqCst);
 
-        // Note: Don't emit recording-state-changed here, let the stop() method handle it
-        // This prevents duplicate events and ensures proper state synchronization
+        // Emit recording stopped event
+        let _ = app_handle.emit("recording-state-changed", false);
 
         // Emit error event if failed
         if let Err(ref e) = result {

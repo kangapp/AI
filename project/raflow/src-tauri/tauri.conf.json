@@ -51,8 +51,7 @@
     "macOS": {
       "dmg": {},
       "minimumSystemVersion": "10.13",
-      "entitlements": "entitlements.plist",
-      "signingIdentity": "-"
+      "entitlements": "entitlements.plist"
     }
   },
   "plugins": {

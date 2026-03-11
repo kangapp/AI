@@ -4,37 +4,6 @@
 
 ---
 
-## 0. macOS 音频捕获限制（Phase 17/18）
-
-> 详细调研报告见: `docs/macOS-audio-permission-guide.md`
-
-### 0.1 问题描述
-
-macOS 上使用 ad-hoc 签名启动应用时，麦克风音频捕获不工作。
-
-### 0.2 测试结果
-
-| 音频库 | 启动方式 | 麦克风 | 结果 |
-|--------|----------|--------|------|
-| cpal 0.15 | 直接运行 | iPhone | ✅ 正常 |
-| cpal 0.15 | 直接运行 | MacBook | ❌ 返回 0 |
-| cpal 0.15 | open 启动 | iPhone | ❌ 返回 0 |
-| CoreAudio (AudioUnit) | 直接运行 | iPhone | ❌ 回调不工作 |
-| CoreAudio (AudioUnit) | open 启动 | iPhone | ❌ 回调不工作 |
-
-### 0.3 根因分析
-
-- `AudioOutputUnitStart` 返回 0（成功）
-- 回调函数从未被调用
-- 这是 macOS 音频子系统的限制，不是特定库的问题
-
-### 0.4 可能的解决方案
-
-1. **Apple 开发者签名** - 注册 Apple Developer Program，使用正式签名
-2. **接受限制** - 文档说明需要用终端直接运行 (`./raflow`)
-
----
-
 ## 1. 核心引擎：ElevenLabs Scribe v2 Realtime API
 
 ### 1.1 API 特性
@@ -508,58 +477,4 @@ box-shadow:
 ```css
 font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text";
 ```
-
----
-
-## 9. Phase 17 macOS 麦克风调试发现
-
-### 9.1 问题症状
-
-| 启动方式 | 麦克风 | 结果 |
-|----------|--------|------|
-| 直接运行 `./raflow` | iPhone 麦克风 | ✅ 正常 |
-| 直接运行 `./raflow` | MacBook Pro 麦克风 | ❌ 返回 0 |
-| `open` 启动 | iPhone 麦克风 | ❌ 返回 0 |
-| `open` 启动 | MacBook Pro 麦克风 | ❌ 返回 0 |
-
-### 9.2 根因分析
-
-**核心发现**:
-- cpal 回调被正确调用（512 样本/次）
-- 音频数据全是 0，不是设备未找到
-- 直接运行 + iPhone 麦克风能正常工作
-
-**问题根源**: cpal + macOS `open` 启动的已知问题
-
-### 9.3 尝试的解决方案
-
-| 方案 | 结果 |
-|------|------|
-| 延迟 500ms-2000ms | ❌ 无效 |
-| 预初始化音频 | ❌ 无效 |
-| wake-up 捕获 | ❌ 无效 |
-| 签名 (adhoc) | ❌ 无效 |
-| TCC 权限请求 | ❌ 无效 |
-| 原生 CoreAudio API | ❌ 回调未调用 |
-| iPhone vs MacBook Pro | iPhone 直接运行能工作 |
-
-### 9.4 结论
-
-- **直接运行模式**: iPhone 麦克风正常工作 ✅
-- **open 启动**: 麦克风返回 0（cpal 已知限制）
-- **可能原因**: macOS 沙盒/代码签名差异
-
-### 9.5 当前可用方案
-
-```bash
-# 直接运行（正常工作）
-./src-tauri/target/release/raflow
-
-# 或打包后通过直接路径运行
-./src-tauri/target/release/bundle/macos/RaFlow.app/Contents/MacOS/raflow
-```
-
-### 9.6 待解决
-
-- [ ] open 启动模式麦克风问题（可能需要 Apple 开发者签名）
 
