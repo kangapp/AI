@@ -134,6 +134,11 @@ pub fn run() {
                                 let _ = window.show();
                                 let _ = window.set_focus();
                             }
+                            // Update hidden status in config
+                            if let Ok(mut config) = crate::config::load_config() {
+                                config.floating_window.hidden = false;
+                                let _ = crate::config::save_config(&config);
+                            }
                         }
                         "settings" => {
                             // 发送事件到前端切换到设置视图
