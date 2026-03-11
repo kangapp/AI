@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { useTranscription, RecordingStatus } from "./hooks/useTranscription";
 import { TranscriptDisplay } from "./components/TranscriptDisplay";
 import { WaveformVisualizer } from "./components/WaveformVisualizer";
@@ -160,6 +161,17 @@ function App() {
       win.setFocus();
     }
   }, [isRecording]);
+
+  // Listen for open-settings event from tray menu
+  useEffect(() => {
+    const unlisten = listen('open-settings', () => {
+      setView('settings');
+    });
+
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, []);
 
   return (
     <motion.div
