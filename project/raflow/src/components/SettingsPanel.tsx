@@ -33,6 +33,22 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
     invoke<WindowSettings>('get_window_settings').then(setSettings).catch(console.error);
   }, []);
 
+  // Save position when drag ends
+  useEffect(() => {
+    const handleDragEnd = async () => {
+      if (isDragging) {
+        setIsDragging(false);
+        await invoke('save_window_position');
+        // Reload settings to get new position
+        const newSettings = await invoke<WindowSettings>('get_window_settings');
+        setSettings(newSettings);
+      }
+    };
+
+    window.addEventListener('mouseup', handleDragEnd);
+    return () => window.removeEventListener('mouseup', handleDragEnd);
+  }, [isDragging]);
+
   const updateSetting = async <K extends keyof WindowSettings>(key: K, value: WindowSettings[K]) => {
     const newSettings = { ...settings, [key]: value };
     setSettings(newSettings);

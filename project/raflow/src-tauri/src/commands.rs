@@ -127,3 +127,19 @@ pub async fn start_dragging(app: AppHandle) -> Result<(), String> {
     window.start_dragging().map_err(|e| e.to_string())?;
     Ok(())
 }
+
+#[tauri::command]
+pub async fn save_window_position(app: AppHandle) -> Result<(), String> {
+    let window = app.get_webview_window("main").ok_or("Window not found")?;
+    let position = window.outer_position().map_err(|e| e.to_string())?;
+
+    // Save to config
+    let mut config = crate::config::load_config().map_err(|e| e.to_string())?;
+    config.floating_window.position = Some(WindowPosition {
+        x: position.x,
+        y: position.y,
+    });
+    crate::config::save_config(&config).map_err(|e| e.to_string())?;
+
+    Ok(())
+}

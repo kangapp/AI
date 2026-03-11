@@ -33,6 +33,7 @@ pub fn run() {
             commands::show_window,
             commands::hide_window,
             commands::start_dragging,
+            commands::save_window_position,
         ])
         .setup(|app| {
             // Register Cmd+Shift+H shortcut
