@@ -26,6 +26,13 @@ pub fn run() {
             commands::start_recording,
             commands::stop_recording,
             commands::is_recording,
+            commands::get_window_settings,
+            commands::save_window_settings,
+            commands::set_window_position,
+            commands::set_window_size,
+            commands::show_window,
+            commands::hide_window,
+            commands::start_dragging,
         ])
         .setup(|app| {
             // Register Cmd+Shift+H shortcut
@@ -33,8 +40,14 @@ pub fn run() {
 
             let app_handle = app.handle().clone();
 
-            app.global_shortcut().on_shortcut(shortcut, move |_app, _shortcut, _event| {
+            app.global_shortcut().on_shortcut(shortcut, move |_app, _shortcut, event| {
                 let app_handle = app_handle.clone();
+
+                // Only handle on Pressed, ignore Released to prevent double-trigger
+                if event.state != tauri_plugin_global_shortcut::ShortcutState::Pressed {
+                    return;
+                }
+
                 // Use tauri::async_runtime::spawn instead of tokio::spawn
                 // because hotkey callback is not in tokio runtime context
                 tauri::async_runtime::spawn(async move {
