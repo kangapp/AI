@@ -6,7 +6,11 @@ pub mod session;
 pub mod transcription;
 
 use session::{RecordingSession, SessionState};
-use tauri::{Emitter, Manager};
+use tauri::{
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+    Emitter, Manager,
+};
 use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut};
 use tracing::info;
 
@@ -112,6 +116,57 @@ pub fn run() {
             })?;
 
             info!("Global shortcut registered: Cmd+Shift+H");
+
+            // 创建托盘菜单
+            let show_item = MenuItem::with_id(app, "show", "打开悬浮窗", true, None::<&str>)?;
+            let settings_item = MenuItem::with_id(app, "settings", "设置...", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "退出", true, None::<&str>)?;
+
+            let menu = Menu::with_items(app, &[&show_item, &settings_item, &quit_item])?;
+
+            let _tray = TrayIconBuilder::new()
+                .menu(&menu)
+                .tooltip("RaFlow - Ready")
+                .on_menu_event(move |app, event| {
+                    match event.id.as_ref() {
+                        "show" => {
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                        "settings" => {
+                            // 发送事件到前端切换到设置视图
+                            let _ = app.emit("open-settings", ());
+                            if let Some(window) = app.get_webview_window("main") {
+                                let _ = window.show();
+                                let _ = window.set_focus();
+                            }
+                        }
+                        "quit" => {
+                            app.exit(0);
+                        }
+                        _ => {}
+                    }
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        let app = tray.app_handle();
+                        if let Some(window) = app.get_webview_window("main") {
+                            let _ = window.show();
+                            let _ = window.set_focus();
+                        }
+                    }
+                })
+                .build(app)?;
+
+            info!("Tray icon created");
+
             Ok(())
         })
         .run(tauri::generate_context!())
