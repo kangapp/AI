@@ -124,7 +124,7 @@ pub fn run() {
 
             let menu = Menu::with_items(app, &[&show_item, &settings_item, &quit_item])?;
 
-            let _tray = TrayIconBuilder::new()
+            let _tray = TrayIconBuilder::with_id("main")
                 .menu(&menu)
                 .tooltip("RaFlow - Ready")
                 .on_menu_event(move |app, event| {

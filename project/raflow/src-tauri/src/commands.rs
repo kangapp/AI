@@ -143,3 +143,22 @@ pub async fn save_window_position(app: AppHandle) -> Result<(), String> {
 
     Ok(())
 }
+
+/// Update tray icon tooltip status
+#[tauri::command]
+pub async fn update_tray_status(app: AppHandle, status: String) -> Result<(), String> {
+    let tooltip = match status.as_str() {
+        "recording" => "RaFlow - 录音中",
+        "connecting" => "RaFlow - 连接中",
+        "processing" => "RaFlow - 处理中",
+        "error" => "RaFlow - 错误",
+        _ => "RaFlow - Ready",
+    };
+
+    // 更新托盘 tooltip
+    if let Some(tray) = app.tray_by_id("main") {
+        tray.set_tooltip(Some(tooltip)).map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
