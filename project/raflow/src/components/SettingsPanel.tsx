@@ -51,16 +51,22 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
 
   const updateSetting = async <K extends keyof WindowSettings>(key: K, value: WindowSettings[K]) => {
     const newSettings = { ...settings, [key]: value };
-    setSettings(newSettings);
-    await invoke('save_window_settings', { settings: newSettings });
 
-    // 当隐藏设置变化时，同步窗口显示状态
-    if (key === 'hidden') {
-      if (value) {
-        await invoke('hide_window');
-      } else {
-        await invoke('show_window');
+    // 先保存到后端，成功后再更新本地状态
+    try {
+      await invoke('save_window_settings', { settings: newSettings });
+      setSettings(newSettings);
+
+      // 当隐藏设置变化时，同步窗口显示状态
+      if (key === 'hidden') {
+        if (value) {
+          await invoke('hide_window');
+        } else {
+          await invoke('show_window');
+        }
       }
+    } catch (error) {
+      console.error('Failed to save settings:', error);
     }
   };
 
