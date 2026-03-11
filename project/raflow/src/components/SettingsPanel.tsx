@@ -55,7 +55,14 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
     // 先保存到后端，成功后再更新本地状态
     try {
       await invoke('save_window_settings', { settings: newSettings });
-      setSettings(newSettings);
+
+      // 当窗口大小变化时，实时调整窗口
+      if (key === 'window_size') {
+        await invoke('set_window_size', {
+          width: newSettings.window_size.width,
+          height: newSettings.window_size.height,
+        });
+      }
 
       // 当隐藏设置变化时，同步窗口显示状态
       if (key === 'hidden') {
@@ -65,6 +72,8 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
           await invoke('show_window');
         }
       }
+
+      setSettings(newSettings);
     } catch (error) {
       console.error('Failed to save settings:', error);
     }
