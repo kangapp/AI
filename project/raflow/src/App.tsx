@@ -137,12 +137,25 @@ function App() {
   const [view, setView] = useState<'main' | 'settings'>('main');
   const [showError, setShowError] = useState(false);
 
-  // Load window settings on mount
+  // Load window settings on mount and apply
   useEffect(() => {
-    invoke<WindowSettings>('get_window_settings').then((settings) => {
+    invoke<WindowSettings>('get_window_settings').then(async (settings) => {
+      // Apply hidden state
       if (settings.hidden) {
-        invoke('hide_window');
+        await invoke('hide_window');
       }
+      // Restore window position
+      if (settings.position) {
+        await invoke('set_window_position', {
+          x: settings.position.x,
+          y: settings.position.y
+        });
+      }
+      // Restore window size
+      await invoke('set_window_size', {
+        width: settings.window_size.width,
+        height: settings.window_size.height
+      });
     }).catch(console.error);
   }, []);
 
