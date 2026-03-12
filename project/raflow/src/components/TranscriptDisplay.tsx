@@ -7,6 +7,9 @@ interface TranscriptDisplayProps {
   partial: string;
   committed: string;
   status: RecordingStatus;
+  fontSize?: number;
+  textColor?: string;
+  compact?: boolean;
 }
 
 // Apple-style animation variants
@@ -39,12 +42,19 @@ function getTextColor(status: RecordingStatus): string {
  */
 function getPartialColor(status: RecordingStatus): string {
   switch (status) {
-    case "recording": return "text-blue-300/70";
+    case "recording": return "text-blue-300/80";
     default: return "text-gray-500";
   }
 }
 
-export function TranscriptDisplay({ partial, committed, status }: TranscriptDisplayProps) {
+export function TranscriptDisplay({
+  partial,
+  committed,
+  status,
+  fontSize = 14,
+  textColor,
+  compact = false,
+}: TranscriptDisplayProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -54,8 +64,12 @@ export function TranscriptDisplay({ partial, committed, status }: TranscriptDisp
     enabled: status === "recording",
   });
 
-  const mainColor = getTextColor(status);
-  const partialColor = getPartialColor(status);
+  // committed text: 使用用户自定义颜色或状态颜色
+  const mainColor = textColor || getTextColor(status);
+  // partial text: 使用更淡的颜色来区分（如果是自定义颜色则降低透明度）
+  const partialColor = textColor
+    ? `${textColor}80` // 自定义颜色 + 50% 透明度
+    : getPartialColor(status);
 
   // Always scroll to bottom when content changes
   useEffect(() => {
@@ -69,27 +83,35 @@ export function TranscriptDisplay({ partial, committed, status }: TranscriptDisp
     }
   }, [committed, displayText, partial]);
 
-  const hasContent = committed || displayText || partial;
+  // 只有在非 idle 状态或者有 committed 内容时才显示内容
+  const hasContent = committed || (status !== "idle" && (displayText || partial));
+
+  // Dynamic style based on settings
+  const textStyle = {
+    fontSize: compact ? `${Math.max(12, fontSize - 1)}px` : `${fontSize}px`,
+    color: textColor || undefined,
+    lineHeight: 1.65,
+  };
+
+  // 紧凑模式下隐藏空闲提示
+  const showIdleHint = !compact && status === "idle";
 
   return (
     <div
       ref={containerRef}
-      className="w-full flex-1 overflow-y-auto overflow-x-hidden"
+      className="w-full h-full overflow-y-auto overflow-x-hidden"
       style={{
-        maxHeight: "5rem",
-        minHeight: "3rem",
         overscrollBehavior: "none",
         WebkitOverflowScrolling: "auto",
       }}
     >
-      {/* Content wrapper with bottom padding to ensure last line is fully visible */}
+      {/* Content wrapper - 左对齐，更适合阅读 */}
       <div
         ref={contentRef}
-        className="text-center px-3 pb-4 pt-1"
+        className="text-left px-1 pb-2 pt-0.5"
         style={{
           wordWrap: "break-word",
           overflowWrap: "anywhere",
-          lineHeight: 1.6,
         }}
       >
         <AnimatePresence mode="wait">
@@ -107,46 +129,51 @@ export function TranscriptDisplay({ partial, committed, status }: TranscriptDisp
                   initial="enter"
                   animate="center"
                   transition={springTransition}
-                  className={`${mainColor} text-[15px] font-medium tracking-tight`}
+                  className="font-normal leading-relaxed"
+                  style={{ ...textStyle, color: mainColor }}
                 >
                   {committed}
                 </motion.span>
               )}
 
-              {/* Partial text */}
-              {(displayText || partial) && (
+              {/* Partial text - 只有在 recording 或 connecting 状态才显示 */}
+              {(displayText || partial) && (status === "recording" || status === "connecting") && (
                 <motion.span
                   variants={textVariants}
                   initial="enter"
                   animate="center"
                   transition={springTransition}
-                  className={`${partialColor} text-[15px] tracking-tight`}
+                  className="leading-relaxed"
+                  style={{ ...textStyle, color: partialColor }}
                 >
                   {committed && " "}
                   {displayText || partial}
-                  {/* Blinking cursor */}
-                  <motion.span
-                    animate={{ opacity: [1, 0.3, 1] }}
-                    transition={{
-                      duration: 0.8,
-                      repeat: Infinity,
-                      ease: "easeInOut",
-                    }}
-                    className="inline-block ml-0.5 text-blue-400 font-light align-middle"
-                  >
-                    |
-                  </motion.span>
+                  {/* Blinking cursor - 只有在 recording 状态才显示光标 */}
+                  {status === "recording" && (
+                    <motion.span
+                      animate={{ opacity: [1, 0.3, 1] }}
+                      transition={{
+                        duration: 0.8,
+                        repeat: Infinity,
+                        ease: "easeInOut",
+                      }}
+                      className="inline-block ml-0.5 font-light align-middle"
+                      style={{ color: mainColor }}
+                    >
+                      |
+                    </motion.span>
+                  )}
                 </motion.span>
               )}
             </motion.div>
           ) : (
-            /* Empty state */
+            /* Empty state - 重新设计 */
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 0.6 }}
-              className="flex flex-col items-center gap-1.5"
+              className="flex flex-col items-start gap-1"
             >
-              <span className="text-gray-500 text-[13px] font-medium">
+              <span className={`${compact ? 'text-[12px]' : 'text-[13px]'} text-gray-500 font-normal`}>
                 {status === "connecting"
                   ? "正在连接..."
                   : status === "recording"
@@ -155,7 +182,7 @@ export function TranscriptDisplay({ partial, committed, status }: TranscriptDisp
                   ? "发生错误"
                   : "按 ⌘⇧H 开始录音"}
               </span>
-              {status === "idle" && (
+              {showIdleHint && (
                 <span className="text-gray-600 text-[11px]">
                   语音将自动转录为文字
                 </span>

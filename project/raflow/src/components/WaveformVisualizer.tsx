@@ -1,10 +1,10 @@
 import { motion } from "framer-motion";
-import { useMemo } from "react";
 import { RecordingStatus } from "../hooks/useTranscription";
 
 interface WaveformVisualizerProps {
   level: number; // 0-1
   status: RecordingStatus;
+  compact?: boolean;
 }
 
 /**
@@ -25,56 +25,51 @@ function getBarGradient(status: RecordingStatus): string {
   }
 }
 
-export function WaveformVisualizer({ level, status }: WaveformVisualizerProps) {
-  const bars = 24;
+export function WaveformVisualizer({ level, status, compact = false }: WaveformVisualizerProps) {
   const isActive = status === "recording";
-
-  // Calculate bar heights with Apple-style animation
-  const heights = useMemo(() => {
-    return Array.from({ length: bars }, (_, i) => {
-      // Idle or error: subtle breathing animation
-      if (status === "idle" || status === "error") {
-        return 0.12 + Math.sin(Date.now() / 1000 + i * 0.3) * 0.05;
-      }
-
-      // Connecting/Processing: gentle wave
-      if (status === "connecting" || status === "processing") {
-        const wave = Math.sin(Date.now() / 300 + i * 0.4) * 0.3 + 0.35;
-        return Math.max(0.15, wave);
-      }
-
-      // Recording: responsive to audio level
-      const centerBias = 1 - Math.abs(i - bars / 2) / (bars / 2);
-      const amplifiedLevel = Math.pow(level, 0.4); // More sensitive
-      const baseHeight = amplifiedLevel * 0.85 * centerBias;
-      const organicOffset = Math.sin(Date.now() / 100 + i * 0.5) * 0.08;
-      return Math.min(1, Math.max(0.1, baseHeight + organicOffset));
-    });
-  }, [level, status]);
-
   const gradient = getBarGradient(status);
+  const barCount = compact ? 12 : 24;
 
+  // 使用百分比计算高度
   return (
-    <div className="flex items-end justify-center gap-[3px] h-12 mb-3 px-2">
-      {heights.map((h, i) => (
-        <motion.div
-          key={i}
-          className="rounded-full"
-          style={{
-            background: gradient,
-            width: "3px",
-            boxShadow: isActive ? "0 0 8px rgba(10, 132, 255, 0.3)" : "none",
-          }}
-          animate={{
-            height: `${Math.max(6, h * 44)}px`,
-            opacity: isActive ? 1 : 0.6,
-          }}
-          transition={{
-            duration: 0.08,
-            ease: [0.4, 0, 0.2, 1], // Apple-style easing
-          }}
-        />
-      ))}
+    <div className="flex items-end justify-center gap-px h-full w-full px-1">
+      {Array.from({ length: barCount }).map((_, i) => {
+        // 动态计算高度
+        let normalizedHeight: number;
+        const t = Date.now() / 1000;
+
+        if (status === "idle" || status === "error") {
+          normalizedHeight = 0.15 + Math.sin(t * 2 + i * 0.4) * 0.08;
+        } else if (status === "connecting" || status === "processing") {
+          normalizedHeight = Math.sin(t * 3 + i * 0.5) * 0.35 + 0.4;
+        } else {
+          const centerBias = 1 - Math.abs(i - (barCount - 1) / 2) / ((barCount - 1) / 2);
+          const amplifiedLevel = Math.pow(level, 0.4);
+          normalizedHeight = amplifiedLevel * 0.9 * centerBias + Math.sin(t * 8 + i * 0.6) * 0.1;
+        }
+        normalizedHeight = Math.min(1, Math.max(0.1, normalizedHeight));
+
+        return (
+          <motion.div
+            key={i}
+            className="rounded-full flex-shrink-0"
+            style={{
+              background: gradient,
+              width: '3%',
+              maxWidth: '4px',
+              boxShadow: isActive ? "0 0 8px rgba(10, 132, 255, 0.3)" : "none",
+            }}
+            animate={{
+              height: `${normalizedHeight * 100}%`,
+              opacity: isActive ? 1 : 0.5,
+            }}
+            transition={{
+              duration: 0.1,
+              ease: [0.4, 0, 0.2, 1],
+            }}
+          />
+        );
+      })}
     </div>
   );
 }

@@ -106,8 +106,8 @@ pub struct WindowSize {
     pub height: u32,
 }
 
-fn default_window_width() -> u32 { 440 }
-fn default_window_height() -> u32 { 180 }
+fn default_window_width() -> u32 { 380 }
+fn default_window_height() -> u32 { 160 }
 fn default_font_size() -> u32 { 14 }
 fn default_text_color() -> String { "#FFFFFF".to_string() }
 fn default_bg_color() -> String { "#1C1C1E".to_string() }

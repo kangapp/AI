@@ -107,10 +107,17 @@ export function useTranscription(): TranscriptionState {
     const unlistenPartialTranscript = listen<string>(
       "partial-transcript",
       (event) => {
-        setState((prev) => ({
-          ...prev,
-          partialText: event.payload,
-        }));
+        setState((prev) => {
+          // 只有在 recording 或 connecting 状态时才接收转录文本
+          if (prev.status !== "recording" && prev.status !== "connecting") {
+            console.log("[useTranscription] Ignoring partial-transcript, status:", prev.status);
+            return prev;
+          }
+          return {
+            ...prev,
+            partialText: event.payload,
+          };
+        });
       }
     );
 
@@ -118,20 +125,33 @@ export function useTranscription(): TranscriptionState {
     const unlistenCommittedTranscript = listen<string>(
       "committed-transcript",
       (event) => {
-        setState((prev) => ({
-          ...prev,
-          committedText: event.payload,
-          partialText: "",
-        }));
+        setState((prev) => {
+          // 只有在 recording 或 connecting 状态时才接收转录文本
+          if (prev.status !== "recording" && prev.status !== "connecting") {
+            console.log("[useTranscription] Ignoring committed-transcript, status:", prev.status);
+            return prev;
+          }
+          return {
+            ...prev,
+            committedText: event.payload,
+            partialText: "",
+          };
+        });
       }
     );
 
     // 监听音频电平事件
     const unlistenAudioLevel = listen<number>("audio-level", (event) => {
-      setState((prev) => ({
-        ...prev,
-        audioLevel: event.payload,
-      }));
+      setState((prev) => {
+        // 只有在 recording 或 connecting 状态时才接收音频电平
+        if (prev.status !== "recording" && prev.status !== "connecting") {
+          return prev;
+        }
+        return {
+          ...prev,
+          audioLevel: event.payload,
+        };
+      });
     });
 
     // 监听错误事件

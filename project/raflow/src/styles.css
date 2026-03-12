@@ -46,22 +46,22 @@ body,
   overscroll-behavior: none;
 }
 
-/* Apple-style Window Container */
+/* Apple-style Window Container - 重新设计 */
 .window-container {
   width: 100%;
   height: 100%;
-  background: var(--apple-dark-bg);
-  border-radius: 18px;
-  backdrop-filter: blur(50px) saturate(180%);
-  -webkit-backdrop-filter: blur(50px) saturate(180%);
+  background: var(--window-bg, var(--apple-dark-bg));
+  border-radius: 16px;
+  backdrop-filter: blur(40px) saturate(150%);
+  -webkit-backdrop-filter: blur(40px) saturate(150%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  padding: 18px 24px;
+  padding: 8px 8px;
   box-shadow:
     0 0 0 0.5px var(--apple-dark-border),
-    0 30px 60px -15px rgba(0, 0, 0, 0.5),
+    0 25px 50px -12px rgba(0, 0, 0, 0.5),
     0 0 0 1px rgba(0, 0, 0, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
   position: relative;
@@ -78,39 +78,19 @@ body,
   top: 0;
   left: 0;
   right: 0;
-  height: 50%;
+  height: 40%;
   background: linear-gradient(
     180deg,
-    rgba(255, 255, 255, 0.03) 0%,
+    rgba(255, 255, 255, 0.025) 0%,
     transparent 100%
   );
   pointer-events: none;
-  border-radius: 18px 18px 0 0;
-}
-
-/* Custom scrollbar - Apple style */
-::-webkit-scrollbar {
-  width: 3px;
-  height: 3px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 1.5px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16px 16px 0 0;
 }
 
 /* For Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
   /* Disable elastic scrolling */
   overscroll-behavior: none;
 }
@@ -152,4 +132,84 @@ body,
 :focus-visible {
   outline: 2px solid var(--apple-blue);
   outline-offset: 2px;
+}
+
+/* Smooth transitions for interactive elements */
+button, input {
+  transition: all 0.15s ease-out;
+}
+
+/* Range input styling */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #007AFF;
+  margin-top: -5px;
+  box-shadow: 0 2px 6px rgba(0, 122, 255, 0.4);
+  transition: transform 0.15s ease-out;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* Color input styling */
+input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 4px;
+}
+
+/* 细滚动条样式 */
+::-webkit-scrollbar {
+  width: 3px;
+  height: 3px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
