@@ -6,6 +6,88 @@
 
 ## 会话记录
 
+### 2026-03-12 - Phase 16 UI 优化迭代 ✅
+
+**目标**: 修复状态流转 bug，优化布局和交互
+
+**完成的工作**:
+
+| 功能 | 描述 |
+|------|------|
+| 动态布局 | 根据窗口高度自适应 compact/normal/expanded 三种模式 |
+| 主题网格 | 基于容器宽度自适应列数 (ResizeObserver) |
+| 状态修复 | idle 状态不接收转录事件和显示光标 |
+| 文字颜色 | committed 用主色，partial 用半透明色区分 |
+| 尺寸范围 | 扩大为 260x100 ~ 1000x800 |
+| 滑块 UX | 拖动时预览，释放时保存，消除抖动 |
+
+**代码变更**:
+| 文件 | 变更 |
+|------|------|
+| `src/App.tsx` | 居中布局，动态高度监听 |
+| `src/components/SettingsPanel.tsx` | 尺寸范围调整，滑块优化 |
+| `src/components/TranscriptDisplay.tsx` | 状态保护，颜色区分 |
+| `src/components/WaveformVisualizer.tsx` | 紧凑模式支持 |
+| `src/hooks/useTranscription.ts` | 事件状态检查 |
+| `src/styles.css` | 滚动条样式 |
+| `src-tauri/tauri.conf.json` | 窗口尺寸限制 |
+| `src-tauri/src/config/mod.rs` | 默认窗口大小 |
+
+**Git Commit**: `9f0e822` - feat(ui): improve floating window experience
+
+---
+
+### 2026-03-12 - Phase 15 UI/UX 优化迭代 ✅
+
+**目标**: 完善设置面板，提升用户体验
+
+**完成的工作**:
+
+| 功能 | 描述 |
+|------|------|
+| 预设主题 | 5 个精美主题 (暗夜黑/晨曦金/深海蓝/薄荷绿/薰衣草) |
+| 固定顶部 | 设置页面滚动时标题栏固定 |
+| 尺寸范围 | 宽: 300-800, 高: 150-600 |
+| 动态布局 | vmin 单位 padding + 百分比计算高度 |
+| 实时生效 | 字体大小、文字颜色实时应用 |
+| 滚动条 | Safari WebView 限制，接受系统样式 |
+
+**代码变更**:
+| 文件 | 变更 |
+|------|------|
+| `src/components/SettingsPanel.tsx` | 主题预设、粘性头部、尺寸滑块 |
+| `src/components/WaveformVisualizer.tsx` | 百分比计算高度 |
+| `src/styles.css` | vmin padding |
+| `src-tauri/tauri.conf.json` | 窗口尺寸限制 |
+
+**验证结果**: ✅ 构建成功，布局动态适配
+
+---
+
+### 2026-03-11 - Phase 15 Bug 修复 ✅
+
+**目标**: 修复快捷键和复制问题
+
+**问题 1 - 快捷键重复触发**:
+- 现象: 按一次 Cmd+Shift+H 后，状态变为 "Connecting"，然后又立即回到 "Ready"
+- 原因: 全局快捷键在按下 (Pressed) 和释放 (Released) 时都触发回调
+- 解决: 添加 `ShortcutState::Pressed` 检查，只在按下时处理
+
+**问题 2 - 复制文字不完整**:
+- 现象: 转录过程中部分文字已确认，但停止时复制的文字不完整
+- 原因: commit 信号发送后等待时间太短 (500ms)
+- 解决: 增加等待时间到 2 秒
+
+**代码变更**:
+| 文件 | 变更 |
+|------|------|
+| `src-tauri/src/lib.rs` | 添加快捷键事件状态检查 |
+| `src-tauri/src/session/recording.rs` | 增加 commit 等待时间到 2s |
+
+**测试结果**: ✅ 转录功能恢复正常，等待测试复制功能
+
+---
+
 ### 2026-03-01 深夜 - Phase 14 图标优化 ✅
 
 **目标**: 修复托盘图标全蓝问题，创建专业的麦克风图标

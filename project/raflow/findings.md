@@ -478,3 +478,263 @@ box-shadow:
 font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text";
 ```
 
+---
+
+## 9. Phase 15 Bug 修复发现
+
+### 9.1 全局快捷键重复触发问题
+
+**问题**: 按一次 Cmd+Shift+H 后，状态变为 "Connecting"，然后又立即回到 "Ready"
+
+**原因**:
+- `tauri-plugin-global-shortcut` 在快捷键 **按下** 和 **释放** 时都会触发回调
+- 第一次触发 (Pressed) 开始录音
+- 第二次触发 (Released) 停止录音
+- 两次事件间隔约 100ms
+
+**解决方案**:
+```rust
+app.global_shortcut().on_shortcut(shortcut, move |_app, _shortcut, event| {
+    // 只在按下时处理，忽略释放事件
+    if event.state != tauri_plugin_global_shortcut::ShortcutState::Pressed {
+        return;
+    }
+    // ... 处理录音逻辑
+});
+```
+
+### 9.2 复制文字不完整问题
+
+**问题**: 转录过程中部分文字已确认(VAD commit)，但停止时复制的文字不完整
+
+**原因**: commit 信号发送后等待时间太短 (500ms)，服务器可能还在处理
+
+**解决方案**: 增加等待时间到 2 秒
+```rust
+// 原来: tokio::time::sleep(Duration::from_millis(500)).await;
+// 修改后:
+tokio::time::sleep(Duration::from_millis(2000)).await;
+```
+
+---
+
+## 10. 悬浮窗设置功能设计
+
+### 10.1 需求汇总
+
+| 功能 | 描述 |
+|------|------|
+| 设置入口 | 系统托盘菜单 → "设置" |
+| 位置设置 | 任意位置拖拽，保存位置 |
+| 文字样式 | 字体大小、文字颜色、背景颜色/透明度 |
+| 窗口大小 | 宽度/高度可调 |
+| 隐藏功能 | 可隐藏悬浮窗，隐藏后托盘图标+菜单栏显示状态 |
+
+### 10.2 UI 架构
+
+```
+┌─────────────────────────────────┐
+│  [状态指示器]  [⚙️设置图标]      │  ← 点击设置图标切换视图
+├─────────────────────────────────┤
+│                                 │
+│      主界面：转录文字/波形        │
+│                                 │
+└─────────────────────────────────┘
+           ↓ 切换到设置
+┌─────────────────────────────────┐
+│  [←返回]      设置              │
+├─────────────────────────────────┤
+│  位置    [📍] 自由拖拽          │
+│  大小    [滑块] W: 440 H: 180   │
+│  ─────────────────────────────  │
+│  字体大小    [====●====] 16px   │
+│  文字颜色    [●●●●●●] #FFFFFF  │
+│  背景颜色    [●●●●●●] #000000  │
+│  背景透明度  [====●====] 80%   │
+│  ─────────────────────────────  │
+│  [✓] 隐藏悬浮窗                 │
+└─────────────────────────────────┘
+```
+
+### 10.3 数据结构
+
+```rust
+// config/mod.rs - 新增 FloatingWindowSettings
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FloatingWindowSettings {
+    /// 窗口位置 (物理像素)
+    #[serde(default)]
+    pub position: Option<WindowPosition>,
+
+    /// 窗口尺寸
+    #[serde(default = "default_window_size")]
+    pub window_size: WindowSize,
+
+    /// 字体大小 (px)
+    #[serde(default = "default_font_size")]
+    pub font_size: u32,
+
+    /// 文字颜色 (hex)
+    #[serde(default = "default_text_color")]
+    pub text_color: String,
+
+    /// 背景颜色 (hex)
+    #[serde(default = "default_bg_color")]
+    pub background_color: String,
+
+    /// 背景透明度 (0-100)
+    #[serde(default = "default_bg_opacity")]
+    pub background_opacity: u32,
+
+    /// 是否隐藏悬浮窗
+    #[serde(default)]
+    pub hidden: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WindowPosition {
+    pub x: i32,
+    pub y: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct WindowSize {
+    pub width: u32,
+    pub height: u32,
+}
+```
+
+### 10.4 托盘菜单设计
+
+```
+┌─────────────────────┐
+│ RaFlow             │
+├─────────────────────┤
+│ ● 录音中...         │  ← 状态显示
+├─────────────────────┤
+│ 打开悬浮窗          │  ← 隐藏时显示
+│ 设置...             │
+├─────────────────────┤
+│ 退出                 │
+└─────────────────────┘
+```
+
+### 10.5 隐藏状态反馈
+
+| 状态 | 托盘图标 | 菜单栏 |
+|------|----------|--------|
+| 空闲 | 灰色图标 | RaFlow - Ready |
+| 录音中 | 红色图标 | RaFlow - Recording |
+| 连接中 | 橙色图标 | RaFlow - Connecting |
+| 处理中 | 紫色图标 | RaFlow - Processing |
+| 错误 | 红色图标 | RaFlow - Error |
+
+### 10.6 实现文件清单
+
+| 文件 | 改动 |
+|------|------|
+| `src-tauri/src/config/mod.rs` | 添加 FloatingWindowSettings 结构体 |
+| `src-tauri/src/commands.rs` | 添加窗口位置/大小读写命令 |
+| `src-tauri/src/lib.rs` | 初始化托盘菜单，响应设置事件 |
+| `src/App.tsx` | 添加视图切换状态 |
+| `src/components/SettingsPanel.tsx` | 新建设置面板组件 |
+| `src/hooks/useSettings.ts` | 新建设置 Hook |
+
+### 10.7 拖拽实现
+
+使用 Tauri Window API:
+- `startDragging()` - 开始拖拽
+- `outerPosition()` - 获取窗口物理位置
+- `setPosition()` - 设置窗口位置
+- `setSize()` - 设置窗口大小
+
+### 10.8 持久化策略
+
+- 设置变更后立即保存到 config.json
+- 应用启动时加载设置并应用到窗口
+
+---
+
+## 11. Phase 16 Bug 修复发现
+
+### 11.1 主题网格没有自适应
+
+**问题**: 主题网格始终显示 3 列，无法根据窗口宽度自适应
+
+**原因**:
+- Tailwind 的 `sm:grid-cols-5` 基于**视口宽度**而非容器实际宽度
+- 浮动窗口 440px < Tailwind sm 断点 640px
+
+**解决方案**: 使用 ResizeObserver 监听容器宽度
+```tsx
+const gridRef = useRef<HTMLDivElement>(null);
+const [gridCols, setGridCols] = useState(3);
+
+useEffect(() => {
+  const updateGridCols = () => {
+    if (!gridRef.current) return;
+    const width = gridRef.current.offsetWidth;
+    if (width >= 350) setGridCols(5);
+    else if (width >= 250) setGridCols(4);
+    else setGridCols(3);
+  };
+
+  const resizeObserver = new ResizeObserver(updateGridCols);
+  resizeObserver.observe(gridRef.current);
+  return () => resizeObserver.disconnect();
+}, []);
+```
+
+### 11.2 就绪状态接收转录
+
+**问题**: idle 状态也接收并显示转录内容，光标闪烁
+
+**原因**: 前端事件监听器没有检查当前状态
+
+**解决方案**: 双重保护
+1. **数据层** (useTranscription.ts): 事件处理增加状态检查
+2. **UI 层** (TranscriptDisplay.tsx): 渲染时增加状态检查
+
+```tsx
+// 数据层
+if (prev.status !== "recording" && prev.status !== "connecting") {
+  return prev; // 忽略 idle 状态的事件
+}
+
+// UI 层
+{status === "recording" && <motion.span>光标</motion.span>}
+```
+
+### 11.3 已确认和转中文字颜色相同
+
+**问题**: committed 和 partial text 使用相同颜色，无法区分
+
+**解决方案**: 使用透明度区分
+```tsx
+// committed: 使用用户自定义颜色或状态颜色
+const mainColor = textColor || getTextColor(status);
+// partial: 使用半透明版本
+const partialColor = textColor ? `${textColor}80` : getPartialColor(status);
+```
+
+### 11.4 调整窗口大小时抖动
+
+**问题**: 拖动滑块时窗口实时调整，导致抖动
+
+**原因**: 每次 onChange 都调用后端保存和调整窗口
+
+**解决方案**: 分离交互
+- `onChange`: 只更新本地预览状态 (sizePreview)
+- `onMouseUp`/`onTouchEnd`: 释放时保存到后端
+
+```tsx
+// 拖动时只更新预览
+onChange={(e) => setSizePreview({ width: Number(e.target.value), ... })};
+
+// 释放时才保存
+onMouseUp={(e) => {
+  updateSetting('window_size', { width: Number(e.target.value), ... });
+  setSizePreview(null);
+}}
+```
+
