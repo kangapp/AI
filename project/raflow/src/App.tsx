@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { useTranscription, RecordingStatus } from "./hooks/useTranscription";
 import { TranscriptDisplay } from "./components/TranscriptDisplay";
-import { WaveformVisualizer } from "./components/WaveformVisualizer";
+import { AudioVisualizer } from "./components/AudioVisualizer";
 import { SettingsPanel } from './components/SettingsPanel';
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,6 +16,7 @@ interface WindowSettings {
   background_color: string;
   background_opacity: number;
   hidden: boolean;
+  audio_style: string;
 }
 
 /**
@@ -178,6 +179,7 @@ function App() {
     background_color: '#1C1C1E',
     background_opacity: 85,
     hidden: false,
+    audio_style: 'waveform',
   });
 
   // Load window settings on mount and apply
@@ -305,10 +307,12 @@ function App() {
                 marginBottom: layoutMode === 'compact' ? '6px' : layoutMode === 'normal' ? '10px' : '14px'
               }}
             >
-              <WaveformVisualizer
+              <AudioVisualizer
                 level={audioLevel}
                 status={status}
+                style={(windowSettings.audio_style as any) || "waveform"}
                 compact={layoutMode === 'compact'}
+                key={windowSettings.audio_style}
               />
             </motion.div>
 

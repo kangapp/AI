@@ -143,6 +143,10 @@ pub struct FloatingWindowSettings {
     /// 是否隐藏悬浮窗
     #[serde(default)]
     pub hidden: bool,
+
+    /// 音频显示样式
+    #[serde(default = "default_audio_style")]
+    pub audio_style: String,
 }
 
 fn default_window_size() -> WindowSize {
@@ -150,6 +154,10 @@ fn default_window_size() -> WindowSize {
         width: default_window_width(),
         height: default_window_height(),
     }
+}
+
+fn default_audio_style() -> String {
+    "waveform".to_string()
 }
 
 impl Default for FloatingWindowSettings {
@@ -165,6 +173,7 @@ impl Default for FloatingWindowSettings {
             background_color: default_bg_color(),
             background_opacity: default_bg_opacity(),
             hidden: false,
+            audio_style: default_audio_style(),
         }
     }
 }

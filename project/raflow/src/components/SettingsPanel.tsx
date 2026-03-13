@@ -11,6 +11,7 @@ interface WindowSettings {
   background_color: string;
   background_opacity: number;
   hidden: boolean;
+  audio_style: string;
 }
 
 interface SettingsPanelProps {
@@ -56,6 +57,14 @@ const THEMES = [
   },
 ];
 
+// 音频样式预设
+const AUDIO_STYLES = [
+  { id: 'waveform', name: '波形', icon: '📊' },
+  { id: 'pulse', name: '脉动', icon: '⚪' },
+  { id: 'spectrum', name: '圆环', icon: '⭕' },
+  { id: 'particle', name: '粒子', icon: '✨' },
+];
+
 export function SettingsPanel({ onBack }: SettingsPanelProps) {
   const [settings, setSettings] = useState<WindowSettings>({
     position: null,
@@ -65,6 +74,7 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
     background_color: '#1C1C1E',
     background_opacity: 85,
     hidden: false,
+    audio_style: 'waveform',
   });
   // 预览窗口大小（拖动时实时更新，不立即生效）
   const [sizePreview, setSizePreview] = useState<{ width: number; height: number } | null>(null);
@@ -265,6 +275,27 @@ export function SettingsPanel({ onBack }: SettingsPanelProps) {
                     </svg>
                   </div>
                 )}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 音频样式选择 */}
+        <div className="mb-5">
+          <span className="text-[13px] text-gray-400 block mb-3">音频样式</span>
+          <div className="grid grid-cols-4 gap-2">
+            {AUDIO_STYLES.map((style) => (
+              <button
+                key={style.id}
+                onClick={() => updateSetting('audio_style', style.id)}
+                className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all ${
+                  settings.audio_style === style.id
+                    ? 'bg-blue-500/20 ring-2 ring-blue-500'
+                    : 'bg-white/5 hover:bg-white/10'
+                }`}
+              >
+                <span className="text-lg">{style.icon}</span>
+                <span className="text-[10px] text-gray-400">{style.name}</span>
               </button>
             ))}
           </div>
