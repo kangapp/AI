@@ -4,6 +4,13 @@
 
 ---
 
+## 目录
+
+- [001 - 数据库查询工具 (DB Query Tool)](#001---数据库查询工具-db-query-tool)
+- [002 - RaFlow (实时语音转录工具)](#002---raflow-实时语音转录工具)
+
+---
+
 ## 项目导航
 
 ### 001 - 数据库查询工具 (DB Query Tool)
@@ -80,103 +87,3 @@ pnpm tauri build
 ```
 
 **详细文档**: [project/raflow/README.md](project/raflow/README.md)
-
----
-
-## 目录结构
-
-```
-AI/
-├── project/                    # 项目目录
-│   ├── db_query/              # 数据库查询工具
-│   │   ├── backend/           # Python 后端
-│   │   │   ├── src/
-│   │   │   │   ├── api/      # API 路由层
-│   │   │   │   ├── services/ # 业务逻辑层
-│   │   │   │   ├── models/   # 数据模型
-│   │   │   │   ├── core/     # 核心模块
-│   │   │   │   ├── lib/      # 工具库
-│   │   │   │   └── middleware/ # 中间件
-│   │   │   └── tests/        # 测试目录
-│   │   ├── frontend/          # TypeScript 前端
-│   │   │   ├── src/
-│   │   │   │   ├── pages/    # 页面组件
-│   │   │   │   ├── components/ # React 组件
-│   │   │   │   ├── hooks/    # 自定义 Hooks
-│   │   │   │   ├── services/ # API 服务
-│   │   │   │   └── types/    # 类型定义
-│   │   │   └── package.json
-│   │   └── Makefile          # 自动化脚本
-│   └── raflow/               # 实时语音转录工具
-│       ├── src/              # React 前端
-│       │   ├── components/   # React 组件
-│       │   ├── hooks/        # 自定义 Hooks
-│       │   ├── App.tsx       # 主应用组件
-│       │   └── main.tsx      # 前端入口
-│       ├── src-tauri/        # Tauri/Rust 后端
-│       │   ├── src/          # Rust 源码
-│       │   ├── Cargo.toml    # Rust 依赖配置
-│       │   └── tauri.conf.json # Tauri 配置
-│       └── package.json      # Node 依赖配置
-├── CLAUDE.md                  # Claude Code 项目配置
-└── README.md                  # 本文件
-```
-
----
-
-## 开发环境
-
-### 环境要求
-
-- Python 3.14+ (for db_query)
-- Node.js 18+
-- Rust 1.70+ (for raflow)
-- pnpm
-- uv (Python 包管理器)
-
-### 通用命令
-
-#### 数据库查询工具 (db_query)
-
-```bash
-cd project/db_query
-
-# 安装依赖
-make install
-
-# 启动开发服务器
-make dev
-
-# 运行测试
-make test
-
-# 代码检查
-make lint
-
-# 停止服务
-make stop
-```
-
-#### RaFlow (语音转录工具)
-
-```bash
-cd project/raflow
-
-# 安装依赖
-pnpm install
-
-# 前端开发
-pnpm dev
-
-# Tauri 开发
-pnpm tauri dev
-
-# 构建应用
-pnpm tauri build
-```
-
----
-
-## 许可证
-
-MIT License
