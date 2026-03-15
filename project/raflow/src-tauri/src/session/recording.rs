@@ -297,8 +297,8 @@ impl RecordingSession {
         if let Some(tx) = &self.commit_sender {
             let _ = tx.send(()).await;
             tracing::debug!("Sent commit signal");
-            // Wait a bit for the committed transcript
-            tokio::time::sleep(Duration::from_millis(500)).await;
+            // Wait for the committed transcript (increased from 500ms to 2s)
+            tokio::time::sleep(Duration::from_millis(2000)).await;
         }
 
         // Signal cancellation (this will stop the audio thread)
