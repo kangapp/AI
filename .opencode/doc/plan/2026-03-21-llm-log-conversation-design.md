@@ -53,29 +53,32 @@ Opencode 提供的有效 plugin hooks 如下：
 
 ### Turn 生命周期
 
-通过 `event` hook 监听 `message.part.updated` 事件，当收到 `step-finish` 类型的 part 时表示一个 Turn 结束，立即写入 jsonl：
+完整的数据流如下：
 
 ```
-chat.message (Turn N 开始)
-  ↓
-experimental.chat.messages.transform (记录 Turn N 的输入)
-  ↓
-LLM.stream() ... 流式输出
-  ↓
-experimental.text.complete (收集输出文本)
-tool.execute.after (收集工具调用)
-  ↓
-step-finish part 保存 → Bus.publish("message.part.updated", { part: step-finish })
-  ↓
-event hook 收到 "message.part.updated" 事件
-  ↓
-检测到 part.type === "step-finish" → 立即写入 Turn N 的完整 jsonl
+1. 组装 msgs (消息历史)
+   ↓
+2. experimental.chat.messages.transform (获取 msgs，提取 tool/reasoning parts)
+   ↓
+3. 构建 system prompt (SystemPrompt.environment, skills, instructions)
+   ↓
+4. experimental.chat.system.transform (获取 system prompt)
+   ↓
+5. processor.process() → LLM 调用
+   ↓
+6. 流式输出: text-complete, tool-result, reasoning
+   ↓
+7. step-finish part 保存 → Bus.publish("message.part.updated", { part: step-finish })
+   ↓
+8. event hook 收到 "message.part.updated" 事件
+   ↓
+9. 检测到 part.type === "step-finish" → 立即写入 Turn N 的完整 jsonl
 ```
 
 **关键点**：
-- `step-finish` part 保存时会触发 `message.part.updated` 事件
-- 通过 `event` hook 监听此事件，在 Turn 结束时立即写入
-- 不需要等待下一条消息
+- `chat.messages.transform` 时 msgs 中包含完整的 parts（包括 tool、reasoning 等）
+- `chat.system.transform` 时 system prompt 刚刚构建完成
+- 通过 `event` hook 监听 `step-finish` part，在 Turn 结束时立即写入
 
 ### 数据结构
 
@@ -90,10 +93,10 @@ interface LLMRequest {
     modelID: string
   }
   agent: string
-  system: string[]           // system prompt 片段
+  system: string[]           // system prompt（从 system.transform 获取）
   messages: {
     role: "system" | "user" | "assistant"
-    content: any[]           // 消息内容 (parts)
+    content: Part[]          // 完整的 parts（包含 tool、reasoning）
   }[]
 }
 ```
@@ -104,15 +107,21 @@ interface LLMResponse {
   turn: number
   sessionID: string
   timestamp: string
-  reasoning: string[]        // 思考过程（如有）
-  textParts: string[]        // 文本输出片段
-  fullText: string           // 合并后的完整文本
-  tools: {
+  reasoning: string[]         // 思考过程（从 messages 的 ReasoningPart 提取）
+  textParts: string[]       // 文本输出片段
+  fullText: string          // 合并后的完整文本
+  toolCalls: [{             // 工具调用（从 messages 的 ToolPart 提取）
+    id: string
+    tool: string
+    args: any
+    callID: string
+  }]
+  tools: [{                 // 工具执行结果（从 tool.execute.after 收集）
     tool: string
     args: any
     output: string
     title: string
-  }[]
+  }]
   finishReason: string
   usage?: {
     tokens: number
@@ -132,8 +141,9 @@ interface LLMResponse {
 | Hook | 用途 |
 |------|------|
 | `event` | 监听 `message.part.updated` 事件，当 `part.type === "step-finish"` 时触发写入 |
-| `experimental.chat.messages.transform` | 获取完整输入消息 |
-| `experimental.text.complete` | 收集每个文本块输出 |
+| `experimental.chat.messages.transform` | 获取 msgs，提取 ToolPart 和 ReasoningPart |
+| `experimental.chat.system.transform` | 获取 system prompt |
+| `experimental.text.complete` | 收集文本输出 |
 | `tool.execute.after` | 收集工具执行结果 |
 
 ### 输出格式
