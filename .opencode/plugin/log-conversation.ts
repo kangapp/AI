@@ -6,6 +6,8 @@ import { join } from "path"
 interface TurnState {
   turn: number
   sessionID: string
+  shortUUID: string
+  turnKey: string
   request: {
     messages: any[]           // 完整的消息
     system: string[]          // system prompt（从 system.transform 获取）
@@ -58,15 +60,32 @@ export default (input: PluginInput): Promise<Hooks> => {
       const sessionID = output.messages[0]?.info.sessionID
       if (!sessionID) return
 
+      // 检测是否是 user 消息（新 turn 的开始）
+      const hasUserMessage = output.messages.some((m: any) => m.info.role === "user")
+
+      let turnKey: string
       let state = turns.get(sessionID)
-      if (!state) {
+
+      if (hasUserMessage) {
+        // 生成 shortUUID 并创建新的 turnState
+        const shortUUID = crypto.randomUUID().substring(0, 12)
+        turnKey = `${sessionID}_${shortUUID}`
+
         state = {
           turn: 0,
           sessionID,
+          shortUUID,
+          turnKey,
           request: null as any,
           response: { texts: [], reasoning: [], toolCalls: [], tools: [] },
         }
+        turns.set(turnKey, state)
+        // 同时用 sessionID 作为 key 存储一份，方便其他 hook 查找
         turns.set(sessionID, state)
+      } else if (!state) {
+        return
+      } else {
+        turnKey = state.turnKey
       }
 
       state.turn++
@@ -188,7 +207,7 @@ export default (input: PluginInput): Promise<Hooks> => {
             },
           }
 
-          const logPath = getLogPath(sessionID)
+          const logPath = getLogPath(sessionID, state.shortUUID)
           appendFileSync(logPath, JSON.stringify(requestRecord) + "\n")
           appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
         }
@@ -203,7 +222,7 @@ export default (input: PluginInput): Promise<Hooks> => {
         if (!state || !state.request) return
 
         const timestamp = new Date().toISOString()
-        const logPath = getLogPath(sessionID)
+        const logPath = getLogPath(sessionID, state.shortUUID)
 
         const requestRecord = {
           type: "request",
@@ -232,6 +251,7 @@ export default (input: PluginInput): Promise<Hooks> => {
         appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
 
         turns.delete(sessionID)
+        turns.delete(state.turnKey)
       }
     },
   })
