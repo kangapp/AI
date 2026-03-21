@@ -98,7 +98,41 @@ export default (input: PluginInput): Promise<Hooks> => {
     },
 
     "chat.message": async (input, output) => {
-      // TODO: write previous turn to jsonl
+      // Write previous turn's data when new message arrives
+      const sessionID = input.sessionID
+      const state = turns.get(sessionID)
+
+      if (!state || !state.request) return
+
+      // Get current timestamp
+      const timestamp = new Date().toISOString()
+
+      // Write request record
+      const requestRecord = {
+        type: "request",
+        turn: state.turn,
+        sessionID: state.sessionID,
+        timestamp,
+        model: state.request.model,
+        agent: state.request.agent,
+        system: state.request.system,
+        messages: state.request.messages,
+      }
+
+      // Write response record
+      const responseRecord = {
+        type: "response",
+        turn: state.turn,
+        sessionID: state.sessionID,
+        timestamp,
+        texts: state.response.texts,
+        fullText: state.response.texts.join(""),
+        tools: state.response.tools,
+      }
+
+      const logPath = getLogPath(sessionID)
+      appendFileSync(logPath, JSON.stringify(requestRecord) + "\n")
+      appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
     },
   })
 }
