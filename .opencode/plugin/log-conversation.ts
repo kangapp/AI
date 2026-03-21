@@ -7,14 +7,26 @@ interface TurnState {
   turn: number
   sessionID: string
   request: {
-    messages: any[]
-    system: string[]
+    messages: any[]           // 完整的消息
+    system: string[]          // system prompt（从 system.transform 获取）
     agent: string
     model: { providerID: string; modelID: string }
   } | null
   response: {
-    texts: string[]
-    tools: { tool: string; args: any; output: string; title: string }[]
+    texts: string[]           // 文本输出片段
+    reasoning: string[]       // 思考过程（从 messages 提取）
+    toolCalls: {             // 工具调用（从 messages 提取）
+      id: string
+      tool: string
+      args: any
+      callID: string
+    }[]
+    tools: {                 // 工具执行结果
+      tool: string
+      args: any
+      output: string
+      title: string
+    }[]
   }
 }
 
@@ -30,41 +42,68 @@ function getLogPath(sessionID: string): string {
 
 export default (input: PluginInput): Promise<Hooks> => {
   return Promise.resolve({
-    "experimental.chat.messages.transform": async (_, output) => {
-      // Get sessionID from the first message's sessionID
-      const sessionID = output.messages[0]?.info.sessionID
-      if (!sessionID) {
-        return
-      }
+    // 1. 获取 system prompt（在 system prompt 构建完成后调用）
+    "experimental.chat.system.transform": async (input, output) => {
+      const sessionID = input.sessionID
+      if (!sessionID) return
+      const state = turns.get(sessionID)
+      if (!state) return
 
-      // Get or create turn state
+      state.request.system = output.system
+    },
+
+    // 2. 获取 msgs，提取 toolCalls 和 reasoning
+    "experimental.chat.messages.transform": async (_, output) => {
+      const sessionID = output.messages[0]?.info.sessionID
+      if (!sessionID) return
+
       let state = turns.get(sessionID)
       if (!state) {
         state = {
           turn: 0,
           sessionID,
-          request: null,
-          response: { texts: [], tools: [] },
+          request: null as any,
+          response: { texts: [], reasoning: [], toolCalls: [], tools: [] },
         }
         turns.set(sessionID, state)
       }
 
-      // Increment turn counter
       state.turn++
 
-      // Extract messages for LLM
+      // 提取消息，保留完整 parts
       const messages = output.messages.map((m: any) => ({
         role: m.info.role,
         content: m.parts,
       }))
 
-      // Get system prompt from messages (first system message if any)
+      // 从 assistant 消息中提取 tool calls 和 reasoning
+      const assistantMessages = output.messages.filter((m: any) => m.info.role === "assistant")
+      const toolCalls: any[] = []
+      const reasoning: string[] = []
+
+      for (const msg of assistantMessages) {
+        for (const part of msg.parts) {
+          if (part.type === "tool") {
+            toolCalls.push({
+              id: part.id,
+              tool: part.tool,
+              args: part.state.input,
+              callID: part.callID,
+            })
+          }
+          if (part.type === "reasoning") {
+            reasoning.push(part.text)
+          }
+        }
+      }
+
+      // 获取 system prompt（此时可能为空，等 system.transform 补充）
       const systemMessages = output.messages.filter((m: any) => m.info.role === "system")
       const system = systemMessages.map((m: any) =>
         m.parts.map((p: any) => p.text || "").join("")
       )
 
-      // Get agent and model from message metadata
+      // 获取 agent 和 model
       const lastMessage = output.messages[output.messages.length - 1]
       const agent = lastMessage?.info.agent || "unknown"
       const model = lastMessage?.info.model || { providerID: "unknown", modelID: "unknown" }
@@ -76,10 +115,16 @@ export default (input: PluginInput): Promise<Hooks> => {
         model,
       }
 
-      // Reset response collector for new turn
-      state.response = { texts: [], tools: [] }
+      // 重置 response 收集器，保存从 messages 提取的数据
+      state.response = {
+        texts: [],
+        reasoning,
+        toolCalls,
+        tools: [],
+      }
     },
 
+    // 3. 收集文本输出
     "experimental.text.complete": async (input, output) => {
       const state = turns.get(input.sessionID)
       if (!state) return
@@ -87,6 +132,7 @@ export default (input: PluginInput): Promise<Hooks> => {
       state.response.texts.push(output.text)
     },
 
+    // 4. 收集工具执行结果
     "tool.execute.after": async (input, output) => {
       const state = turns.get(input.sessionID)
       if (!state) return
@@ -99,50 +145,10 @@ export default (input: PluginInput): Promise<Hooks> => {
       })
     },
 
-    "chat.message": async (input, output) => {
-      // Write previous turn's data when new message arrives
-      const sessionID = input.sessionID
-      const state = turns.get(sessionID)
-
-      if (!state || !state.request) {
-        return
-      }
-
-      // Get current timestamp
-      const timestamp = new Date().toISOString()
-
-      // Write request record
-      const requestRecord = {
-        type: "request",
-        turn: state.turn,
-        sessionID: state.sessionID,
-        timestamp,
-        model: state.request.model,
-        agent: state.request.agent,
-        system: state.request.system,
-        messages: state.request.messages,
-      }
-
-      // Write response record
-      const responseRecord = {
-        type: "response",
-        turn: state.turn,
-        sessionID: state.sessionID,
-        timestamp,
-        texts: state.response.texts,
-        fullText: state.response.texts.join(""),
-        tools: state.response.tools,
-      }
-
-      const logPath = getLogPath(sessionID)
-      appendFileSync(logPath, JSON.stringify(requestRecord) + "\n")
-      appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
-    },
-
+    // 5. event hook: 检测 step-finish 并写入 jsonl
     "event": async (input) => {
       const event = input.event as any
 
-      // 监听 message.part.updated 事件，当收到 step-finish 时写入 jsonl
       if (event.type === "message.part.updated") {
         const part = event.properties?.part
         if (part?.type === "step-finish") {
@@ -151,10 +157,8 @@ export default (input: PluginInput): Promise<Hooks> => {
 
           if (!state || !state.request) return
 
-          // Get current timestamp
           const timestamp = new Date().toISOString()
 
-          // Write request record
           const requestRecord = {
             type: "request",
             turn: state.turn,
@@ -166,7 +170,6 @@ export default (input: PluginInput): Promise<Hooks> => {
             messages: state.request.messages,
           }
 
-          // Write response record
           const responseRecord = {
             type: "response",
             turn: state.turn,
@@ -174,6 +177,8 @@ export default (input: PluginInput): Promise<Hooks> => {
             timestamp,
             texts: state.response.texts,
             fullText: state.response.texts.join(""),
+            reasoning: state.response.reasoning,
+            toolCalls: state.response.toolCalls,
             tools: state.response.tools,
             finishReason: part.reason,
             usage: {
@@ -189,7 +194,6 @@ export default (input: PluginInput): Promise<Hooks> => {
         return
       }
 
-      // session.deleted 时写入最后数据
       if (event.type === "session.deleted") {
         const sessionID = event.data?.info?.id
         if (!sessionID) return
@@ -197,7 +201,6 @@ export default (input: PluginInput): Promise<Hooks> => {
         const state = turns.get(sessionID)
         if (!state || !state.request) return
 
-        // Write remaining turn data if any
         const timestamp = new Date().toISOString()
         const logPath = getLogPath(sessionID)
 
@@ -219,13 +222,14 @@ export default (input: PluginInput): Promise<Hooks> => {
           timestamp,
           texts: state.response.texts,
           fullText: state.response.texts.join(""),
+          reasoning: state.response.reasoning,
+          toolCalls: state.response.toolCalls,
           tools: state.response.tools,
         }
 
         appendFileSync(logPath, JSON.stringify(requestRecord) + "\n")
         appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
 
-        // Clean up state
         turns.delete(sessionID)
       }
     },
