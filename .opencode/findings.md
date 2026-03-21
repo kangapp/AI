@@ -19,22 +19,72 @@
 | `experimental.text.complete` | 输出 | 文本块完成 |
 | `event` | 特殊 | Bus 事件 |
 
-## Turn 生命周期
+## Turn 生命周期 (关键发现)
+
+### 完整数据流
 
 ```
-chat.message (Turn N 开始)
-  ↓
-experimental.chat.messages.transform (记录 Turn N 输入)
-  ↓
-LLM.stream() ... 流式输出
-  ↓
-experimental.text.complete + tool.execute.after (收集输出)
-  ↓
-chat.message (Turn N+1 开始) → 写入 Turn N 的完整 jsonl
+1. 组装 msgs (消息历史)
+   ↓
+2. experimental.chat.messages.transform (获取 msgs，但 system 未构建)
+   ↓
+3. 构建 system prompt (SystemPrompt.environment, skills, instructions)
+   ↓
+4. experimental.chat.system.transform (可获取 system prompt)
+   ↓
+5. processor.process() → LLM 调用
+   ↓
+6. 流式输出: text-complete, tool-result, reasoning
+   ↓
+7. step-finish part 保存 → Bus.publish("message.part.updated", { part })
+   ↓
+8. event hook 收到 "message.part.updated" 事件
 ```
 
-## 关键发现
+### 关键发现
 
-1. `finish-step` 不是 plugin hook，是 processor.ts 内部事件
-2. 使用 `chat.message` 作为隐式 Turn 结束标志
-3. plugin 可通过 `file://` 或 npm 包加载
+1. **Turn 结束检测**: `step-finish` part 保存时触发 `message.part.updated` 事件
+2. **System prompt 时机**: `chat.messages.transform` 时 system 未构建，需要用 `chat.system.transform` 获取
+3. **消息 parts**: `msgs` 中的 assistant 消息包含完整的 `ToolPart` 和 `ReasoningPart`
+4. **Event hook**: 监听 `message.part.updated` 事件可获取 `step-finish` part 的 `reason` 和 `usage` 信息
+
+## Part 类型
+
+| Part Type | 说明 |
+|-----------|------|
+| `text` | 文本输出 |
+| `reasoning` | 思考过程 (Ultra Think) |
+| `tool` | 工具调用 |
+| `step-finish` | Turn 结束标志 |
+| `step-start` | Turn 开始标志 |
+
+## JSONL 输出格式
+
+### Request
+```json
+{
+  "type": "request",
+  "turn": 1,
+  "sessionID": "ses_xxx",
+  "model": { "providerID": "...", "modelID": "..." },
+  "agent": "...",
+  "system": ["..."],
+  "messages": [{ "role": "user/assistant", "content": [...] }]
+}
+```
+
+### Response
+```json
+{
+  "type": "response",
+  "turn": 1,
+  "sessionID": "ses_xxx",
+  "texts": ["..."],
+  "fullText": "...",
+  "reasoning": ["..."],
+  "toolCalls": [{ "id": "...", "tool": "...", "args": {} }],
+  "tools": [{ "tool": "...", "output": "..." }],
+  "finishReason": "stop",
+  "usage": { "tokens": {...}, "cost": 0 }
+}
+```
