@@ -32,12 +32,13 @@ interface TurnState {
 
 const turns = new Map<string, TurnState>()
 
-function getLogPath(sessionID: string): string {
+function getLogPath(sessionID: string, shortUUID?: string): string {
   const logDir = join(process.cwd(), ".opencode", "logs")
   if (!existsSync(logDir)) {
     mkdirSync(logDir, { recursive: true })
   }
-  return join(logDir, `${sessionID}.jsonl`)
+  const baseName = shortUUID ? `${sessionID}_${shortUUID}` : sessionID
+  return join(logDir, `${baseName}.jsonl`)
 }
 
 export default (input: PluginInput): Promise<Hooks> => {
