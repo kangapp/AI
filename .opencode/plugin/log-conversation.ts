@@ -31,7 +31,51 @@ function getLogPath(sessionID: string): string {
 export default (input: PluginInput): Promise<Hooks> => {
   return Promise.resolve({
     "experimental.chat.messages.transform": async (_, output) => {
-      // TODO: collect request data
+      // Get sessionID from the first message's sessionID
+      const sessionID = output.messages[0]?.info.sessionID
+      if (!sessionID) return
+
+      // Get or create turn state
+      let state = turns.get(sessionID)
+      if (!state) {
+        state = {
+          turn: 0,
+          sessionID,
+          request: null,
+          response: { texts: [], tools: [] },
+        }
+        turns.set(sessionID, state)
+      }
+
+      // Increment turn counter
+      state.turn++
+
+      // Extract messages for LLM
+      const messages = output.messages.map((m: any) => ({
+        role: m.info.role,
+        content: m.parts,
+      }))
+
+      // Get system prompt from messages (first system message if any)
+      const systemMessages = output.messages.filter((m: any) => m.info.role === "system")
+      const system = systemMessages.map((m: any) =>
+        m.parts.map((p: any) => p.text || "").join("")
+      )
+
+      // Get agent and model from message metadata
+      const lastMessage = output.messages[output.messages.length - 1]
+      const agent = lastMessage?.info.agent || "unknown"
+      const model = lastMessage?.info.model || { providerID: "unknown", modelID: "unknown" }
+
+      state.request = {
+        messages,
+        system,
+        agent,
+        model,
+      }
+
+      // Reset response collector for new turn
+      state.response = { texts: [], tools: [] }
     },
 
     "experimental.text.complete": async (input, output) => {
