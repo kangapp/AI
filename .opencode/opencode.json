@@ -1,3 +1,4 @@
 {
-  "plugin": ["./.opencode/plugin/log-conversation.ts"]
+  "$schema": "https://opencode.ai/config.json",
+  "plugin": ["file:///Users/liufukang/workplace/AI/.opencode/plugin/log-conversation.ts"]
 }

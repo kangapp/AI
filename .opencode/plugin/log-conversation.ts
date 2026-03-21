@@ -1,6 +1,17 @@
-import type { Plugin, Hooks, PluginInput } from "@opencode-ai/plugin"
+import type { Hooks, PluginInput } from "@opencode-ai/plugin"
 import { appendFileSync, existsSync, mkdirSync } from "fs"
 import { join } from "path"
+
+const DEBUG = true
+const debugLog = (msg: string) => {
+  if (!DEBUG) return
+  const logDir = join(process.cwd(), ".opencode", "logs")
+  if (!existsSync(logDir)) mkdirSync(logDir, { recursive: true })
+  const logPath = join(logDir, "debug.log")
+  appendFileSync(logPath, `${new Date().toISOString()} ${msg}\n`)
+}
+
+debugLog("[LLM-LOG] plugin loaded")
 
 // State management for current turn
 interface TurnState {
@@ -29,11 +40,16 @@ function getLogPath(sessionID: string): string {
 }
 
 export default (input: PluginInput): Promise<Hooks> => {
+  debugLog("[LLM-LOG] plugin initialized")
   return Promise.resolve({
     "experimental.chat.messages.transform": async (_, output) => {
+      debugLog("[LLM-LOG] chat.messages.transform called, messages count: " + output.messages.length)
       // Get sessionID from the first message's sessionID
       const sessionID = output.messages[0]?.info.sessionID
-      if (!sessionID) return
+      if (!sessionID) {
+        debugLog("[LLM-LOG] chat.messages.transform: no sessionID")
+        return
+      }
 
       // Get or create turn state
       let state = turns.get(sessionID)
@@ -45,10 +61,12 @@ export default (input: PluginInput): Promise<Hooks> => {
           response: { texts: [], tools: [] },
         }
         turns.set(sessionID, state)
+        debugLog("[LLM-LOG] Created new turn state for session: " + sessionID)
       }
 
       // Increment turn counter
       state.turn++
+      debugLog("[LLM-LOG] Turn: " + state.turn + " for session: " + sessionID)
 
       // Extract messages for LLM
       const messages = output.messages.map((m: any) => ({
@@ -79,6 +97,7 @@ export default (input: PluginInput): Promise<Hooks> => {
     },
 
     "experimental.text.complete": async (input, output) => {
+      debugLog("[LLM-LOG] text.complete called for session: " + input.sessionID + " text length: " + output.text.length)
       const state = turns.get(input.sessionID)
       if (!state) return
 
@@ -86,6 +105,7 @@ export default (input: PluginInput): Promise<Hooks> => {
     },
 
     "tool.execute.after": async (input, output) => {
+      debugLog("[LLM-LOG] tool.execute.after called for session: " + input.sessionID + " tool: " + input.tool)
       const state = turns.get(input.sessionID)
       if (!state) return
 
@@ -98,11 +118,17 @@ export default (input: PluginInput): Promise<Hooks> => {
     },
 
     "chat.message": async (input, output) => {
+      debugLog("[LLM-LOG] chat.message called for session: " + input.sessionID)
       // Write previous turn's data when new message arrives
       const sessionID = input.sessionID
       const state = turns.get(sessionID)
 
-      if (!state || !state.request) return
+      if (!state || !state.request) {
+        debugLog("[LLM-LOG] chat.message: no state or request to write")
+        return
+      }
+
+      debugLog("[LLM-LOG] Writing turn " + state.turn + " to jsonl")
 
       // Get current timestamp
       const timestamp = new Date().toISOString()
@@ -131,8 +157,10 @@ export default (input: PluginInput): Promise<Hooks> => {
       }
 
       const logPath = getLogPath(sessionID)
+      debugLog("[LLM-LOG] Writing to: " + logPath)
       appendFileSync(logPath, JSON.stringify(requestRecord) + "\n")
       appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
+      debugLog("[LLM-LOG] Write complete")
     },
 
     "event": async (input) => {

@@ -47,13 +47,13 @@ Opencode 提供的有效 plugin hooks 如下：
 | `tool` | **特殊** | 工具定义 |
 | `auth` | **特殊** | 认证 |
 
-**注意**：`finish-step` 不是 plugin hook，是 `processor.ts` 内部流处理的事件。
+**注意**：`finish-step` 不是 plugin hook，是 `processor.ts` 内部流处理的事件。但可以通过 `message.part.updated` 事件监听 `step-finish` part 来检测 Turn 结束。
 
 ## 核心设计
 
 ### Turn 生命周期
 
-由于 `finish-step` 无法通过 plugin hook 捕获，采用以下设计：
+通过 `event` hook 监听 `message.part.updated` 事件，当收到 `step-finish` 类型的 part 时表示一个 Turn 结束，立即写入 jsonl：
 
 ```
 chat.message (Turn N 开始)
@@ -65,13 +65,17 @@ LLM.stream() ... 流式输出
 experimental.text.complete (收集输出文本)
 tool.execute.after (收集工具调用)
   ↓
-chat.message (Turn N+1 开始) → 写入 Turn N 的完整 jsonl
+step-finish part 保存 → Bus.publish("message.part.updated", { part: step-finish })
   ↓
-experimental.chat.messages.transform (记录 Turn N+1 输入)
-  ...
+event hook 收到 "message.part.updated" 事件
+  ↓
+检测到 part.type === "step-finish" → 立即写入 Turn N 的完整 jsonl
 ```
 
-**关键点**：`chat.message` 在新消息到来时触发，此时**上一轮的所有输出 hooks**（`text-complete`、`tool.execute.after`）都已执行完毕，因此可以安全地写入上一轮的完整数据。
+**关键点**：
+- `step-finish` part 保存时会触发 `message.part.updated` 事件
+- 通过 `event` hook 监听此事件，在 Turn 结束时立即写入
+- 不需要等待下一条消息
 
 ### 数据结构
 
@@ -127,7 +131,7 @@ interface LLMResponse {
 
 | Hook | 用途 |
 |------|------|
-| `chat.message` | 识别新 Turn 开始，**同时写入上一轮的完整 jsonl** |
+| `event` | 监听 `message.part.updated` 事件，当 `part.type === "step-finish"` 时触发写入 |
 | `experimental.chat.messages.transform` | 获取完整输入消息 |
 | `experimental.text.complete` | 收集每个文本块输出 |
 | `tool.execute.after` | 收集工具执行结果 |
@@ -147,7 +151,8 @@ interface LLMResponse {
 核心逻辑：
 1. 管理 Turn 计数器和缓存
 2. 在各 hook 中收集数据
-3. `chat.message` 触发时写入上一轮的完整 jsonl
+3. `event` hook 监听 `message.part.updated` 事件，检测到 `step-finish` 时立即写入 jsonl
+4. `chat.message` 用于写入最后一个 Turn（session 结束时可能没有 step-finish）
 
 ### .opencode/opencode.json
 
