@@ -79,7 +79,10 @@ export default (input: PluginInput): Promise<Hooks> => {
     },
 
     "experimental.text.complete": async (input, output) => {
-      // TODO: collect text output
+      const state = turns.get(input.sessionID)
+      if (!state) return
+
+      state.response.texts.push(output.text)
     },
 
     "tool.execute.after": async (input, output) => {
