@@ -14,7 +14,7 @@
 - [ ] Task 3: 实现 chat.messages.transform 收集输入
 - [ ] Task 4: 实现 text.complete 收集文本输出
 - [ ] Task 5: 实现 tool.execute.after 收集工具调用
-- [ ] Task 6: 实现 chat.message 写入上一轮 jsonl
+- [ ] Task 6: 实现 event hook 检测 step-finish 并写入 jsonl
 - [ ] Task 7: 处理 session 结束时写入最后数据
 - [ ] Task 8: 验证实现
 - [ ] Task 9: 添加 .gitignore
@@ -26,5 +26,5 @@
 ## Notes
 
 - 使用 opencode plugin hooks 系统，无需修改源码
-- Turn 结束通过下一个 chat.message 隐式触发
+- Turn 结束通过监听 `message.part.updated` 事件，当 `part.type === "step-finish"` 时立即触发
 - 输出格式为 JSONL，每条记录包含 type, turn, sessionID, timestamp
