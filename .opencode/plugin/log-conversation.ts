@@ -86,7 +86,15 @@ export default (input: PluginInput): Promise<Hooks> => {
     },
 
     "tool.execute.after": async (input, output) => {
-      // TODO: collect tool calls
+      const state = turns.get(input.sessionID)
+      if (!state) return
+
+      state.response.tools.push({
+        tool: input.tool,
+        args: input.args,
+        output: output.output,
+        title: output.title,
+      })
     },
 
     "chat.message": async (input, output) => {
