@@ -4,7 +4,7 @@
 
 **Goal:** 创建一个 opencode plugin，通过 hooks 捕获每个 Turn 的完整 LLM 输入输出，写入 jsonl 文件用于学习 agent 和 LLM 交互流程。
 
-**Architecture:** 利用 opencode 的 plugin hook 系统，在 `experimental.chat.messages.transform` 收集输入，在 `experimental.text.complete` 和 `tool.execute.after` 收集输出，在下一个 `chat.message` 到来时写入上一轮的完整数据。
+**Architecture:** 利用 opencode 的 plugin hook 系统，在 `experimental.chat.messages.transform` 收集输入，在 `experimental.text.complete` 和 `tool.execute.after` 收集输出，在 `event` hook 中监听 `message.part.updated` 事件，当 `part.type === "step-finish"` 时立即写入 jsonl。
 
 **Tech Stack:** TypeScript, opencode plugin system, Node.js fs module
 
@@ -27,9 +27,11 @@ mkdir -p .opencode/plugin .opencode/logs
 
 ```json
 {
-  "plugin": ["./.opencode/plugin/log-conversation.ts"]
+  "plugin": ["file:///absolute/path/to/.opencode/plugin/log-conversation.ts"]
 }
 ```
+
+注意：plugin 路径需要使用绝对路径
 
 **Step 3: Commit**
 
@@ -47,8 +49,8 @@ git add .opencode/ && git commit -m "feat: add log-conversation plugin structure
 **Step 1: 创建基础 plugin 框架**
 
 ```typescript
-import type { Plugin, Hooks, PluginInput } from "@opencode-ai/plugin"
-import { writeFileSync, appendFileSync, existsSync, mkdirSync } from "fs"
+import type { Hooks, PluginInput } from "@opencode-ai/plugin"
+import { appendFileSync, existsSync, mkdirSync } from "fs"
 import { join } from "path"
 
 // State management for current turn
@@ -91,8 +93,8 @@ export default (input: PluginInput): Promise<Hooks> => {
       // TODO: collect tool calls
     },
 
-    "chat.message": async (input, output) => {
-      // TODO: write previous turn to jsonl
+    "event": async (input) => {
+      // TODO: detect step-finish and write jsonl
     },
   })
 }
@@ -160,7 +162,7 @@ git add .opencode/plugin/log-conversation.ts && git commit -m "feat: create log-
 
   // Reset response collector for new turn
   state.response = { texts: [], tools: [] }
-}
+},
 ```
 
 **Step 2: Commit**
@@ -184,7 +186,7 @@ git add .opencode/plugin/log-conversation.ts && git commit -m "feat: implement c
   if (!state) return
 
   state.response.texts.push(output.text)
-}
+},
 ```
 
 **Step 2: Commit**
@@ -213,7 +215,7 @@ git add .opencode/plugin/log-conversation.ts && git commit -m "feat: implement t
     output: output.output,
     title: output.title,
   })
-}
+},
 ```
 
 **Step 2: Commit**
@@ -224,26 +226,95 @@ git add .opencode/plugin/log-conversation.ts && git commit -m "feat: implement t
 
 ---
 
-## Task 6: 实现 chat.message 写入上一轮 jsonl
+## Task 6: 实现 event hook 检测 step-finish 并写入 jsonl
 
 **Files:**
 - Modify: `.opencode/plugin/log-conversation.ts`
 
-**Step 1: 更新 chat.message hook**
+**Step 1: 实现 event hook**
 
 ```typescript
-"chat.message": async (input, output) => {
-  // Write previous turn's data when new message arrives
-  // Find and write the turn that just completed (current session)
-  const sessionID = input.sessionID
-  const state = turns.get(sessionID)
+"event": async (input) => {
+  const event = input.event as any
 
+  // 监听 message.part.updated 事件，当收到 step-finish 时写入 jsonl
+  if (event.type === "message.part.updated") {
+    const part = event.properties?.part
+    if (part?.type === "step-finish") {
+      const sessionID = part.sessionID
+      const state = turns.get(sessionID)
+
+      if (!state || !state.request) return
+
+      // Get current timestamp
+      const timestamp = new Date().toISOString()
+
+      // Write request record
+      const requestRecord = {
+        type: "request",
+        turn: state.turn,
+        sessionID: state.sessionID,
+        timestamp,
+        model: state.request.model,
+        agent: state.request.agent,
+        system: state.request.system,
+        messages: state.request.messages,
+      }
+
+      // Write response record
+      const responseRecord = {
+        type: "response",
+        turn: state.turn,
+        sessionID: state.sessionID,
+        timestamp,
+        texts: state.response.texts,
+        fullText: state.response.texts.join(""),
+        tools: state.response.tools,
+        finishReason: part.reason,
+        usage: {
+          tokens: part.tokens,
+          cost: part.cost,
+        },
+      }
+
+      const logPath = getLogPath(sessionID)
+      appendFileSync(logPath, JSON.stringify(requestRecord) + "\n")
+      appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
+    }
+  }
+},
+```
+
+**Step 2: Commit**
+
+```bash
+git add .opencode/plugin/log-conversation.ts && git commit -m "feat: implement event hook to write jsonl on step-finish"
+```
+
+---
+
+## Task 7: 处理 session 结束时写入最后一批数据
+
+**Files:**
+- Modify: `.opencode/plugin/log-conversation.ts`
+
+**Step 1: 扩展 event hook 处理 session 结束**
+
+当 session 结束时，如果还有未写入的数据（可能最后的 Turn 没有 step-finish），需要写入。
+
+```typescript
+// 在 event hook 中添加
+if (event.type === "session.deleted") {
+  const sessionID = event.data?.info?.id
+  if (!sessionID) return
+
+  const state = turns.get(sessionID)
   if (!state || !state.request) return
 
-  // Get current timestamp
+  // Write remaining turn data if any
   const timestamp = new Date().toISOString()
+  const logPath = getLogPath(sessionID)
 
-  // Write request record
   const requestRecord = {
     type: "request",
     turn: state.turn,
@@ -255,7 +326,6 @@ git add .opencode/plugin/log-conversation.ts && git commit -m "feat: implement t
     messages: state.request.messages,
   }
 
-  // Write response record
   const responseRecord = {
     type: "response",
     turn: state.turn,
@@ -266,72 +336,11 @@ git add .opencode/plugin/log-conversation.ts && git commit -m "feat: implement t
     tools: state.response.tools,
   }
 
-  const logPath = getLogPath(sessionID)
   appendFileSync(logPath, JSON.stringify(requestRecord) + "\n")
   appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
-}
-```
 
-**Step 2: Commit**
-
-```bash
-git add .opencode/plugin/log-conversation.ts && git commit -m "feat: implement chat.message to write jsonl records"
-```
-
----
-
-## Task 7: 处理 session 结束时写入最后一批数据
-
-**Files:**
-- Modify: `.opencode/plugin/log-conversation.ts`
-
-**Step 1: 添加 session 结束时写入最后数据**
-
-需要处理 session 结束时（用户结束对话）可能还有未写入的数据。可以通过 `event` hook 监听 session 事件。
-
-```typescript
-// 在 plugin 返回的 Hooks 中添加
-"event": async (input) => {
-  const event = input.event as any
-  // session.updated 或 session.deleted 时写入剩余数据
-  if (event.type === "session.updated" || event.type === "session.deleted") {
-    const sessionID = event.data?.info?.id
-    if (!sessionID) return
-
-    const state = turns.get(sessionID)
-    if (!state || !state.request) return
-
-    // Write remaining turn data
-    const timestamp = new Date().toISOString()
-    const logPath = getLogPath(sessionID)
-
-    const requestRecord = {
-      type: "request",
-      turn: state.turn,
-      sessionID: state.sessionID,
-      timestamp,
-      model: state.request.model,
-      agent: state.request.agent,
-      system: state.request.system,
-      messages: state.request.messages,
-    }
-
-    const responseRecord = {
-      type: "response",
-      turn: state.turn,
-      sessionID: state.sessionID,
-      timestamp,
-      texts: state.response.texts,
-      fullText: state.response.texts.join(""),
-      tools: state.response.tools,
-    }
-
-    appendFileSync(logPath, JSON.stringify(requestRecord) + "\n")
-    appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
-
-    // Clean up state
-    turns.delete(sessionID)
-  }
+  // Clean up state
+  turns.delete(sessionID)
 }
 ```
 
@@ -351,7 +360,6 @@ git add .opencode/plugin/log-conversation.ts && git commit -m "feat: handle sess
 **Step 1: 运行 opencode 测试**
 
 ```bash
-# 确保在项目目录
 cd /Users/liufukang/workplace/AI
 opencode
 ```
@@ -371,7 +379,7 @@ cat .opencode/logs/*.jsonl
 - `sessionID`: 会话 ID
 - `timestamp`: ISO 时间戳
 - 对于 request: `messages`, `system`, `agent`, `model`
-- 对于 response: `texts`, `fullText`, `tools`
+- 对于 response: `texts`, `fullText`, `tools`, `finishReason`, `usage`
 
 ---
 
