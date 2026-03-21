@@ -2,17 +2,6 @@ import type { Hooks, PluginInput } from "@opencode-ai/plugin"
 import { appendFileSync, existsSync, mkdirSync } from "fs"
 import { join } from "path"
 
-const DEBUG = true
-const debugLog = (msg: string) => {
-  if (!DEBUG) return
-  const logDir = join(process.cwd(), ".opencode", "logs")
-  if (!existsSync(logDir)) mkdirSync(logDir, { recursive: true })
-  const logPath = join(logDir, "debug.log")
-  appendFileSync(logPath, `${new Date().toISOString()} ${msg}\n`)
-}
-
-debugLog("[LLM-LOG] plugin loaded")
-
 // State management for current turn
 interface TurnState {
   turn: number
@@ -40,14 +29,11 @@ function getLogPath(sessionID: string): string {
 }
 
 export default (input: PluginInput): Promise<Hooks> => {
-  debugLog("[LLM-LOG] plugin initialized")
   return Promise.resolve({
     "experimental.chat.messages.transform": async (_, output) => {
-      debugLog("[LLM-LOG] chat.messages.transform called, messages count: " + output.messages.length)
       // Get sessionID from the first message's sessionID
       const sessionID = output.messages[0]?.info.sessionID
       if (!sessionID) {
-        debugLog("[LLM-LOG] chat.messages.transform: no sessionID")
         return
       }
 
@@ -61,12 +47,10 @@ export default (input: PluginInput): Promise<Hooks> => {
           response: { texts: [], tools: [] },
         }
         turns.set(sessionID, state)
-        debugLog("[LLM-LOG] Created new turn state for session: " + sessionID)
       }
 
       // Increment turn counter
       state.turn++
-      debugLog("[LLM-LOG] Turn: " + state.turn + " for session: " + sessionID)
 
       // Extract messages for LLM
       const messages = output.messages.map((m: any) => ({
@@ -97,7 +81,6 @@ export default (input: PluginInput): Promise<Hooks> => {
     },
 
     "experimental.text.complete": async (input, output) => {
-      debugLog("[LLM-LOG] text.complete called for session: " + input.sessionID + " text length: " + output.text.length)
       const state = turns.get(input.sessionID)
       if (!state) return
 
@@ -105,7 +88,6 @@ export default (input: PluginInput): Promise<Hooks> => {
     },
 
     "tool.execute.after": async (input, output) => {
-      debugLog("[LLM-LOG] tool.execute.after called for session: " + input.sessionID + " tool: " + input.tool)
       const state = turns.get(input.sessionID)
       if (!state) return
 
@@ -118,17 +100,13 @@ export default (input: PluginInput): Promise<Hooks> => {
     },
 
     "chat.message": async (input, output) => {
-      debugLog("[LLM-LOG] chat.message called for session: " + input.sessionID)
       // Write previous turn's data when new message arrives
       const sessionID = input.sessionID
       const state = turns.get(sessionID)
 
       if (!state || !state.request) {
-        debugLog("[LLM-LOG] chat.message: no state or request to write")
         return
       }
-
-      debugLog("[LLM-LOG] Writing turn " + state.turn + " to jsonl")
 
       // Get current timestamp
       const timestamp = new Date().toISOString()
@@ -157,23 +135,69 @@ export default (input: PluginInput): Promise<Hooks> => {
       }
 
       const logPath = getLogPath(sessionID)
-      debugLog("[LLM-LOG] Writing to: " + logPath)
       appendFileSync(logPath, JSON.stringify(requestRecord) + "\n")
       appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
-      debugLog("[LLM-LOG] Write complete")
     },
 
     "event": async (input) => {
       const event = input.event as any
-      // session.updated 或 session.deleted 时写入剩余数据
-      if (event.type === "session.updated" || event.type === "session.deleted") {
+
+      // 监听 message.part.updated 事件，当收到 step-finish 时写入 jsonl
+      if (event.type === "message.part.updated") {
+        const part = event.properties?.part
+        if (part?.type === "step-finish") {
+          const sessionID = part.sessionID
+          const state = turns.get(sessionID)
+
+          if (!state || !state.request) return
+
+          // Get current timestamp
+          const timestamp = new Date().toISOString()
+
+          // Write request record
+          const requestRecord = {
+            type: "request",
+            turn: state.turn,
+            sessionID: state.sessionID,
+            timestamp,
+            model: state.request.model,
+            agent: state.request.agent,
+            system: state.request.system,
+            messages: state.request.messages,
+          }
+
+          // Write response record
+          const responseRecord = {
+            type: "response",
+            turn: state.turn,
+            sessionID: state.sessionID,
+            timestamp,
+            texts: state.response.texts,
+            fullText: state.response.texts.join(""),
+            tools: state.response.tools,
+            finishReason: part.reason,
+            usage: {
+              tokens: part.tokens,
+              cost: part.cost,
+            },
+          }
+
+          const logPath = getLogPath(sessionID)
+          appendFileSync(logPath, JSON.stringify(requestRecord) + "\n")
+          appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
+        }
+        return
+      }
+
+      // session.deleted 时写入最后数据
+      if (event.type === "session.deleted") {
         const sessionID = event.data?.info?.id
         if (!sessionID) return
 
         const state = turns.get(sessionID)
         if (!state || !state.request) return
 
-        // Write remaining turn data
+        // Write remaining turn data if any
         const timestamp = new Date().toISOString()
         const logPath = getLogPath(sessionID)
 
