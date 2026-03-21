@@ -134,5 +134,48 @@ export default (input: PluginInput): Promise<Hooks> => {
       appendFileSync(logPath, JSON.stringify(requestRecord) + "\n")
       appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
     },
+
+    "event": async (input) => {
+      const event = input.event as any
+      // session.updated 或 session.deleted 时写入剩余数据
+      if (event.type === "session.updated" || event.type === "session.deleted") {
+        const sessionID = event.data?.info?.id
+        if (!sessionID) return
+
+        const state = turns.get(sessionID)
+        if (!state || !state.request) return
+
+        // Write remaining turn data
+        const timestamp = new Date().toISOString()
+        const logPath = getLogPath(sessionID)
+
+        const requestRecord = {
+          type: "request",
+          turn: state.turn,
+          sessionID: state.sessionID,
+          timestamp,
+          model: state.request.model,
+          agent: state.request.agent,
+          system: state.request.system,
+          messages: state.request.messages,
+        }
+
+        const responseRecord = {
+          type: "response",
+          turn: state.turn,
+          sessionID: state.sessionID,
+          timestamp,
+          texts: state.response.texts,
+          fullText: state.response.texts.join(""),
+          tools: state.response.tools,
+        }
+
+        appendFileSync(logPath, JSON.stringify(requestRecord) + "\n")
+        appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
+
+        // Clean up state
+        turns.delete(sessionID)
+      }
+    },
   })
 }
