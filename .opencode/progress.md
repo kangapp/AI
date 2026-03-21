@@ -21,11 +21,13 @@
 - [x] Task 7: 处理 session 结束写入最后数据
 - [x] Task 9: 添加 .gitignore
 
-### 改进 (2026-03-21)
+### 改进 v2 (2026-03-21)
 
-- [x] 发现 `message.part.updated` 事件可用于检测 Turn 结束
-- [x] 更新设计方案：使用 `step-finish` part 检测替代 `chat.message` 触发
-- [x] 重构 event hook，移除调试代码
+- [x] Task 1: 更新 TurnState 数据结构（添加 reasoning, toolCalls）
+- [x] Task 2: 添加 chat.system.transform hook 捕获 system prompt
+- [x] Task 3: 改进 chat.messages.transform 提取 toolCalls 和 reasoning
+- [x] Task 4: 更新 event hook 写入完整 response
+- [x] Task 5: 验证实现
 
 ## Test Results
 
