@@ -83,9 +83,9 @@ export default (input: PluginInput): Promise<Hooks> => {
 
       state.request.system = output.system
 
-      // 当 system 获取后，写入 request 事件
+      // 当 system 获取后，写入 turn_start 事件
       writeEvent(state, {
-        type: "request",
+        type: "turn_start",
         turn: state.turn,
         sessionID: state.sessionID,
         model: state.request.model,
@@ -124,9 +124,8 @@ export default (input: PluginInput): Promise<Hooks> => {
       if (isUserMessage && state) {
         debug(`chat.messages.transform: user message, writing previous turn`)
         writeEvent(state, {
-          type: "response",
-          turn: state.turn,
-          sessionID: state.sessionID,
+          type: "turn_complete",
+          reason: "user_message",  // 因为用户发送新消息而结束
           texts: state.response.texts,
           fullText: state.response.texts.join(""),
           reasoning: state.response.reasoning,
@@ -202,8 +201,23 @@ export default (input: PluginInput): Promise<Hooks> => {
         return
       }
 
-      // assistant 消息：更新 request.messages 为当前 assistant 消息
+      // assistant 消息：提取 reasoning 并更新 messages
       if (lastMsg?.info?.role === "assistant") {
+        // 提取 reasoning 内容
+        for (const part of lastMsg.parts) {
+          if (part.type === "reasoning") {
+            const reasoningContent = part.text || ""
+            if (reasoningContent) {
+              // 写入 reasoning 事件
+              writeEvent(state, {
+                type: "reasoning",
+                content: reasoningContent,
+              })
+              state.response.reasoning.push(reasoningContent)
+            }
+          }
+        }
+
         state.request.messages = [{
           role: "assistant",
           content: lastMsg.parts,
@@ -220,6 +234,12 @@ export default (input: PluginInput): Promise<Hooks> => {
       const state = turns.get(turnKey)
       if (!state) return
 
+      // 写入 text 事件
+      writeEvent(state, {
+        type: "text",
+        content: output.text,
+      })
+
       state.response.texts.push(output.text)
     },
 
@@ -230,6 +250,14 @@ export default (input: PluginInput): Promise<Hooks> => {
       const turnKey = `${input.sessionID}_${shortUUID}`
       const state = turns.get(turnKey)
       if (!state) return
+
+      // 写入 tool_call 事件
+      writeEvent(state, {
+        type: "tool_call",
+        id: input.callId,
+        tool: input.tool,
+        args: input.args,
+      })
 
       // 在 toolCall 开始时记录，保持 toolCalls 和 tools 的顺序一致
       state.response.toolCalls.push({
@@ -247,6 +275,15 @@ export default (input: PluginInput): Promise<Hooks> => {
       const turnKey = `${input.sessionID}_${shortUUID}`
       const state = turns.get(turnKey)
       if (!state) return
+
+      // 写入 tool_result 事件
+      writeEvent(state, {
+        type: "tool_result",
+        tool: input.tool,
+        args: input.args,
+        output: output.output,
+        title: output.title,
+      })
 
       state.response.tools.push({
         tool: input.tool,
@@ -278,11 +315,10 @@ export default (input: PluginInput): Promise<Hooks> => {
           const isTurnEnd = reason === "stop" || reason === "length" || reason === "content-filter" ||
                             reason === null
           if (isTurnEnd) {
-            debug(`step-finish: reason=${reason}, writing response event`)
+            debug(`step-finish: reason=${reason}, writing turn_complete event`)
             writeEvent(state, {
-              type: "response",
-              turn: state.turn,
-              sessionID: state.sessionID,
+              type: "turn_complete",
+              reason,
               texts: state.response.texts,
               fullText: state.response.texts.join(""),
               reasoning: state.response.reasoning,
@@ -305,9 +341,9 @@ export default (input: PluginInput): Promise<Hooks> => {
           const turnKey = `${sessionID}_${shortUUID}`
           const state = turns.get(turnKey)
           if (state && state.request) {
-            // 写入 request 事件
+            // 写入 turn_start 事件
             writeEvent(state, {
-              type: "request",
+              type: "turn_start",
               turn: state.turn,
               sessionID: state.sessionID,
               model: state.request.model,
@@ -315,11 +351,10 @@ export default (input: PluginInput): Promise<Hooks> => {
               system: state.request.system,
               messages: state.request.messages,
             })
-            // 写入 response 事件
+            // 写入 turn_complete 事件
             writeEvent(state, {
-              type: "response",
-              turn: state.turn,
-              sessionID: state.sessionID,
+              type: "turn_complete",
+              reason: "session_deleted",
               texts: state.response.texts,
               fullText: state.response.texts.join(""),
               reasoning: state.response.reasoning,
