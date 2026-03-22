@@ -18,6 +18,7 @@ interface TurnState {
   turn: number
   sessionID: string
   shortUUID: string
+  parentShortUUID: string | null  // 父任务 shortUUID，子任务时使用
   filePath: string           // 文件路径，在创建时就确定
   request: {
     messages: any[]           // 完整的消息
@@ -183,6 +184,7 @@ export default (input: PluginInput): Promise<Hooks> => {
           turn: 1,  // 每个文件都从 turn 1 开始
           sessionID,
           shortUUID,
+          parentShortUUID: null,  // 主任务为 null
           filePath: "",
           request: {
             messages: currentMessages,
