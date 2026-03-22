@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import type { Turn, AnyEvent, JsonlFile } from '../types'
+import type { Turn, AnyEvent, JsonlFile, CachedView, Message, ToolCall } from '../types'
 
 export function useJsonlParser() {
   const parseContent = useCallback((content: string): JsonlFile => {
@@ -16,12 +16,13 @@ export function useJsonlParser() {
     }
 
     const turns = buildTurns(events)
+    const cachedViews = buildCachedViews(turns)
 
     return {
       filename: '',
       filepath: '',
       turns,
-      cachedViews: [],
+      cachedViews,
       modifiedAt: new Date(),
     }
   }, [])
@@ -56,6 +57,33 @@ export function useJsonlParser() {
     }
 
     return turns
+  }
+
+  const buildCachedViews = (turns: Turn[]): CachedView[] => {
+    return turns.map((turn, index) => {
+      // 累积 messages（每个 turn 的 user message，按 turn 倒序）
+      const messages: Message[] = []
+      for (let i = index; i >= 0; i--) {
+        const userMsgs = turns[i].turnStart.messages.filter(m => m.role === 'user')
+        messages.push(...userMsgs)
+      }
+
+      // 累积 toolCalls（按 turn 倒序，turn 内按时间正序）
+      const toolCalls: ToolCall[] = []
+      for (let i = index; i >= 0; i--) {
+        const tc = turns[i].turnComplete?.toolCalls || []
+        toolCalls.push(...tc)
+      }
+
+      return {
+        currentTurn: turn.turnStart.turn,
+        systemPrompt: turn.turnStart.system,
+        messages,
+        toolCalls,
+        reasoning: turn.turnComplete?.reasoning || [],
+        turnComplete: turn.turnComplete
+      }
+    })
   }
 
   return { parseContent }
