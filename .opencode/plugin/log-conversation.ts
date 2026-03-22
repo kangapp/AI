@@ -237,7 +237,26 @@ export default (input: PluginInput): Promise<Hooks> => {
       }
     },
 
-    // 3. 收集文本输出
+    // 3. 获取 LLM 调用参数
+    "chat.params": async (input, output) => {
+      const sessionID = input.sessionID
+      if (!sessionID) return
+      const shortUUID = activeShortUUIDs.get(sessionID)
+      if (!shortUUID) return
+      const turnKey = `${sessionID}_${shortUUID}`
+      const state = turns.get(turnKey)
+      if (!state) return
+
+      writeEvent(state, {
+        type: "llm_params",
+        temperature: output.temperature,
+        topP: output.topP,
+        topK: output.topK,
+        options: output.options,
+      })
+    },
+
+    // 4. 收集文本输出
     "experimental.text.complete": async (input, output) => {
       const shortUUID = activeShortUUIDs.get(input.sessionID)
       if (!shortUUID) return
@@ -254,7 +273,7 @@ export default (input: PluginInput): Promise<Hooks> => {
       state.response.texts.push(output.text)
     },
 
-    // 4. 收集工具调用（在执行前记录）
+    // 5. 收集工具调用（在执行前记录）
     "tool.execute.before": async (input, output) => {
       const shortUUID = activeShortUUIDs.get(input.sessionID)
       if (!shortUUID) return
@@ -279,7 +298,7 @@ export default (input: PluginInput): Promise<Hooks> => {
       })
     },
 
-    // 5. 收集工具执行结果
+    // 6. 收集工具执行结果
     "tool.execute.after": async (input, output) => {
       const shortUUID = activeShortUUIDs.get(input.sessionID)
       if (!shortUUID) return
