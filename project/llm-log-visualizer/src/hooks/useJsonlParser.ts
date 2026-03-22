@@ -21,6 +21,7 @@ export function useJsonlParser() {
       filename: '',
       filepath: '',
       turns,
+      cachedViews: [],
       modifiedAt: new Date(),
     }
   }, [])

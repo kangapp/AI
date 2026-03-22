@@ -95,9 +95,24 @@ export interface Turn {
   turnComplete: TurnComplete | null
 }
 
+export interface Message {
+  role: string
+  content: string | object
+}
+
+export interface CachedView {
+  currentTurn: number
+  systemPrompt: string[]
+  messages: Message[]
+  toolCalls: ToolCall[]
+  reasoning: string[]
+  turnComplete: TurnComplete | null
+}
+
 export interface JsonlFile {
   filename: string
   filepath: string
   turns: Turn[]
+  cachedViews: CachedView[]
   modifiedAt: Date
 }
