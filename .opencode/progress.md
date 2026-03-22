@@ -31,30 +31,77 @@
 - [x] Task 4: 更新 event hook 写入完整 response
 - [x] Task 5: 验证完整数据
 
+#### V3 Turn Isolation 改进
+
+- [x] Task 1: 修改 getLogPath 函数添加 shortUUID 参数
+- [x] Task 2: 添加 shortUUID 生成逻辑
+- [x] Task 3: 更新 state lookup 使用 turnKey
+- [x] Task 4: 添加分阶段写入（request + response）
+- [x] Task 5: 添加 tool.execute.before 记录 toolCalls
+- [x] Task 6: 修复历史消息覆盖问题（每个文件独立）
+
 ## Test Results
 
-### V1 测试 (2026-03-21)
+### V3 测试 - Turn Isolation
 
-**输入**: "你好"
+**测试**: 发送 2 条用户消息
 
-**结果**:
-- ✅ jsonl 文件成功生成
-- ✅ 包含 request/response 对
-- ✅ 包含 model、agent、messages 信息
-- ⚠️ system 为空（因为 system prompt 在 chat.messages.transform 之后构建）
-- ⚠️ reasoning 和 toolCalls 为空（未从 messages 提取）
+**期望结果**: 生成 2 个独立文件，每个文件的 turn=1
 
-### V2 测试 (待验证)
+**调试过程**:
+1. 第 1 次：生成 8 个文件 → `isUserMessage` 检测逻辑错误
+2. 第 2 次：生成 3 个文件 → step-finish 时未清理 state
+3. 第 3 次：生成 3 个文件 → messages.transform 被多次调用
+4. 第 4 次：修复 `reason === "tool-calls"` 判断
+5. 第 5 次：生成 2 个文件 ✓ 但第 2 个文件包含历史消息
 
-改进点:
-- `system`: 从 `chat.system.transform` 获取
-- `reasoning`: 从 `ReasoningPart` 提取
-- `toolCalls`: 从 `ToolPart` 提取
+**最终修复**:
+- user 消息时：只保存当前 user 消息到 `messages`
+- assistant 消息时：更新 `messages` 为当前 assistant 消息
+- 每个文件的 turn 都从 1 开始
 
 ## Errors
 
-(无错误)
+| 错误 | 尝试次数 | 解决方案 |
+|------|----------|----------|
+| `m.info.role undefined` | 2 | 使用 `m.info?.role` 可选链 |
+| 生成多个文件 | 5+ | 使用 `reason === "tool-calls"` 判断 + 分阶段写入 |
+| 历史消息覆盖 | 3 | 每个 turn 只保存当前消息 |
 
 ## 当前状态
 
-✅ 所有代码实现完成，V2 改进已提交，待实际运行测试验证完整数据捕获。
+✅ **Timeline Log 实现完成，待测试验证**
+
+## Timeline Log 设计变更
+
+### 旧格式 (request/response)
+- `type: "request"` - 输入
+- `type: "response"` - 输出
+
+### 新格式 (Timeline Events)
+用时间线事件描述与 LLM 的交互过程：
+
+| 事件 | 说明 |
+|------|------|
+| `turn_start` | turn 开始，包含完整上下文 |
+| `text` | 文本输出片段 |
+| `reasoning` | 思考过程 |
+| `tool_call` | 工具调用请求 |
+| `tool_result` | 工具执行结果 |
+| `turn_complete` | turn 结束，包含完整摘要 |
+
+## 实现完成的任务
+
+- [x] Task 1: 重构写入函数 - 统一 `writeEvent`
+- [x] Task 2: 实现 `turn_start` 事件
+- [x] Task 3: 实现 `text` 和 `reasoning` 事件
+- [x] Task 4: 实现 `tool_call` 和 `tool_result` 事件
+- [x] Task 5: 实现 `turn_complete` 事件
+- [x] Task 6: 清理旧逻辑并测试
+
+## 待验证
+
+1. 发送 3 条用户消息
+2. 验证生成 3 个独立 jsonl 文件
+3. 验证每个文件包含事件序列
+4. 验证事件按时间顺序追加
