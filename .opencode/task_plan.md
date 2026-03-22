@@ -4,7 +4,7 @@
 
 创建 opencode plugin，用于捕获每个 Turn 的 LLM 输入输出，写入 jsonl 文件用于学习 agent 和 LLM 交互流程。
 
-## Status: ✅ LLM Log Plugin 功能完成 | ✅ LLM Log Visualizer 重新设计完成
+## Status: ✅ LLM Log Plugin 功能完成 | ✅ LLM Log Visualizer 累积视图完成 | ✅ 内容格式化完成
 
 ---
 
@@ -17,8 +17,16 @@
 
 ### 2. LLM Log Visualizer (重新设计)
 - 路径: `project/llm-log-visualizer/`
-- 状态: ✅ UI 重新设计完成
-- Dev Server: http://localhost:5173/
+- 状态: ✅ UI 重新设计完成 + 功能增强
+- Dev Server: http://localhost:5175/
+
+### 3. 已完成功能
+- ✅ 深色主题 UI
+- ✅ 文件列表侧边栏
+- ✅ Turn 累积视图
+- ✅ 内容格式化显示
+- ✅ Markdown GitHub 风格渲染
+- ✅ Shell/Code/Todo 分类样式
 
 ---
 

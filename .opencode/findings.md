@@ -226,3 +226,39 @@ server.middlewares.use('/api/logs', handler)            // 后匹配
   "tools": [...]
 }
 ```
+
+---
+
+## Content Formatting (2026-03-22)
+
+### 内容类型推断
+
+```typescript
+type ContentType = 'text' | 'markdown' | 'command' | 'code' | 'todo' | 'error'
+
+inferContentType(toolName?, content?):
+  - error: Bash + error/failed/exception
+  - command: tool = "Bash"
+  - code: tool = Read/Write/Edit/Grep/Glob
+  - todo: content 匹配 - [ ] / - [x]
+  - markdown: content 匹配 #/*/- 模式
+  - text: 默认
+```
+
+### 组件结构
+
+```
+ContentBlock
+├── ShellBlock (command)
+├── CodeBlock (code)
+├── TodoBlock (todo)
+├── MarkdownBlock (markdown) - react-markdown + rehype-highlight
+└── content-text (text/error)
+```
+
+### CSS 样式
+
+- `.content-block` - 左边框颜色区分类型
+- `.shell-block` - 深色背景 (#1e1e1e)
+- `.code-block` - 浅色背景，行号
+- `.markdown-block` - GitHub 风格 Markdown

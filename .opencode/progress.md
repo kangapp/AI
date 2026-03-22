@@ -2,11 +2,70 @@
 
 ## Session Log
 
-### 2026-03-22 (下午 Session)
+### 2026-03-22 (晚间 Session)
 
 ---
 
-## LLM Log Visualizer UI 重新设计
+## Turn 累积视图 (Cumulative View) ✅
+
+### 实现内容
+- 新增 `CachedView` 类型，包含累积数据
+- `buildCachedViews` 在解析时生成累积视图
+- `toolTurnCounts` 正确追踪每个 turn 的 tool 数量
+- 切换 turn 时自动重置展开状态
+
+### Bug 修复
+| 问题 | 解决方案 |
+|------|----------|
+| Turn 1 tool calls 不显示 | 从 `events` 数组和 `turnComplete.toolCalls` 两个来源收集 |
+| Tool 归属 turn 计算错误 | 使用 `toolTurnCounts` 而非 `turnComplete.toolCalls.length` |
+| 历史 turn tools 没有折叠 | `isCurrentTurn` 判断使用正确的 turn 数量 |
+
+### Git Commits
+```
+c59fb47 fix: collect tool_call_result from events array
+1df50d2 fix: correct tool turn attribution using toolTurnCounts
+2654bda feat: add buildCachedViews to generate cumulative views
+ecd53aa feat: add CachedView and Message types
+```
+
+---
+
+## 内容格式化显示 (Content Formatting) ✅
+
+### 实现内容
+- `contentType` 工具函数：根据 tool name 推断内容类型
+- `ContentBlock` 组件：根据类型选择渲染方式
+- `ShellBlock` - Shell 风格高亮（深色背景，$ 命令）
+- `CodeBlock` - 代码块（浅色背景，行号）
+- `TodoBlock` - Todo 列表（☑/☐ checkbox）
+- `MarkdownBlock` - 使用 react-markdown 渲染 Markdown
+
+### 类型识别
+| 类型 | 来源 | 边框颜色 |
+|------|------|----------|
+| text | 默认 | 灰色 |
+| markdown | 内容匹配 #/*- 模式 | 蓝色 |
+| command | tool = "Bash" | 绿色 |
+| code | tool = Read/Write/Edit/Grep/Glob | 紫色 |
+| todo | 内容匹配 - [ ] / - [x] | 黄色 |
+| error | Bash output 包含 error/failed | 红色 |
+
+### Git Commits
+```
+2dab01f feat: add proper Markdown rendering with react-markdown
+089df94 feat: integrate ContentBlock in App.tsx
+bec9539 feat: add content block CSS styles
+abea69a feat: add ContentBlock component
+e67c85d feat: add TodoBlock component
+d89cc76 feat: add CodeBlock component
+0628ff6 feat: add ShellBlock component
+6ab041f feat: add contentType utility functions
+```
+
+---
+
+## LLM Log Visualizer UI 重新设计 (下午 Session)
 
 ### 本次更改
 - **全新深色主题 UI** - GitHub 风格
@@ -22,14 +81,6 @@
 | Tool calls 不显示 | 从 `events` 数组读取 `tool_call_result` |
 | 消息内容对象导致 React 报错 | 添加 `renderContent()` 处理各种格式 |
 
-### 错误记录
-
-| 错误 | 尝试次数 | 解决方案 |
-|------|----------|----------|
-| Objects are not valid as React child | 1 | 添加 renderContent() 处理对象 |
-| 拖拽闪烁循环 | 2 | pointer-events: none + 延迟 |
-| Tool calls 不显示 | 1 | 从 events.tool_call_result 读取 |
-
 ---
 
 ## LLM Log Plugin
@@ -42,29 +93,14 @@
 
 ---
 
-## Git Commits
-
-### 2026-03-22 (下午)
-```
-927bf09 feat: redesign LLM Log Visualizer with dark theme and improved UX
-```
-
-### 2026-03-22 (上午)
-```
-48d4353 fix: increment turn on step-finish reason=tool-calls
-7ccec40 fix: prevent duplicate turn_complete with responseWritten flag
-66daf88 revert: restore Turn Isolation - each user message creates new file
-d660bf2 fix: add turn and shortUUID to all turn_complete events
-1226df9 feat: merge tool_call and tool_result into tool_call_result
-```
-
----
-
 ## 当前状态
 
-✅ **LLM Log Visualizer UI 重新设计完成，Dev Server 运行中**
+✅ **LLM Log Visualizer 功能完善中**
+- Turn 累积视图 ✅
+- 内容格式化显示 ✅
+- Markdown 渲染 (GitHub 风格) ✅
 
-Dev Server: http://localhost:5173/
+Dev Server: http://localhost:5175/
 
 ---
 
@@ -72,8 +108,8 @@ Dev Server: http://localhost:5173/
 
 | Question | Answer |
 |----------|--------|
-| Where am I? | 项目开发阶段，Visualizer UI 刚完成 |
-| Where am I going? | Turn Isolation Feature 实现 |
-| What's the goal? | 每个 user turn 写入独立文件 |
+| Where am I? | LLM Log Visualizer 功能完善中 |
+| Where am I going? | 功能开发完成，待测试验证 |
+| What's the goal? | 可视化 jsonl 日志，支持累积视图和内容格式化 |
 | What have I learned? | 详见 findings.md |
-| What have I done? | 完成 Visualizer 重新设计，修复多个 bug |
+| What have I done? | 完成累积视图、内容格式化、Markdown 渲染 |
