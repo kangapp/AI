@@ -501,7 +501,7 @@ export default (input: PluginInput): Promise<Hooks> => {
               texts: state.response.texts,
               fullText: state.response.texts.join(""),
               reasoning: state.response.reasoning,
-              toolCalls: state.response.toolCalls,
+              toolCalls: state.response.toolCalls.filter(tc => tc.output !== null || tc.title !== null),
               tools: state.response.tools,
             })
           }
