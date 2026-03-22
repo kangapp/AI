@@ -144,6 +144,8 @@ export default (input: PluginInput): Promise<Hooks> => {
         )
         writeEvent(state, {
           type: "turn_complete",
+          turn: state.turn,
+          shortUUID: state.shortUUID,
           reason: "user_message",  // 因为用户发送新消息而结束
           texts: state.response.texts,
           fullText: state.response.texts.join(""),
@@ -454,6 +456,8 @@ export default (input: PluginInput): Promise<Hooks> => {
               )
               writeEvent(state, {
                 type: "turn_complete",
+                turn: state.turn,
+                shortUUID: state.shortUUID,
                 reason,
                 texts: state.response.texts,
                 fullText: state.response.texts.join(""),
@@ -497,6 +501,8 @@ export default (input: PluginInput): Promise<Hooks> => {
             // 写入 turn_complete 事件
             writeEvent(state, {
               type: "turn_complete",
+              turn: state.turn,
+              shortUUID: state.shortUUID,
               reason: "session_deleted",
               texts: state.response.texts,
               fullText: state.response.texts.join(""),
