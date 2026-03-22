@@ -465,7 +465,9 @@ export default (input: PluginInput): Promise<Hooks> => {
               })
               state.responseWritten = true
             } else {
-              debug(`step-finish: reason=${reason}, not ending turn`)
+              // reason === "tool-calls" 时，不结束 turn，但递增 turn 以便下一个 turn_start
+              debug(`step-finish: reason=${reason}, incrementing turn`)
+              state.turn += 1
             }
             break
 
