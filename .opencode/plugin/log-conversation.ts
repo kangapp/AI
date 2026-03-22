@@ -3,7 +3,7 @@ import { appendFileSync, existsSync, mkdirSync } from "fs"
 import { join } from "path"
 
 // Debug logging
-const DEBUG = true
+const DEBUG = process.env.DEBUG_LOG_CONVERSATION === "true"
 function debug(...args: any[]) {
   if (DEBUG) {
     const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')
@@ -172,7 +172,10 @@ export default (input: PluginInput): Promise<Hooks> => {
 
         // 获取 agent 和 model
         const agent = lastMsg?.info?.agent || "unknown"
-        const model = lastMsg?.info?.model || { providerID: "unknown", modelID: "unknown" }
+        const modelInfo = lastMsg?.info?.model
+        const model = typeof modelInfo === "object" && modelInfo !== null && "providerID" in modelInfo
+          ? modelInfo as { providerID: string; modelID: string }
+          : { providerID: "unknown", modelID: "unknown" }
 
         // 只保存当前 user 消息
         const currentMessages = [{
