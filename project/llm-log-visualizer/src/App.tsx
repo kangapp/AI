@@ -13,7 +13,7 @@ export default function App() {
   const [currentTurn, setCurrentTurn] = useState(1)
   const [isDragging, setIsDragging] = useState(false)
   const dragCounterRef = useRef(0)
-  const dragTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const dragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [systemPaneWidth, setSystemPaneWidth] = useState(35) // percentage
   const [expandedTools, setExpandedTools] = useState<Set<number>>(new Set())
   const { parseContent } = useJsonlParser()
@@ -109,7 +109,7 @@ export default function App() {
     }
   }, [parseContent])
 
-  const currentTurnData = currentFile?.turns.find(t => t.turnStart.turn === currentTurn)
+  const currentView = currentFile?.cachedViews[currentTurn - 1]
 
   const handlePrevTurn = () => {
     if (currentTurn > 1) {
@@ -184,23 +184,11 @@ export default function App() {
 
   // Render tool calls from current turn
   const renderToolCalls = () => {
-    if (!currentTurnData) return null
+    if (!currentView) return null
 
-    // Collect tool calls from both turnComplete.toolCalls and events (tool_call_result)
-    const toolCallsFromComplete = currentTurnData.turnComplete?.toolCalls || []
-    const toolCallsFromEvents = currentTurnData.events
-      .filter(e => e.type === 'tool_call_result')
-      .map(e => ({
-        id: (e as any).id,
-        tool: (e as any).tool,
-        args: (e as any).args,
-        output: (e as any).output,
-        title: (e as any).title,
-      }))
+    const toolCalls = currentView?.toolCalls || []
 
-    const allToolCalls = [...toolCallsFromEvents, ...toolCallsFromComplete]
-
-    if (allToolCalls.length === 0) {
+    if (toolCalls.length === 0) {
       return (
         <div style={{ color: 'var(--text-muted)', fontSize: '12px', padding: '8px 0' }}>
           No tool calls in this turn
@@ -210,7 +198,7 @@ export default function App() {
 
     return (
       <div className="tool-content">
-        {allToolCalls.map((tool, index) => (
+        {toolCalls.map((tool, index) => (
           <div key={index} className={`tool-card ${expandedTools.has(index) ? 'expanded' : ''}`}>
             <div className="tool-card-header" onClick={() => toggleTool(index)}>
               <span className="tool-name">{tool.tool}</span>
@@ -247,9 +235,9 @@ export default function App() {
   }
 
   const renderMessages = () => {
-    if (!currentTurnData) return null
-    const messages = currentTurnData.turnStart.messages || []
-    const texts = currentTurnData.turnComplete?.texts || []
+    if (!currentView) return null
+    const messages = currentView?.messages || []
+    const texts = currentView?.turnComplete?.texts || []
 
     return (
       <div className="chat-content">
@@ -323,18 +311,18 @@ export default function App() {
         </aside>
 
         <main className="content">
-          {currentTurnData ? (
+          {currentView ? (
             <div className="content-panes">
               <div className="pane pane-system" style={{ width: `${systemPaneWidth}%` }}>
                 <div className="pane-header">
                   <span className="pane-title">System Prompt</span>
                   <span className="pane-badge">
-                    {currentTurnData.turnStart.system?.join('').split(/\s+/).length || 0} words
+                    {currentView?.systemPrompt?.join('').split(/\s+/).length || 0} words
                   </span>
                 </div>
                 <div className="pane-content">
                   <div className="system-content">
-                    {currentTurnData.turnStart.system?.join('\n\n')}
+                    {currentView?.systemPrompt?.join('\n\n')}
                   </div>
                 </div>
               </div>
@@ -345,7 +333,7 @@ export default function App() {
                 <div className="pane-header">
                   <span className="pane-title">Conversation</span>
                   <span className="pane-badge">
-                    {currentTurnData.turnComplete?.texts?.join('').split(/\s+/).length || 0} words
+                    {currentView?.turnComplete?.texts?.join('').split(/\s+/).length || 0} words
                   </span>
                 </div>
                 <div className="pane-content">
@@ -380,7 +368,7 @@ export default function App() {
             </div>
             <div className="status-item">
               <span className="status-label">Tools:</span>
-              <span className="status-value">{currentTurnData?.turnComplete?.toolCalls?.length || 0}</span>
+              <span className="status-value">{currentView?.toolCalls?.length || 0}</span>
             </div>
           </>
         )}
