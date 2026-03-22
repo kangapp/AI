@@ -330,37 +330,71 @@ export default (input: PluginInput): Promise<Hooks> => {
 
       if (event.type === "message.part.updated") {
         const part = event.properties?.part
-        if (part?.type === "step-finish") {
-          const sessionID = part.sessionID
-          const reason = part.reason
-          debug(`step-finish: reason=${reason}`)
-          const shortUUID = activeShortUUIDs.get(sessionID)
-          if (!shortUUID) return
-          const turnKey = `${sessionID}_${shortUUID}`
-          const state = turns.get(turnKey)
-          if (!state) {
-            debug(`step-finish: state already processed, skipping`)
-            return
-          }
+        if (!part) return
 
-          // Turn 结束条件：reason 是 stop/length/content-filter，或未知 reason 但不是 tool-calls
-          // 注意：不要在这里清除 shortUUID，因为可能还有后续消息
-          const isTurnEnd = reason === "stop" || reason === "length" || reason === "content-filter" ||
-                            reason === null
-          if (isTurnEnd) {
-            debug(`step-finish: reason=${reason}, writing turn_complete event`)
+        const sessionID = part.sessionID
+        const shortUUID = activeShortUUIDs.get(sessionID)
+        if (!shortUUID) return  // 如果没有活跃的 shortUUID，跳过
+        const turnKey = `${sessionID}_${shortUUID}`
+        const state = turns.get(turnKey)
+        if (!state) return
+
+        switch (part.type) {
+          case "step-start":
             writeEvent(state, {
-              type: "turn_complete",
-              reason,
-              texts: state.response.texts,
-              fullText: state.response.texts.join(""),
-              reasoning: state.response.reasoning,
-              toolCalls: state.response.toolCalls,
-              tools: state.response.tools,
+              type: "step_start",
+              stepId: part.id,
             })
-          } else {
-            debug(`step-finish: reason=${reason}, not ending turn`)
-          }
+            break
+
+          case "agent":
+            writeEvent(state, {
+              type: "agent_switch",
+              agent: part.name,
+              source: part.source,
+            })
+            break
+
+          case "retry":
+            writeEvent(state, {
+              type: "retry",
+              attempt: part.attempt,
+              error: part.error?.message || String(part.error),
+            })
+            break
+
+          case "file":
+            writeEvent(state, {
+              type: "file_reference",
+              mime: part.mime,
+              filename: part.filename,
+              url: part.url,
+            })
+            break
+
+          case "step-finish":
+            const reason = part.reason
+            debug(`step-finish: reason=${reason}`)
+
+            // Turn 结束条件：reason 是 stop/length/content-filter，或未知 reason 但不是 tool-calls
+            // 注意：不要在这里清除 shortUUID，因为可能还有后续消息
+            const isTurnEnd = reason === "stop" || reason === "length" || reason === "content-filter" ||
+                              reason === null
+            if (isTurnEnd) {
+              debug(`step-finish: reason=${reason}, writing turn_complete event`)
+              writeEvent(state, {
+                type: "turn_complete",
+                reason,
+                texts: state.response.texts,
+                fullText: state.response.texts.join(""),
+                reasoning: state.response.reasoning,
+                toolCalls: state.response.toolCalls,
+                tools: state.response.tools,
+              })
+            } else {
+              debug(`step-finish: reason=${reason}, not ending turn`)
+            }
+            break
         }
         return
       }
