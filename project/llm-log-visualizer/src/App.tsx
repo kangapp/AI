@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useJsonlParser } from './hooks/useJsonlParser'
+import { ContentBlock } from './components/ContentBlock'
 import type { JsonlFile } from './types'
 
 interface LoadedFile {
@@ -252,7 +253,11 @@ export default function App() {
                 {tool.output && (
                   <div className="tool-output">
                     <div className="tool-section-title">Output</div>
-                    <pre>{typeof tool.output === 'string' ? tool.output : JSON.stringify(tool.output, null, 2)}</pre>
+                    <ContentBlock
+                      content={typeof tool.output === 'string' ? tool.output : JSON.stringify(tool.output, null, 2)}
+                      toolName={tool.tool}
+                      showLabel={true}
+                    />
                   </div>
                 )}
               </div>
@@ -285,13 +290,13 @@ export default function App() {
         {messages.filter(m => m.role === 'user').map((msg, i) => (
           <div key={i} className="chat-message user">
             <div className="chat-role">User</div>
-            {renderContent(msg.content)}
+            <ContentBlock content={renderContent(msg.content)} showLabel={false} />
           </div>
         ))}
         {texts.map((text, i) => (
           <div key={i} className="chat-message assistant">
             <div className="chat-role">Assistant</div>
-            {renderContent(text)}
+            <ContentBlock content={renderContent(text)} showLabel={false} />
           </div>
         ))}
       </div>
