@@ -60,6 +60,18 @@ npm run dev
 # http://localhost:5173/
 ```
 
+### 2026-03-22 最新修改
+
+**移除 API 调用，改为纯拖拽方式**
+- 移除 `fetch('/api/logs')` 调用
+- 移除下拉选择框
+- Header 左侧改为显示文件名或 "No file loaded"
+- 纯拖拽文件方式加载 jsonl
+
+**Bug Fix:**
+- Vite 中间件路由顺序问题：`/api/logs` 匹配了 `/api/logs/:filename`
+- 修复：调整中间件顺序，精确匹配 `/api/logs`
+
 ---
 
 ## 错误记录
