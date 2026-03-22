@@ -20,6 +20,7 @@ interface TurnState {
   shortUUID: string
   parentShortUUID: string | null  // 父任务 shortUUID，子任务时使用
   filePath: string           // 文件路径，在创建时就确定
+  responseWritten: boolean   // 标记 turn_complete 是否已写入
   request: {
     messages: any[]           // 完整的消息
     system: string[]          // system prompt（从 system.transform 获取）
@@ -137,22 +138,25 @@ export default (input: PluginInput): Promise<Hooks> => {
 
       // 如果是 user 消息，且有之前的 state，先写入前一个 turn
       if (isUserMessage && state) {
-        debug(`chat.messages.transform: user message, writing previous turn`)
-        // 过滤掉未完成的 toolCalls（output 和 title 都为 null）
-        const completedToolCalls = state.response.toolCalls.filter(
-          tc => tc.output !== null || tc.title !== null
-        )
-        writeEvent(state, {
-          type: "turn_complete",
-          turn: state.turn,
-          shortUUID: state.shortUUID,
-          reason: "user_message",  // 因为用户发送新消息而结束
-          texts: state.response.texts,
-          fullText: state.response.texts.join(""),
-          reasoning: state.response.reasoning,
-          toolCalls: completedToolCalls,
-          tools: state.response.tools,
-        })
+        // 如果 turn_complete 已经写入过（step-finish 先触发了），不再重复写入
+        if (!state.responseWritten) {
+          debug(`chat.messages.transform: user message, writing previous turn`)
+          // 过滤掉未完成的 toolCalls（output 和 title 都为 null）
+          const completedToolCalls = state.response.toolCalls.filter(
+            tc => tc.output !== null || tc.title !== null
+          )
+          writeEvent(state, {
+            type: "turn_complete",
+            turn: state.turn,
+            shortUUID: state.shortUUID,
+            reason: "user_message",  // 因为用户发送新消息而结束
+            texts: state.response.texts,
+            fullText: state.response.texts.join(""),
+            reasoning: state.response.reasoning,
+            toolCalls: completedToolCalls,
+            tools: state.response.tools,
+          })
+        }
 
         // 删除 state 和 shortUUID，创建新文件
         turns.delete(turnKey)
@@ -202,6 +206,7 @@ export default (input: PluginInput): Promise<Hooks> => {
           shortUUID,
           parentShortUUID: null,  // 主任务为 null
           filePath: "",
+          responseWritten: false,
           request: {
             messages: currentMessages,
             system,
@@ -402,6 +407,7 @@ export default (input: PluginInput): Promise<Hooks> => {
               shortUUID: subtaskShortUUID,
               parentShortUUID: parentShortUUID,
               filePath: "",
+              responseWritten: false,
               request: {
                 messages: [{
                   role: "user",
@@ -457,6 +463,7 @@ export default (input: PluginInput): Promise<Hooks> => {
                 toolCalls: completedToolCalls,
                 tools: state.response.tools,
               })
+              state.responseWritten = true
             } else {
               debug(`step-finish: reason=${reason}, not ending turn`)
             }
@@ -491,17 +498,20 @@ export default (input: PluginInput): Promise<Hooks> => {
               messages: state.request.messages,
             })
             // 写入 turn_complete 事件
-            writeEvent(state, {
-              type: "turn_complete",
-              turn: state.turn,
-              shortUUID: state.shortUUID,
-              reason: "session_deleted",
-              texts: state.response.texts,
-              fullText: state.response.texts.join(""),
-              reasoning: state.response.reasoning,
-              toolCalls: state.response.toolCalls.filter(tc => tc.output !== null || tc.title !== null),
-              tools: state.response.tools,
-            })
+            if (!state.responseWritten) {
+              writeEvent(state, {
+                type: "turn_complete",
+                turn: state.turn,
+                shortUUID: state.shortUUID,
+                reason: "session_deleted",
+                texts: state.response.texts,
+                fullText: state.response.texts.join(""),
+                reasoning: state.response.reasoning,
+                toolCalls: state.response.toolCalls.filter(tc => tc.output !== null || tc.title !== null),
+                tools: state.response.tools,
+              })
+              state.responseWritten = true
+            }
           }
           turns.delete(turnKey)
         }
