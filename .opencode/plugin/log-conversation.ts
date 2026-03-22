@@ -395,6 +395,10 @@ export default (input: PluginInput): Promise<Hooks> => {
               debug(`step-finish: reason=${reason}, not ending turn`)
             }
             break
+
+          default:
+            debug(`message.part.updated: unhandled part type=${part.type}`)
+            break
         }
         return
       }
