@@ -292,7 +292,7 @@ export default (input: PluginInput): Promise<Hooks> => {
           // Turn 结束条件：reason 是 stop/length/content-filter，或未知 reason 但不是 tool-calls
           // 注意：不要在这里清除 shortUUID，因为可能还有后续消息
           const isTurnEnd = reason === "stop" || reason === "length" || reason === "content-filter" ||
-                            reason == null
+                            reason === null
           if (isTurnEnd) {
             debug(`step-finish: reason=${reason}, appending response`)
             appendResponseToFile(state)

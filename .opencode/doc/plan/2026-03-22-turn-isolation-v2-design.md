@@ -208,6 +208,22 @@ const activeShortUUIDs = new Map<string, string>()
 
 **决策**: 使用 `responseWritten` flag，在 `appendResponseToFile` 时检查并设置
 
+### 决策 4: Turn 结束条件严格匹配
+
+**条件**: `reason === "stop" || reason === "length" || reason === "content-filter" || reason === null`
+
+| reason | 是否结束 Turn | 说明 |
+|--------|--------------|------|
+| `stop` | ✅ 是 | 正常停止 |
+| `length` | ✅ 是 | 达到最大 token 限制 |
+| `content-filter` | ✅ 是 | 内容被过滤 |
+| `tool-calls` | ❌ 否 | 模型调用工具 |
+| `unknown` | ❌ 否 | 未知原因，不写入 |
+| `null` | ✅ 是 | 边界情况，写入 |
+| `undefined` | ❌ 否 | 未定义，不写入 |
+
+**测试依据**: 此条件为后续测试验证的基础。
+
 ## 目录结构
 
 ```
