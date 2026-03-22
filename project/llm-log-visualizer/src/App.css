@@ -555,3 +555,108 @@ body {
 .fade-in {
   animation: fadeIn 0.2s ease-out;
 }
+
+/* Content Block */
+.content-block {
+  border-left: 3px solid #666;
+  padding-left: 12px;
+  margin: 8px 0;
+  position: relative;
+}
+
+.content-type-label {
+  display: inline-block;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  color: white;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.content-text {
+  font-size: 14px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+
+/* Shell Block */
+.shell-block {
+  background: #1e1e1e;
+  color: #d4d4d4;
+  padding: 12px;
+  border-radius: 6px;
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 13px;
+}
+
+.shell-line {
+  line-height: 1.5;
+}
+
+.shell-prompt {
+  color: #4ec9b0;
+  margin-right: 8px;
+}
+
+.shell-command {
+  color: #dcdcaa;
+}
+
+.shell-output {
+  color: #d4d4d4;
+}
+
+/* Code Block */
+.code-block {
+  background: #f5f5f5;
+  padding: 12px;
+  border-radius: 6px;
+  font-family: 'SF Mono', Monaco, monospace;
+  font-size: 13px;
+  overflow-x: auto;
+}
+
+.code-line {
+  display: flex;
+  line-height: 1.5;
+}
+
+.code-line-number {
+  color: #999;
+  min-width: 30px;
+  text-align: right;
+  margin-right: 12px;
+  user-select: none;
+}
+
+.code-content {
+  white-space: pre;
+}
+
+/* Todo Block */
+.todo-block {
+  padding: 8px 0;
+}
+
+.todo-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 4px 0;
+}
+
+.todo-checkbox {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.todo-text {
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.todo-item.checked .todo-text {
+  text-decoration: line-through;
+  color: #999;
+}
