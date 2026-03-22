@@ -371,6 +371,26 @@ body {
   display: block;
 }
 
+.tool-card.historical {
+  opacity: 0.85;
+  border-left: 3px solid #666;
+}
+
+.tool-card.historical .tool-card-header {
+  background: var(--bg-secondary);
+}
+
+.tool-turn-badge {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: 8px;
+  font-weight: normal;
+}
+
+.tool-card.collapsed .tool-card-body {
+  display: none;
+}
+
 .tool-section-title {
   font-size: 10px;
   font-weight: 600;

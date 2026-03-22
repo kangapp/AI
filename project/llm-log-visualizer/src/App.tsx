@@ -137,6 +137,32 @@ export default function App() {
     })
   }
 
+  // 判断某个 tool index 是否属于当前 turn
+  // toolCalls 是从当前 turn 向下累积的倒序数组
+  const getToolTurnInfo = (toolIndex: number): { isCurrentTurn: boolean; turnLabel: string } => {
+    const totalTools = currentView?.toolCalls?.length || 0
+    if (totalTools === 0) return { isCurrentTurn: false, turnLabel: '' }
+
+    // 从后往前计算每个 turn 的 tool 数量，确定该 index 属于哪个 turn
+    let accumulated = 0
+    for (let t = 1; t <= currentTurn; t++) {
+      const turnToolCount = currentFile?.turns[t - 1]?.turnComplete?.toolCalls?.length || 0
+      const start = accumulated
+      const end = accumulated + turnToolCount
+
+      if (toolIndex >= start && toolIndex < end) {
+        return {
+          isCurrentTurn: t === currentTurn,
+          turnLabel: t === currentTurn ? '' : `Turn ${t}`
+        }
+      }
+      accumulated += turnToolCount
+    }
+
+    // 默认返回当前 turn（理论上不应该走到这里）
+    return { isCurrentTurn: true, turnLabel: '' }
+  }
+
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -198,26 +224,37 @@ export default function App() {
 
     return (
       <div className="tool-content">
-        {toolCalls.map((tool, index) => (
-          <div key={index} className={`tool-card ${expandedTools.has(index) ? 'expanded' : ''}`}>
-            <div className="tool-card-header" onClick={() => toggleTool(index)}>
-              <span className="tool-name">{tool.tool}</span>
-              <span className="tool-status">{expandedTools.has(index) ? '▼' : '▶'}</span>
-            </div>
-            <div className="tool-card-body">
-              <div className="tool-args">
-                <div className="tool-section-title">Arguments</div>
-                <pre>{JSON.stringify(tool.args, null, 2)}</pre>
+        {toolCalls.map((tool, index) => {
+          const { isCurrentTurn, turnLabel } = getToolTurnInfo(index)
+          const isExpanded = expandedTools.has(index) || isCurrentTurn
+
+          return (
+            <div
+              key={index}
+              className={`tool-card ${isExpanded ? 'expanded' : 'collapsed'} ${isCurrentTurn ? '' : 'historical'}`}
+            >
+              <div className="tool-card-header" onClick={() => toggleTool(index)}>
+                <span className="tool-name">
+                  {tool.tool}
+                  {turnLabel && <span className="tool-turn-badge">{turnLabel}</span>}
+                </span>
+                <span className="tool-status">{isExpanded ? '▼' : '▶'}</span>
               </div>
-              {tool.output && (
-                <div className="tool-output">
-                  <div className="tool-section-title">Output</div>
-                  <pre>{typeof tool.output === 'string' ? tool.output : JSON.stringify(tool.output, null, 2)}</pre>
+              <div className="tool-card-body">
+                <div className="tool-args">
+                  <div className="tool-section-title">Arguments</div>
+                  <pre>{JSON.stringify(tool.args, null, 2)}</pre>
                 </div>
-              )}
+                {tool.output && (
+                  <div className="tool-output">
+                    <div className="tool-section-title">Output</div>
+                    <pre>{typeof tool.output === 'string' ? tool.output : JSON.stringify(tool.output, null, 2)}</pre>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
     )
   }
