@@ -154,19 +154,11 @@ export default (input: PluginInput): Promise<Hooks> => {
           tools: state.response.tools,
         })
 
-        // 递增 turn（不创建新文件，不删除 state）
-        state.turn += 1
-
-        // 重置 response
-        state.response = { texts: [], reasoning: [], toolCalls: [], tools: [] }
-
-        // 更新 messages 为当前 user 消息
-        state.request.messages = [{
-          role: "user",
-          content: lastMsg.parts,
-        }]
-
-        // 不返回，继续执行
+        // 删除 state 和 shortUUID，创建新文件
+        turns.delete(turnKey)
+        activeShortUUIDs.delete(sessionID)
+        state = null
+        shortUUID = null
       }
 
       // 如果是 user 消息，创建新 turn
