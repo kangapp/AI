@@ -4,7 +4,6 @@
 
 - 格式: `ses_{6字节时间戳+计数器hex}_{12位随机base62}`
 - 例如: `ses_0c1e5a8f2d_AbCdEfGhIjKlMnOpQrStUv`
-- 位于: `src/id/id.ts`
 
 ## Opencode Plugin Hooks
 
@@ -20,7 +19,7 @@
 | `experimental.text.complete` | 输出 | 文本块完成 |
 | `event` | 特殊 | Bus 事件 |
 
-## Turn 生命周期 (关键发现)
+## Turn 生命周期
 
 ### 完整数据流
 
@@ -40,126 +39,85 @@
 7. event hook 收到 "message.part.updated" 事件
 ```
 
-### 关键发现
+### Turn 索引规则（设计澄清 2026-03-22）
 
-1. **Turn 结束检测**: `step-finish` part 的 `reason` 字段:
-   - `"stop"`: 表示对话真正结束
-   - `"tool-calls"`: 表示 AI 调用工具，不算真正结束
+- **同一个 session 的多个 turn 在同一个文件**
+- **Turn 递增时机**: `step-finish reason=tool-calls` 后，新的 `turn_start` 时 `turn += 1`
+- **Turn 结束时机**: `step-finish reason=stop/length/content-filter/null` 时写入 `turn_complete`
 
-2. **System prompt 时机**: `chat.messages.transform` 时 system 未构建，需要用 `chat.system.transform` 获取
+### Turn 流程示例
 
-3. **toolCalls vs tools**: `toolCalls` 在 `tool.execute.before` 时记录，`tools` 在 `tool.execute.after` 时记录
-
-4. **消息历史问题**: `output.messages` 是完整历史，不能直接保存，需要只保存当前 turn 的消息
+```
+user msg 1
+  → turn_start turn=1
+  → step-finish reason=tool-calls → turn += 1 (不写 turn_complete)
+  → turn_start turn=2
+  → step-finish reason=stop → 写入 turn_complete turn=2
+```
 
 ## Part 类型
 
-| Part Type | 说明 |
-|-----------|------|
-| `text` | 文本输出 |
-| `reasoning` | 思考过程 (Ultra Think) |
-| `tool` | 工具调用 |
-| `step-finish` | Turn 结束标志 (含 reason 字段) |
-| `step-start` | Turn 开始标志 |
+| Part Type | 事件 | 说明 |
+|-----------|------|------|
+| `text` | text | 文本输出 |
+| `reasoning` | reasoning | 思考过程 (Ultra Think) |
+| `tool` | (merged into tool_call_result) | 工具调用 |
+| `step-finish` | turn_complete | Turn 结束标志 |
+| `step-start` | step_start | 思维步骤开始 |
+| `agent` | agent_switch | Agent 切换 |
+| `retry` | retry | 重试事件 |
+| `file` | file_reference | 引用文件 |
+| `subtask` | subtask_start | 子任务（独立文件） |
 
-## Turn Isolation 实现
-
-### 目标
-每个用户消息生成一个独立的 jsonl 文件，避免多个对话混在一起。
-
-### 核心逻辑
-
-1. **文件命名**: `{sessionID}_{shortUUID}.jsonl`
-2. **shortUUID**: `crypto.randomUUID().substring(0, 12)`
-3. **turn 编号**: 每个文件都从 turn=1 开始
-
-### 分阶段写入
-
-| 阶段 | 时机 | 操作 |
-|------|------|------|
-| 1 | `chat.messages.transform` (user) | 创建新文件，写入 request |
-| 2 | `tool.execute.before` | 记录 toolCalls |
-| 3 | `tool.execute.after` | 记录 tools |
-| 4 | `text.complete` | 累积 texts |
-| 5 | `step-finish` (reason !== "tool-calls") | 追加 response |
-| 6 | `session.deleted` | 写入最后的 response |
-
-### 关键代码片段
+## TurnState 数据结构
 
 ```typescript
-// chat.messages.transform: user 消息时
-if (isUserMessage) {
-  // 写入前一个 turn（如果存在）
-  if (state) {
-    appendResponseToFile(state)
+interface TurnState {
+  turn: number
+  sessionID: string
+  shortUUID: string
+  parentShortUUID: string | null
+  filePath: string
+  responseWritten: boolean  // 防止重复写入 turn_complete
+  request: {
+    messages: any[]
+    system: string[]
+    agent: string
+    model: { providerID: string; modelID: string }
+  } | null
+  response: {
+    texts: string[]
+    reasoning: string[]
+    toolCalls: { id, tool, args, output, title }[]
+    tools: { tool, args, output, title }[]
   }
-  // 创建新 state，只保存当前 user 消息
-  state.request.messages = [{ role: "user", content: lastMsg.parts }]
-  writeRequestToFile(state)
-  return
-}
-
-// step-finish: 非 tool-calls 时追加 response
-if (reason !== "tool-calls") {
-  appendResponseToFile(state)
-  turns.delete(turnKey)
-  activeShortUUIDs.delete(sessionID)
 }
 ```
 
-## Timeline Log 格式
+## Timeline Log 事件格式
 
 ### turn_start
 ```json
 {
   "type": "turn_start",
-  "timestamp": "...",
+  "turn": 1,
   "sessionID": "ses_xxx",
   "shortUUID": "abc123",
-  "turn": 1,
-  "model": { "providerID": "...", "modelID": "..." },
+  "parentShortUUID": null,
+  "model": {...},
   "agent": "...",
-  "system": ["..."],
-  "messages": [{ "role": "user", "content": [...] }]
+  "system": [...],
+  "messages": [...]
 }
 ```
 
-### text
+### tool_call_result
 ```json
 {
-  "type": "text",
-  "timestamp": "...",
-  "content": "..."
-}
-```
-
-### reasoning
-```json
-{
-  "type": "reasoning",
-  "timestamp": "...",
-  "content": "thinking..."
-}
-```
-
-### tool_call
-```json
-{
-  "type": "tool_call",
-  "timestamp": "...",
+  "type": "tool_call_result",
   "id": "call_xxx",
   "tool": "read_file",
-  "args": { "path": "..." }
-}
-```
-
-### tool_result
-```json
-{
-  "type": "tool_result",
-  "timestamp": "...",
-  "tool": "read_file",
-  "args": { "path": "..." },
+  "args": {...},
   "output": "...",
   "title": "..."
 }
@@ -169,11 +127,11 @@ if (reason !== "tool-calls") {
 ```json
 {
   "type": "turn_complete",
-  "timestamp": "...",
+  "turn": 1,
   "reason": "stop",
-  "texts": ["..."],
+  "texts": [...],
   "fullText": "...",
-  "reasoning": ["..."],
+  "reasoning": [...],
   "toolCalls": [...],
   "tools": [...]
 }
