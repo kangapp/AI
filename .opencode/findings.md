@@ -57,17 +57,43 @@ user msg 1
 
 ## Part 类型
 
-| Part Type | 事件 | 说明 |
-|-----------|------|------|
-| `text` | text | 文本输出 |
-| `reasoning` | reasoning | 思考过程 (Ultra Think) |
-| `tool` | (merged into tool_call_result) | 工具调用 |
-| `step-finish` | turn_complete | Turn 结束标志 |
-| `step-start` | step_start | 思维步骤开始 |
-| `agent` | agent_switch | Agent 切换 |
-| `retry` | retry | 重试事件 |
-| `file` | file_reference | 引用文件 |
-| `subtask` | subtask_start | 子任务（独立文件） |
+| Part Type | 事件 | 说明 | 包含 turn |
+|-----------|------|------|----------|
+| `text` | text | 文本输出 | ✅ |
+| `reasoning` | reasoning | 思考过程 (Ultra Think) | ✅ |
+| `tool` | (merged into tool_call_result) | 工具调用 | ✅ |
+| `step-finish` | turn_complete | Turn 结束标志 | ✅ |
+| `step-start` | step_start | 思维步骤开始 | ✅ |
+| `agent` | agent_switch | Agent 切换 | ✅ |
+| `retry` | retry | 重试事件 | ✅ |
+| `file` | file_reference | 引用文件 | ✅ |
+| `subtask` | subtask_start | 子任务（独立文件） | ✅ |
+| `chat.params` | llm_params | LLM 调用参数 | ✅ |
+| `permission.ask` | permission_request | 权限请求 | ✅ |
+
+## Turn Isolation 设计 (2026-03-21)
+
+### 目标
+每个 user turn 写入独立文件 `{sessionID}_{shortUUID}.jsonl`
+
+### 文件命名
+- 格式: `{sessionID}_{shortUUID}.jsonl`
+- shortUUID: `crypto.randomUUID()` 前 12 位
+
+### 当前 vs 目标
+| 方面 | 当前 | 目标 |
+|------|------|------|
+| 文件数 | 每 session 一个文件 | 每 turn 一个文件 |
+| 文件名 | `{sessionID}.jsonl` | `{sessionID}_{shortUUID}.jsonl` |
+| 示例 | `ses_abc123.jsonl` | `ses_abc123_xyz78901abcd.jsonl` |
+
+### 实现方案
+1. `chat.messages.transform` 检测 user 消息
+2. 生成 shortUUID，创建独立 turnState
+3. 使用 `turnKey = sessionID + shortUUID` 作为 Map key
+4. turn 结束时写入独立文件
+
+---
 
 ## TurnState 数据结构
 
@@ -123,7 +149,46 @@ interface TurnState {
 }
 ```
 
-### turn_complete
+---
+
+## LLM Log Visualizer
+
+### 项目信息
+- 位置: `project/llm-log-visualizer/`
+- 技术栈: React 18 + TypeScript + Vite + react-markdown
+- 功能: 可视化 jsonl 日志文件，分 turn 展示
+
+### 布局设计
+```
+┌──────────┬─────────────────────┬─────────────────────────────┐
+│          │   System Prompt     │   Chat History              │
+│  Timeline│   (scrollbar)       │   (scrollbar, Markdown)     │
+│          │   Markdown          │                             │
+│  ● Turn 1├─────────────────────┼─────────────────────────────┤
+│  ● Turn 2│                     │   Tool History             │
+│  ● Turn 3│                     │   (scrollbar, 可展开卡片)   │
+└──────────┴─────────────────────┴─────────────────────────────┘
+```
+
+### API 设计 (Vite Server Middleware)
+```
+GET /api/logs
+→ 返回 .opencode/logs/ 下的文件列表（按时间倒序）
+
+GET /api/logs/:filename
+→ 返回指定 jsonl 文件内容
+```
+
+### 组件列表
+| 组件 | 说明 |
+|------|------|
+| Timeline | turn 时间线导航 |
+| SystemPrompt | System Prompt Markdown 渲染 |
+| ChatHistory | Chat History Markdown 渲染 |
+| ToolHistory | 工具历史列表 |
+| ToolCard | 可展开的工具卡片 |
+| StatusBar | Token 统计显示 |
+
 ```json
 {
   "type": "turn_complete",
