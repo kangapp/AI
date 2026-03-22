@@ -138,13 +138,17 @@ export default (input: PluginInput): Promise<Hooks> => {
       // 如果是 user 消息，且有之前的 state，先写入前一个 turn
       if (isUserMessage && state) {
         debug(`chat.messages.transform: user message, writing previous turn`)
+        // 过滤掉未完成的 toolCalls（output 和 title 都为 null）
+        const completedToolCalls = state.response.toolCalls.filter(
+          tc => tc.output !== null || tc.title !== null
+        )
         writeEvent(state, {
           type: "turn_complete",
           reason: "user_message",  // 因为用户发送新消息而结束
           texts: state.response.texts,
           fullText: state.response.texts.join(""),
           reasoning: state.response.reasoning,
-          toolCalls: state.response.toolCalls,
+          toolCalls: completedToolCalls,
           tools: state.response.tools,
         })
 
@@ -444,13 +448,17 @@ export default (input: PluginInput): Promise<Hooks> => {
                               reason === null
             if (isTurnEnd) {
               debug(`step-finish: reason=${reason}, writing turn_complete event`)
+              // 过滤掉未完成的 toolCalls（output 和 title 都为 null）
+              const completedToolCalls = state.response.toolCalls.filter(
+                tc => tc.output !== null || tc.title !== null
+              )
               writeEvent(state, {
                 type: "turn_complete",
                 reason,
                 texts: state.response.texts,
                 fullText: state.response.texts.join(""),
                 reasoning: state.response.reasoning,
-                toolCalls: state.response.toolCalls,
+                toolCalls: completedToolCalls,
                 tools: state.response.tools,
               })
             } else {
