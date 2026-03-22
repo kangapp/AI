@@ -47,6 +47,8 @@ interface TurnState {
 const turns = new Map<string, TurnState>()
 // 追踪每个 sessionID 对应的当前活跃 shortUUID
 const activeShortUUIDs = new Map<string, string>()
+// 追踪子任务的 sessionID -> parentShortUUID 映射
+const subtaskParentMap = new Map<string, string>()
 
 function getLogPath(sessionID: string, shortUUID: string): string {
   try {
@@ -369,6 +371,52 @@ export default (input: PluginInput): Promise<Hooks> => {
               mime: part.mime,
               filename: part.filename,
               url: part.url,
+            })
+            break
+
+          case "subtask":
+            // 子任务有独立的 sessionID
+            const subtaskSessionID = part.sessionID
+            const subtaskShortUUID = crypto.randomUUID().substring(0, 12)
+            const parentShortUUID = shortUUID  // 当前 shortUUID 是父任务的
+
+            // 映射子任务 sessionID 到父任务 shortUUID
+            subtaskParentMap.set(subtaskSessionID, parentShortUUID)
+
+            // 为子任务创建独立的 TurnState
+            const subtaskState: TurnState = {
+              turn: 1,
+              sessionID: subtaskSessionID,
+              shortUUID: subtaskShortUUID,
+              parentShortUUID: parentShortUUID,
+              filePath: "",
+              request: {
+                messages: [{
+                  role: "user",
+                  content: [{ type: "text", text: part.prompt }],
+                }],
+                system: [],
+                agent: part.agent || "unknown",
+                model: part.model || { providerID: "unknown", modelID: "unknown" },
+              },
+              response: { texts: [], reasoning: [], toolCalls: [], tools: [] },
+            }
+
+            // 设置子任务为活跃状态
+            activeShortUUIDs.set(subtaskSessionID, subtaskShortUUID)
+            turns.set(`${subtaskSessionID}_${subtaskShortUUID}`, subtaskState)
+
+            // 写入 subtask_start 事件
+            writeEvent(subtaskState, {
+              type: "subtask_start",
+              sessionID: subtaskSessionID,
+              shortUUID: subtaskShortUUID,
+              parentShortUUID: parentShortUUID,
+              prompt: part.prompt,
+              description: part.description,
+              agent: part.agent,
+              model: part.model,
+              command: part.command,
             })
             break
 
