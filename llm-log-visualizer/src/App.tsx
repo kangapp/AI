@@ -5,30 +5,13 @@ import { ChatHistory } from './components/ChatHistory'
 import { ToolHistory } from './components/ToolHistory'
 import { StatusBar } from './components/StatusBar'
 import { useJsonlParser } from './hooks/useJsonlParser'
-import type { Turn, JsonlFile } from './types'
-
-const LOGS_DIR = '.opencode/logs'
+import type { JsonlFile } from './types'
 
 export default function App() {
-  const [files, setFiles] = useState<JsonlFile[]>([])
   const [currentFile, setCurrentFile] = useState<JsonlFile | null>(null)
   const [currentTurn, setCurrentTurn] = useState(1)
   const [isDragging, setIsDragging] = useState(false)
   const { parseContent } = useJsonlParser()
-
-  // Load files from default directory
-  useEffect(() => {
-    loadDefaultLogs()
-  }, [])
-
-  const loadDefaultLogs = async () => {
-    try {
-      const response = await fetch(`file://${process.cwd()}/${LOGS_DIR}`)
-      // For browser, we'll use a different approach
-    } catch (e) {
-      // Fallback: user will drag files
-    }
-  }
 
   // Handle drag and drop
   const handleDragOver = useCallback((e: React.DragEvent) => {
