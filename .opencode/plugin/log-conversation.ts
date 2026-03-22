@@ -403,5 +403,24 @@ export default (input: PluginInput): Promise<Hooks> => {
         activeShortUUIDs.delete(sessionID)
       }
     },
+
+    // 6. permission.ask hook
+    "permission.ask": async (input, output) => {
+      const sessionID = input.sessionID
+      if (!sessionID) return
+      const shortUUID = activeShortUUIDs.get(sessionID)
+      if (!shortUUID) return
+      const turnKey = `${sessionID}_${shortUUID}`
+      const state = turns.get(turnKey)
+      if (!state) return
+
+      writeEvent(state, {
+        type: "permission_request",
+        permissionType: input.type,
+        pattern: input.pattern,
+        title: input.title,
+        status: output.status,
+      })
+    },
   })
 }
