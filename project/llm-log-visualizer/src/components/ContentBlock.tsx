@@ -3,6 +3,7 @@ import { inferContentType, getContentTypeColor, getContentTypeLabel } from '../u
 import { ShellBlock } from './ShellBlock'
 import { CodeBlock } from './CodeBlock'
 import { TodoBlock } from './TodoBlock'
+import { MarkdownBlock } from './MarkdownBlock'
 
 interface ContentBlockProps {
   content: string
@@ -24,6 +25,7 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ content, toolName, s
       case 'todo':
         return <TodoBlock>{content}</TodoBlock>
       case 'markdown':
+        return <MarkdownBlock>{content}</MarkdownBlock>
       case 'text':
       case 'error':
       default:
