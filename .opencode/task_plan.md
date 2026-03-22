@@ -8,8 +8,27 @@
 
 ## References
 
-- Timeline Log Design: `.opencode/doc/plan/2026-03-22-timeline-log-design.md`
-- Timeline Log Implementation: `.opencode/doc/plan/2026-03-22-timeline-log-implementation.md`
+- Timeline Log V2 Design: `.opencode/doc/plan/2026-03-22-timeline-log-v2-design.md`
+
+## Timeline Log V2 改进
+
+### 新增事件类型（7 种）
+
+| 事件 | 说明 | 优先级 |
+|------|------|--------|
+| `llm_params` | LLM 调用参数 | 高 |
+| `permission_request` | 权限请求 | 高 |
+| `step_start` | 思维步骤开始 | 高 |
+| `agent_switch` | Agent 切换 | 高 |
+| `retry` | 重试事件 | 高 |
+| `file_reference` | 引用文件 | 高 |
+| `subtask_start` | 子任务开始 | 高 |
+
+### 子任务独立文件机制
+
+- 子任务有自己独立的 `sessionID` + `shortUUID`
+- 通过 `parentShortUUID` 关联父任务
+- 完全独立追踪，不嵌套
 
 ## 事件类型
 
