@@ -19,7 +19,6 @@ interface TurnState {
   sessionID: string
   shortUUID: string
   filePath: string           // 文件路径，在创建时就确定
-  responseWritten: boolean    // 标记 response 是否已写入文件
   request: {
     messages: any[]           // 完整的消息
     system: string[]          // system prompt（从 system.transform 获取）
@@ -56,51 +55,18 @@ function getLogPath(sessionID: string, shortUUID: string): string {
   return join(logDir, `${sessionID}_${shortUUID}.jsonl`)
 }
 
-// 写入 request 部分到文件
-function writeRequestToFile(state: TurnState): void {
-  if (!state.request) return
-
+// 写入事件到文件
+function writeEvent(state: TurnState, event: Record<string, any>): void {
   const timestamp = new Date().toISOString()
   state.filePath = getLogPath(state.sessionID, state.shortUUID)
 
-  const requestRecord = {
-    type: "request",
-    turn: state.turn,
-    sessionID: state.sessionID,
+  const eventRecord = {
     timestamp,
-    model: state.request.model,
-    agent: state.request.agent,
-    system: state.request.system,
-    messages: state.request.messages,
+    ...event,
   }
 
-  appendFileSync(state.filePath, JSON.stringify(requestRecord) + "\n")
-  debug(`writeRequestToFile: wrote to ${state.filePath}`)
-}
-
-// 追加 response 部分到文件
-function appendResponseToFile(state: TurnState): void {
-  if (!state.request) return
-  if (state.responseWritten) return  // 避免重复写入
-
-  state.responseWritten = true
-
-  const timestamp = new Date().toISOString()
-
-  const responseRecord = {
-    type: "response",
-    turn: state.turn,
-    sessionID: state.sessionID,
-    timestamp,
-    texts: state.response.texts,
-    fullText: state.response.texts.join(""),
-    reasoning: state.response.reasoning,
-    toolCalls: state.response.toolCalls,
-    tools: state.response.tools,
-  }
-
-  appendFileSync(state.filePath, JSON.stringify(responseRecord) + "\n")
-  debug(`appendResponseToFile: appended to ${state.filePath}`)
+  appendFileSync(state.filePath, JSON.stringify(eventRecord) + "\n")
+  debug(`writeEvent: type=${event.type} to ${state.filePath}`)
 }
 
 export default (input: PluginInput): Promise<Hooks> => {
@@ -116,6 +82,17 @@ export default (input: PluginInput): Promise<Hooks> => {
       if (!state) return
 
       state.request.system = output.system
+
+      // 当 system 获取后，写入 request 事件
+      writeEvent(state, {
+        type: "request",
+        turn: state.turn,
+        sessionID: state.sessionID,
+        model: state.request.model,
+        agent: state.request.agent,
+        system: state.request.system,
+        messages: state.request.messages,
+      })
     },
 
     // 2. 获取 msgs，提取 toolCalls 和 reasoning
@@ -146,7 +123,16 @@ export default (input: PluginInput): Promise<Hooks> => {
       // 如果是 user 消息，且有之前的 state，先写入前一个 turn
       if (isUserMessage && state) {
         debug(`chat.messages.transform: user message, writing previous turn`)
-        appendResponseToFile(state)
+        writeEvent(state, {
+          type: "response",
+          turn: state.turn,
+          sessionID: state.sessionID,
+          texts: state.response.texts,
+          fullText: state.response.texts.join(""),
+          reasoning: state.response.reasoning,
+          toolCalls: state.response.toolCalls,
+          tools: state.response.tools,
+        })
         turns.delete(turnKey)
         activeShortUUIDs.delete(sessionID)  // 清除 shortUUID
         state = null
@@ -195,7 +181,6 @@ export default (input: PluginInput): Promise<Hooks> => {
           sessionID,
           shortUUID,
           filePath: "",
-          responseWritten: false,
           request: {
             messages: currentMessages,
             system,
@@ -207,8 +192,7 @@ export default (input: PluginInput): Promise<Hooks> => {
         turns.set(turnKey, state)
         debug(`chat.messages.transform: created new state`)
 
-        // 立即写入 request
-        writeRequestToFile(state)
+        // 不立即写入 request，等待 chat.system.transform 时写入
         return
       }
 
@@ -294,8 +278,17 @@ export default (input: PluginInput): Promise<Hooks> => {
           const isTurnEnd = reason === "stop" || reason === "length" || reason === "content-filter" ||
                             reason === null
           if (isTurnEnd) {
-            debug(`step-finish: reason=${reason}, appending response`)
-            appendResponseToFile(state)
+            debug(`step-finish: reason=${reason}, writing response event`)
+            writeEvent(state, {
+              type: "response",
+              turn: state.turn,
+              sessionID: state.sessionID,
+              texts: state.response.texts,
+              fullText: state.response.texts.join(""),
+              reasoning: state.response.reasoning,
+              toolCalls: state.response.toolCalls,
+              tools: state.response.tools,
+            })
           } else {
             debug(`step-finish: reason=${reason}, not ending turn`)
           }
@@ -312,12 +305,27 @@ export default (input: PluginInput): Promise<Hooks> => {
           const turnKey = `${sessionID}_${shortUUID}`
           const state = turns.get(turnKey)
           if (state && state.request) {
-            if (state.filePath) {
-              appendResponseToFile(state)
-            } else {
-              writeRequestToFile(state)
-              appendResponseToFile(state)
-            }
+            // 写入 request 事件
+            writeEvent(state, {
+              type: "request",
+              turn: state.turn,
+              sessionID: state.sessionID,
+              model: state.request.model,
+              agent: state.request.agent,
+              system: state.request.system,
+              messages: state.request.messages,
+            })
+            // 写入 response 事件
+            writeEvent(state, {
+              type: "response",
+              turn: state.turn,
+              sessionID: state.sessionID,
+              texts: state.response.texts,
+              fullText: state.response.texts.join(""),
+              reasoning: state.response.reasoning,
+              toolCalls: state.response.toolCalls,
+              tools: state.response.tools,
+            })
           }
           turns.delete(turnKey)
         }
