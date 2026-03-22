@@ -151,43 +151,68 @@ interface TurnState {
 
 ---
 
-## LLM Log Visualizer
+## LLM Log Visualizer (2026-03-22 Redesign)
 
 ### 项目信息
 - 位置: `project/llm-log-visualizer/`
-- 技术栈: React 18 + TypeScript + Vite + react-markdown
+- 技术栈: React 18 + TypeScript + Vite + 纯 CSS
 - 功能: 可视化 jsonl 日志文件，分 turn 展示
 
-### 布局设计
+### 新 UI 布局
 ```
-┌──────────┬─────────────────────┬─────────────────────────────┐
-│          │   System Prompt     │   Chat History              │
-│  Timeline│   (scrollbar)       │   (scrollbar, Markdown)     │
-│          │   Markdown          │                             │
-│  ● Turn 1├─────────────────────┼─────────────────────────────┤
-│  ● Turn 2│                     │   Tool History             │
-│  ● Turn 3│                     │   (scrollbar, 可展开卡片)   │
-└──────────┴─────────────────────┴─────────────────────────────┘
-```
-
-### API 设计 (Vite Server Middleware)
-```
-GET /api/logs
-→ 返回 .opencode/logs/ 下的文件列表（按时间倒序）
-
-GET /api/logs/:filename
-→ 返回指定 jsonl 文件内容
+┌────────────────────────────────────────────────────────────┐
+│  LLM Log Visualizer              ← Turn 1/12 →           │
+├──────────┬─────────────────────┬─────────────────────────┤
+│  Files   │   System Prompt     │   Conversation           │
+│  (侧边栏) │   (可滚动)         │   (可滚动)               │
+│          │                    │                         │
+│  📄file1 │   Markdown 渲染     │   User/Assistant 消息   │
+│  📄file2 │                    │                         │
+│          │                    ├─────────────────────────┤
+│          │                    │   Tool Calls            │
+│          │                    │   (可展开卡片)           │
+├──────────┴─────────────────────┴─────────────────────────┤
+│  File: xxx.jsonl  |  Turn: 1/12  |  Tools: 3          │
+└────────────────────────────────────────────────────────────┘
 ```
 
 ### 组件列表
 | 组件 | 说明 |
 |------|------|
-| Timeline | turn 时间线导航 |
-| SystemPrompt | System Prompt Markdown 渲染 |
-| ChatHistory | Chat History Markdown 渲染 |
-| ToolHistory | 工具历史列表 |
-| ToolCard | 可展开的工具卡片 |
-| StatusBar | Token 统计显示 |
+| App | 主组件，整合所有功能 |
+| App.css | 深色主题样式 |
+| useJsonlParser | JSONL 解析 hook |
+
+### Tool Call 数据来源
+Tool calls 从两个地方读取：
+1. `turnComplete.toolCalls` - turn 结束时汇总
+2. `events` 数组中的 `tool_call_result` 事件
+
+### 消息内容格式
+消息 `content` 可能是：
+- 字符串: `"Hello"`
+- 对象: `{ type: "text", text: "Hello", id: "..." }`
+
+需要 `renderContent()` 处理各种格式。
+
+### Vite Server Middleware 路由顺序
+```typescript
+// 精确路由必须放在前面
+server.middlewares.use('/api/logs/:filename', handler)  // 先匹配
+server.middlewares.use('/api/logs', handler)            // 后匹配
+```
+
+### 拖拽事件处理
+使用 `dragCounter` 计数器避免闪烁：
+- `dragenter` → counter++
+- `dragleave` → counter--
+- counter ≤ 0 时才隐藏 drop zone
+
+同时 drop zone 使用 `pointer-events: none` 避免阻挡事件。
+
+---
+
+## LLM Log Visualizer (旧版设计 - 已废弃)
 
 ```json
 {

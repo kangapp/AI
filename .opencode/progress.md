@@ -2,7 +2,33 @@
 
 ## Session Log
 
-### 2026-03-22 (当前 Session)
+### 2026-03-22 (下午 Session)
+
+---
+
+## LLM Log Visualizer UI 重新设计
+
+### 本次更改
+- **全新深色主题 UI** - GitHub 风格
+- **文件列表侧边栏** - 支持多文件切换
+- **可调布局** - 拖拽分隔条调整左右面板宽度
+- **独立滚动** - 每个面板可独立滚动
+
+### Bug 修复
+| 问题 | 解决方案 |
+|------|----------|
+| Vite 中间件 `/api/logs` 匹配了 `/api/logs/:filename` | 调整中间件顺序，精确匹配 |
+| 拖拽文件时页面闪烁 | 添加 `pointer-events: none` + 延迟逻辑 |
+| Tool calls 不显示 | 从 `events` 数组读取 `tool_call_result` |
+| 消息内容对象导致 React 报错 | 添加 `renderContent()` 处理各种格式 |
+
+### 错误记录
+
+| 错误 | 尝试次数 | 解决方案 |
+|------|----------|----------|
+| Objects are not valid as React child | 1 | 添加 renderContent() 处理对象 |
+| 拖拽闪烁循环 | 2 | pointer-events: none + 延迟 |
+| Tool calls 不显示 | 1 | 从 events.tool_call_result 读取 |
 
 ---
 
@@ -16,82 +42,14 @@
 
 ---
 
-## LLM Log Visualizer (新项目)
-
-### 项目创建
-- 位置: `project/llm-log-visualizer/`
-- 创建时间: 2026-03-22
-- Git Commits: 13 个
-
-### 功能实现
-
-| 功能 | 状态 | 说明 |
-|------|------|------|
-| 项目初始化 | ✅ | Vite + React + TypeScript |
-| TypeScript 类型 | ✅ | 完整的 jsonl schema 类型定义 |
-| JSONL Parser | ✅ | useJsonlParser hook |
-| Tokenizer | ✅ | token 估算工具 |
-| CSS 布局 | ✅ | 三列布局 |
-| Timeline 组件 | ✅ | turn 导航 |
-| SystemPrompt 组件 | ✅ | Markdown 渲染 |
-| ChatHistory 组件 | ✅ | Markdown 渲染 |
-| ToolCard 组件 | ✅ | 可展开卡片 |
-| ToolHistory 组件 | ✅ | 工具列表 |
-| StatusBar 组件 | ✅ | Token 统计 |
-| App 主组件 | ✅ | 整合所有组件 |
-| Vite API | ✅ | 读取 .opencode/logs/ |
-
-### API Endpoints
-
-```
-GET /api/logs
-返回: [{name, path, modifiedAt}, ...]
-
-GET /api/logs/:filename
-返回: jsonl 文件内容
-```
-
-### Dev Server
-
-```bash
-cd project/llm-log-visualizer
-npm install
-npm run dev
-# http://localhost:5173/
-```
-
-### 2026-03-22 最新修改
-
-**移除 API 调用，改为纯拖拽方式**
-- 移除 `fetch('/api/logs')` 调用
-- 移除下拉选择框
-- Header 左侧改为显示文件名或 "No file loaded"
-- 纯拖拽文件方式加载 jsonl
-
-**Bug Fix:**
-- Vite 中间件路由顺序问题：`/api/logs` 匹配了 `/api/logs/:filename`
-- 修复：调整中间件顺序，精确匹配 `/api/logs`
-
----
-
-## 错误记录
-
-| 错误 | 尝试次数 | 解决方案 |
-|------|----------|----------|
-| TypeScript 编译错误 (unused variables) | 1 | 移除未使用代码 |
-| Vite fs API require 问题 | 1 | 使用 ES module import |
-
----
-
-## 当前状态
-
-✅ **LLM Log Visualizer 开发完成，Dev Server 运行中**
-
----
-
 ## Git Commits
 
-### LLM Log Plugin (最近的)
+### 2026-03-22 (下午)
+```
+927bf09 feat: redesign LLM Log Visualizer with dark theme and improved UX
+```
+
+### 2026-03-22 (上午)
 ```
 48d4353 fix: increment turn on step-finish reason=tool-calls
 7ccec40 fix: prevent duplicate turn_complete with responseWritten flag
@@ -100,19 +58,22 @@ d660bf2 fix: add turn and shortUUID to all turn_complete events
 1226df9 feat: merge tool_call and tool_result into tool_call_result
 ```
 
-### LLM Log Visualizer
-```
-4a4d280 fix: remove unused code and browser-compatible fetch
-43c023a feat: add main App component with full layout
-96e4125 feat: add StatusBar component
-fbb15a8 feat: add ToolHistory component
-3ef7bce feat: add ToolCard component with expand/collapse
-1b757d5 feat: add ChatHistory component with Markdown
-d48008e feat: add SystemPrompt component with Markdown
-c77f683 feat: add Timeline component
-f78fb8b feat: add main CSS layout styles
-7951e55 feat: add tokenizer utility for token estimation
-d77ce44 feat: add useJsonlParser hook
-2fc76e4 feat: add TypeScript types for jsonl events
-f5b88f1 feat: scaffold Vite + React + TypeScript project
-```
+---
+
+## 当前状态
+
+✅ **LLM Log Visualizer UI 重新设计完成，Dev Server 运行中**
+
+Dev Server: http://localhost:5173/
+
+---
+
+## 5-Question Reboot Check
+
+| Question | Answer |
+|----------|--------|
+| Where am I? | 项目开发阶段，Visualizer UI 刚完成 |
+| Where am I going? | Turn Isolation Feature 实现 |
+| What's the goal? | 每个 user turn 写入独立文件 |
+| What have I learned? | 详见 findings.md |
+| What have I done? | 完成 Visualizer 重新设计，修复多个 bug |

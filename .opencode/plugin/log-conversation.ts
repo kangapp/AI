@@ -238,6 +238,7 @@ export default (input: PluginInput): Promise<Hooks> => {
               // 写入 reasoning 事件
               writeEvent(state, {
                 type: "reasoning",
+                turn: state.turn,
                 content: reasoningContent,
               })
               state.response.reasoning.push(reasoningContent)
@@ -265,6 +266,7 @@ export default (input: PluginInput): Promise<Hooks> => {
 
       writeEvent(state, {
         type: "llm_params",
+        turn: state.turn,
         temperature: output.temperature,
         topP: output.topP,
         topK: output.topK,
@@ -283,6 +285,7 @@ export default (input: PluginInput): Promise<Hooks> => {
       // 写入 text 事件
       writeEvent(state, {
         type: "text",
+        turn: state.turn,
         content: output.text,
       })
 
@@ -326,6 +329,7 @@ export default (input: PluginInput): Promise<Hooks> => {
         // 合并写入 tool_call_result 事件
         writeEvent(state, {
           type: "tool_call_result",
+          turn: state.turn,
           id: toolCall.id,
           tool: toolCall.tool,
           args: toolCall.args,
@@ -362,6 +366,7 @@ export default (input: PluginInput): Promise<Hooks> => {
           case "step-start":
             writeEvent(state, {
               type: "step_start",
+              turn: state.turn,
               stepId: part.id,
             })
             break
@@ -369,6 +374,7 @@ export default (input: PluginInput): Promise<Hooks> => {
           case "agent":
             writeEvent(state, {
               type: "agent_switch",
+              turn: state.turn,
               agent: part.name,
               source: part.source,
             })
@@ -377,6 +383,7 @@ export default (input: PluginInput): Promise<Hooks> => {
           case "retry":
             writeEvent(state, {
               type: "retry",
+              turn: state.turn,
               attempt: part.attempt,
               error: part.error?.message || String(part.error),
             })
@@ -385,6 +392,7 @@ export default (input: PluginInput): Promise<Hooks> => {
           case "file":
             writeEvent(state, {
               type: "file_reference",
+              turn: state.turn,
               mime: part.mime,
               filename: part.filename,
               url: part.url,
@@ -427,6 +435,7 @@ export default (input: PluginInput): Promise<Hooks> => {
             // 写入 subtask_start 事件
             writeEvent(subtaskState, {
               type: "subtask_start",
+              turn: subtaskState.turn,
               sessionID: subtaskSessionID,
               shortUUID: subtaskShortUUID,
               parentShortUUID: parentShortUUID,
@@ -535,6 +544,7 @@ export default (input: PluginInput): Promise<Hooks> => {
 
       writeEvent(state, {
         type: "permission_request",
+        turn: state.turn,
         permissionType: input.type,
         pattern: input.pattern,
         title: input.title,

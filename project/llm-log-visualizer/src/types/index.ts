@@ -105,6 +105,7 @@ export interface CachedView {
   systemPrompt: string[]
   messages: Message[]
   toolCalls: ToolCall[]
+  toolTurnCounts: number[]  // 每个 turn 的 tool 数量（从 Turn 1 到 currentTurn）
   reasoning: string[]
   turnComplete: TurnComplete | null
 }

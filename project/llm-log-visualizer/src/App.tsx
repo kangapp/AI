@@ -139,21 +139,25 @@ export default function App() {
 
   // 判断某个 tool index 是否属于当前 turn
   // toolCalls 是从当前 turn 向下累积的倒序数组
+  // toolTurnCounts 也是倒序（[turnN, turnN-1, ..., turn1]）
   const getToolTurnInfo = (toolIndex: number): { isCurrentTurn: boolean; turnLabel: string } => {
     const totalTools = currentView?.toolCalls?.length || 0
-    if (totalTools === 0) return { isCurrentTurn: false, turnLabel: '' }
+    const toolTurnCounts = currentView?.toolTurnCounts || []
+    if (totalTools === 0 || toolTurnCounts.length === 0) return { isCurrentTurn: false, turnLabel: '' }
 
-    // 从后往前计算每个 turn 的 tool 数量，确定该 index 属于哪个 turn
+    // toolTurnCounts 是倒序：[turnN, turnN-1, ..., turn1]
+    // 所以 toolIndices[0] 对应 turnN，toolIndices[last] 对应 turn1
     let accumulated = 0
-    for (let t = 1; t <= currentTurn; t++) {
-      const turnToolCount = currentFile?.turns[t - 1]?.turnComplete?.toolCalls?.length || 0
+    for (let i = 0; i < toolTurnCounts.length; i++) {
+      const turnToolCount = toolTurnCounts[i]
+      const turnNumber = currentTurn - i  // turnN = currentTurn, turnN-1 = currentTurn-1, ...
       const start = accumulated
       const end = accumulated + turnToolCount
 
       if (toolIndex >= start && toolIndex < end) {
         return {
-          isCurrentTurn: t === currentTurn,
-          turnLabel: t === currentTurn ? '' : `Turn ${t}`
+          isCurrentTurn: turnNumber === currentTurn,
+          turnLabel: turnNumber === currentTurn ? '' : `Turn ${turnNumber}`
         }
       }
       accumulated += turnToolCount

@@ -71,10 +71,11 @@ export function useJsonlParser() {
       // 累积 toolCalls（按 turn 倒序，turn 内按时间正序）
       // 从 turnComplete.toolCalls 和 events 中的 tool_call_result 收集
       const toolCalls: ToolCall[] = []
+      const toolTurnCounts: number[] = []  // 每个 turn 的 tool 数量
+
       for (let i = index; i >= 0; i--) {
         // 从 turnComplete.toolCalls 获取（已合并的最终结果）
         const tcFromComplete = turns[i].turnComplete?.toolCalls || []
-        toolCalls.push(...tcFromComplete)
         // 从 events 中的 tool_call_result 获取（原始事件）
         const tcFromEvents = turns[i].events
           .filter(e => e.type === 'tool_call_result')
@@ -85,7 +86,10 @@ export function useJsonlParser() {
             output: (e as any).output || null,
             title: (e as any).title || null,
           }))
-        toolCalls.push(...tcFromEvents)
+
+        const turnToolCount = tcFromComplete.length + tcFromEvents.length
+        toolTurnCounts.push(turnToolCount)
+        toolCalls.push(...tcFromComplete, ...tcFromEvents)
       }
 
       return {
@@ -93,6 +97,7 @@ export function useJsonlParser() {
         systemPrompt: turn.turnStart.system,
         messages,
         toolCalls,
+        toolTurnCounts,
         reasoning: turn.turnComplete?.reasoning || [],
         turnComplete: turn.turnComplete
       }
