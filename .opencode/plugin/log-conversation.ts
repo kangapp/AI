@@ -487,6 +487,7 @@ export default (input: PluginInput): Promise<Hooks> => {
         }
 
         activeShortUUIDs.delete(sessionID)
+        subtaskParentMap.delete(sessionID)
       }
     },
 
