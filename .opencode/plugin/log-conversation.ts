@@ -33,7 +33,8 @@ interface TurnState {
       id: string
       tool: string
       args: any
-      callID: string
+      output: string | null  // 占位，等 tool.execute.after 填充
+      title: string | null
     }[]
     tools: {                 // 工具执行结果
       tool: string
@@ -293,20 +294,14 @@ export default (input: PluginInput): Promise<Hooks> => {
       const state = turns.get(turnKey)
       if (!state) return
 
-      // 写入 tool_call 事件
-      writeEvent(state, {
-        type: "tool_call",
-        id: input.callId,
-        tool: input.tool,
-        args: input.args,
-      })
-
-      // 在 toolCall 开始时记录，保持 toolCalls 和 tools 的顺序一致
+      // 只暂存到 state.response.toolCalls，添加占位字段
+      // 等 tool.execute.after 时通过 callId 找到对应的 call，填充 output 和 title
       state.response.toolCalls.push({
         id: input.callId,
         tool: input.tool,
         args: input.args,
-        callID: input.callId,
+        output: null,  // 占位，等 tool.execute.after 填充
+        title: null,
       })
     },
 
@@ -318,14 +313,23 @@ export default (input: PluginInput): Promise<Hooks> => {
       const state = turns.get(turnKey)
       if (!state) return
 
-      // 写入 tool_result 事件
-      writeEvent(state, {
-        type: "tool_result",
-        tool: input.tool,
-        args: input.args,
-        output: output.output,
-        title: output.title,
-      })
+      // 通过 callId 找到对应的暂存
+      const toolCall = state.response.toolCalls.find(tc => tc.id === input.callId)
+      if (toolCall) {
+        // 填充 output 和 title
+        toolCall.output = output.output
+        toolCall.title = output.title
+
+        // 合并写入 tool_call_result 事件
+        writeEvent(state, {
+          type: "tool_call_result",
+          id: toolCall.id,
+          tool: toolCall.tool,
+          args: toolCall.args,
+          output: output.output,
+          title: output.title,
+        })
+      }
 
       state.response.tools.push({
         tool: input.tool,
