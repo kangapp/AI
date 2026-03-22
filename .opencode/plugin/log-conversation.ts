@@ -48,25 +48,34 @@ const turns = new Map<string, TurnState>()
 const activeShortUUIDs = new Map<string, string>()
 
 function getLogPath(sessionID: string, shortUUID: string): string {
-  const logDir = join(process.cwd(), ".opencode", "logs")
-  if (!existsSync(logDir)) {
-    mkdirSync(logDir, { recursive: true })
+  try {
+    const logDir = join(process.cwd(), ".opencode", "logs")
+    if (!existsSync(logDir)) {
+      mkdirSync(logDir, { recursive: true })
+    }
+    return join(logDir, `${sessionID}_${shortUUID}.jsonl`)
+  } catch (error) {
+    debug(`getLogPath: error=${error}`)
+    throw error
   }
-  return join(logDir, `${sessionID}_${shortUUID}.jsonl`)
 }
 
 // 写入事件到文件
 function writeEvent(state: TurnState, event: Record<string, any>): void {
-  const timestamp = new Date().toISOString()
-  state.filePath = getLogPath(state.sessionID, state.shortUUID)
+  try {
+    const timestamp = new Date().toISOString()
+    state.filePath = getLogPath(state.sessionID, state.shortUUID)
 
-  const eventRecord = {
-    timestamp,
-    ...event,
+    const eventRecord = {
+      timestamp,
+      ...event,
+    }
+
+    appendFileSync(state.filePath, JSON.stringify(eventRecord) + "\n")
+    debug(`writeEvent: type=${event.type} to ${state.filePath}`)
+  } catch (error) {
+    debug(`writeEvent: error=${error}`)
   }
-
-  appendFileSync(state.filePath, JSON.stringify(eventRecord) + "\n")
-  debug(`writeEvent: type=${event.type} to ${state.filePath}`)
 }
 
 export default (input: PluginInput): Promise<Hooks> => {
@@ -151,12 +160,7 @@ export default (input: PluginInput): Promise<Hooks> => {
         const existingFilePath = getLogPath(sessionID, shortUUID)
         if (existsSync(existingFilePath)) {
           debug(`chat.messages.transform: file already exists for shortUUID=${shortUUID}, skipping`)
-          // 更新现有的 state 而不是创建新的
-          const existingState = turns.get(turnKey)
-          if (existingState) {
-            state = existingState
-          }
-          return
+          return  // 直接返回，不更新 state
         }
 
         // 获取 system prompt
@@ -308,7 +312,10 @@ export default (input: PluginInput): Promise<Hooks> => {
           if (!shortUUID) return
           const turnKey = `${sessionID}_${shortUUID}`
           const state = turns.get(turnKey)
-          if (!state) return
+          if (!state) {
+            debug(`step-finish: state already processed, skipping`)
+            return
+          }
 
           // Turn 结束条件：reason 是 stop/length/content-filter，或未知 reason 但不是 tool-calls
           // 注意：不要在这里清除 shortUUID，因为可能还有后续消息
