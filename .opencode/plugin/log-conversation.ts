@@ -2,12 +2,24 @@ import type { Hooks, PluginInput } from "@opencode-ai/plugin"
 import { appendFileSync, existsSync, mkdirSync } from "fs"
 import { join } from "path"
 
+// Debug logging
+const DEBUG = true
+function debug(...args: any[]) {
+  if (DEBUG) {
+    const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ')
+    const timestamp = new Date().toISOString()
+    const logPath = join(process.cwd(), ".opencode", "debug.log")
+    appendFileSync(logPath, `[${timestamp}] ${msg}\n`)
+  }
+}
+
 // State management for current turn
 interface TurnState {
   turn: number
   sessionID: string
   shortUUID: string
-  turnKey: string
+  filePath: string           // 文件路径，在创建时就确定
+  responseWritten: boolean    // 标记 response 是否已写入文件
   request: {
     messages: any[]           // 完整的消息
     system: string[]          // system prompt（从 system.transform 获取）
@@ -33,14 +45,62 @@ interface TurnState {
 }
 
 const turns = new Map<string, TurnState>()
+// 追踪每个 sessionID 对应的当前活跃 shortUUID
+const activeShortUUIDs = new Map<string, string>()
 
-function getLogPath(sessionID: string, shortUUID?: string): string {
+function getLogPath(sessionID: string, shortUUID: string): string {
   const logDir = join(process.cwd(), ".opencode", "logs")
   if (!existsSync(logDir)) {
     mkdirSync(logDir, { recursive: true })
   }
-  const baseName = shortUUID ? `${sessionID}_${shortUUID}` : sessionID
-  return join(logDir, `${baseName}.jsonl`)
+  return join(logDir, `${sessionID}_${shortUUID}.jsonl`)
+}
+
+// 写入 request 部分到文件
+function writeRequestToFile(state: TurnState): void {
+  if (!state.request) return
+
+  const timestamp = new Date().toISOString()
+  state.filePath = getLogPath(state.sessionID, state.shortUUID)
+
+  const requestRecord = {
+    type: "request",
+    turn: state.turn,
+    sessionID: state.sessionID,
+    timestamp,
+    model: state.request.model,
+    agent: state.request.agent,
+    system: state.request.system,
+    messages: state.request.messages,
+  }
+
+  appendFileSync(state.filePath, JSON.stringify(requestRecord) + "\n")
+  debug(`writeRequestToFile: wrote to ${state.filePath}`)
+}
+
+// 追加 response 部分到文件
+function appendResponseToFile(state: TurnState): void {
+  if (!state.request) return
+  if (state.responseWritten) return  // 避免重复写入
+
+  state.responseWritten = true
+
+  const timestamp = new Date().toISOString()
+
+  const responseRecord = {
+    type: "response",
+    turn: state.turn,
+    sessionID: state.sessionID,
+    timestamp,
+    texts: state.response.texts,
+    fullText: state.response.texts.join(""),
+    reasoning: state.response.reasoning,
+    toolCalls: state.response.toolCalls,
+    tools: state.response.tools,
+  }
+
+  appendFileSync(state.filePath, JSON.stringify(responseRecord) + "\n")
+  debug(`appendResponseToFile: appended to ${state.filePath}`)
 }
 
 export default (input: PluginInput): Promise<Hooks> => {
@@ -49,7 +109,10 @@ export default (input: PluginInput): Promise<Hooks> => {
     "experimental.chat.system.transform": async (input, output) => {
       const sessionID = input.sessionID
       if (!sessionID) return
-      const state = turns.get(sessionID)
+      const shortUUID = activeShortUUIDs.get(sessionID)
+      if (!shortUUID) return
+      const turnKey = `${sessionID}_${shortUUID}`
+      const state = turns.get(turnKey)
       if (!state) return
 
       state.request.system = output.system
@@ -60,101 +123,145 @@ export default (input: PluginInput): Promise<Hooks> => {
       const sessionID = output.messages[0]?.info.sessionID
       if (!sessionID) return
 
-      // 检测是否是 user 消息（新 turn 的开始）
-      const hasUserMessage = output.messages.some((m: any) => m.info.role === "user")
+      const lastMsg = output.messages[output.messages.length - 1]
+      const isUserMessage = lastMsg?.info?.role === "user"
 
-      let turnKey: string
-      let state = turns.get(sessionID)
+      // 检测自动系统消息（后台任务完成等），不要为它们创建新文件
+      // 只要包含 <!-- OMO_INTERNAL_INITIATOR --> 就是自动触发的消息
+      const msgContent = lastMsg?.parts?.map((p: any) => p.text || "").join("") || ""
+      const isAutoSystemMessage = msgContent.includes("<!-- OMO_INTERNAL_INITIATOR -->")
 
-      if (hasUserMessage) {
-        // 生成 shortUUID 并创建新的 turnState
-        const shortUUID = crypto.randomUUID().substring(0, 12)
+      let shortUUID = activeShortUUIDs.get(sessionID)
+      let turnKey = shortUUID ? `${sessionID}_${shortUUID}` : null
+      let state = turnKey ? turns.get(turnKey) : null
+
+      debug(`chat.messages.transform: isUser=${isUserMessage}, isAuto=${isAutoSystemMessage}, existing shortUUID=${shortUUID}`)
+
+      // 如果是自动系统消息，不创建新文件，继续使用当前 state（如果有）
+      if (isAutoSystemMessage) {
+        debug(`chat.messages.transform: auto system message, not creating new file`)
+        return
+      }
+
+      // 如果是 user 消息，且有之前的 state，先写入前一个 turn
+      if (isUserMessage && state) {
+        debug(`chat.messages.transform: user message, writing previous turn`)
+        appendResponseToFile(state)
+        turns.delete(turnKey)
+        activeShortUUIDs.delete(sessionID)  // 清除 shortUUID
+        state = null
+        shortUUID = null
+      }
+
+      // 如果是 user 消息，创建新 turn
+      if (isUserMessage) {
+        // 如果还没有 shortUUID，生成一个新的
+        if (!shortUUID) {
+          shortUUID = crypto.randomUUID().substring(0, 12)
+          activeShortUUIDs.set(sessionID, shortUUID)
+        }
         turnKey = `${sessionID}_${shortUUID}`
 
+        // 检查是否已经为此 shortUUID 创建了文件，避免重复
+        const existingFilePath = getLogPath(sessionID, shortUUID)
+        if (existsSync(existingFilePath)) {
+          debug(`chat.messages.transform: file already exists for shortUUID=${shortUUID}, skipping`)
+          // 更新现有的 state 而不是创建新的
+          const existingState = turns.get(turnKey)
+          if (existingState) {
+            state = existingState
+          }
+          return
+        }
+
+        // 获取 system prompt
+        const systemMessages = output.messages.filter((m: any) => m.info?.role === "system")
+        const system = systemMessages.map((m: any) =>
+          m.parts.map((p: any) => p.text || "").join("")
+        )
+
+        // 获取 agent 和 model
+        const agent = lastMsg?.info?.agent || "unknown"
+        const model = lastMsg?.info?.model || { providerID: "unknown", modelID: "unknown" }
+
+        // 只保存当前 user 消息
+        const currentMessages = [{
+          role: "user",
+          content: lastMsg.parts,
+        }]
+
         state = {
-          turn: 0,
+          turn: 1,  // 每个文件都从 turn 1 开始
           sessionID,
           shortUUID,
-          turnKey,
-          request: null as any,
+          filePath: "",
+          responseWritten: false,
+          request: {
+            messages: currentMessages,
+            system,
+            agent,
+            model,
+          },
           response: { texts: [], reasoning: [], toolCalls: [], tools: [] },
         }
         turns.set(turnKey, state)
-        // 同时用 sessionID 作为 key 存储一份，方便其他 hook 查找
-        turns.set(sessionID, state)
-      } else if (!state) {
+        debug(`chat.messages.transform: created new state`)
+
+        // 立即写入 request
+        writeRequestToFile(state)
         return
-      } else {
-        turnKey = state.turnKey
       }
 
-      state.turn++
-
-      // 提取消息，保留完整 parts
-      const messages = output.messages.map((m: any) => ({
-        role: m.info.role,
-        content: m.parts,
-      }))
-
-      // 从 assistant 消息中提取 tool calls 和 reasoning
-      const assistantMessages = output.messages.filter((m: any) => m.info.role === "assistant")
-      const toolCalls: any[] = []
-      const reasoning: string[] = []
-
-      for (const msg of assistantMessages) {
-        for (const part of msg.parts) {
-          if (part.type === "tool") {
-            toolCalls.push({
-              id: part.id,
-              tool: part.tool,
-              args: part.state.input,
-              callID: part.callID,
-            })
-          }
-          if (part.type === "reasoning") {
-            reasoning.push(part.text)
-          }
-        }
+      // 如果没有 state（非 user 消息触发），直接返回
+      if (!state) {
+        debug(`chat.messages.transform: no state, returning`)
+        return
       }
 
-      // 获取 system prompt（此时可能为空，等 system.transform 补充）
-      const systemMessages = output.messages.filter((m: any) => m.info.role === "system")
-      const system = systemMessages.map((m: any) =>
-        m.parts.map((p: any) => p.text || "").join("")
-      )
-
-      // 获取 agent 和 model
-      const lastMessage = output.messages[output.messages.length - 1]
-      const agent = lastMessage?.info.agent || "unknown"
-      const model = lastMessage?.info.model || { providerID: "unknown", modelID: "unknown" }
-
-      state.request = {
-        messages,
-        system,
-        agent,
-        model,
-      }
-
-      // 重置 response 收集器，保存从 messages 提取的数据
-      state.response = {
-        texts: [],
-        reasoning,
-        toolCalls,
-        tools: [],
+      // assistant 消息：更新 request.messages 为当前 assistant 消息
+      if (lastMsg?.info?.role === "assistant") {
+        state.request.messages = [{
+          role: "assistant",
+          content: lastMsg.parts,
+        }]
+        debug(`chat.messages.transform: updated assistant message`)
       }
     },
 
     // 3. 收集文本输出
     "experimental.text.complete": async (input, output) => {
-      const state = turns.get(input.sessionID)
+      const shortUUID = activeShortUUIDs.get(input.sessionID)
+      if (!shortUUID) return
+      const turnKey = `${input.sessionID}_${shortUUID}`
+      const state = turns.get(turnKey)
       if (!state) return
 
       state.response.texts.push(output.text)
     },
 
-    // 4. 收集工具执行结果
+    // 4. 收集工具调用（在执行前记录）
+    "tool.execute.before": async (input, output) => {
+      const shortUUID = activeShortUUIDs.get(input.sessionID)
+      if (!shortUUID) return
+      const turnKey = `${input.sessionID}_${shortUUID}`
+      const state = turns.get(turnKey)
+      if (!state) return
+
+      // 在 toolCall 开始时记录，保持 toolCalls 和 tools 的顺序一致
+      state.response.toolCalls.push({
+        id: input.callId,
+        tool: input.tool,
+        args: input.args,
+        callID: input.callId,
+      })
+    },
+
+    // 5. 收集工具执行结果
     "tool.execute.after": async (input, output) => {
-      const state = turns.get(input.sessionID)
+      const shortUUID = activeShortUUIDs.get(input.sessionID)
+      if (!shortUUID) return
+      const turnKey = `${input.sessionID}_${shortUUID}`
+      const state = turns.get(turnKey)
       if (!state) return
 
       state.response.tools.push({
@@ -165,51 +272,33 @@ export default (input: PluginInput): Promise<Hooks> => {
       })
     },
 
-    // 5. event hook: 检测 step-finish 并写入 jsonl
+    // 5. event hook
     "event": async (input) => {
       const event = input.event as any
+      debug(`event: type=${event.type}`)
 
       if (event.type === "message.part.updated") {
         const part = event.properties?.part
         if (part?.type === "step-finish") {
           const sessionID = part.sessionID
-          const state = turns.get(sessionID)
+          const reason = part.reason
+          debug(`step-finish: reason=${reason}`)
+          const shortUUID = activeShortUUIDs.get(sessionID)
+          if (!shortUUID) return
+          const turnKey = `${sessionID}_${shortUUID}`
+          const state = turns.get(turnKey)
+          if (!state) return
 
-          if (!state || !state.request) return
-
-          const timestamp = new Date().toISOString()
-
-          const requestRecord = {
-            type: "request",
-            turn: state.turn,
-            sessionID: state.sessionID,
-            timestamp,
-            model: state.request.model,
-            agent: state.request.agent,
-            system: state.request.system,
-            messages: state.request.messages,
+          // Turn 结束条件：reason 是 stop/length/content-filter，或未知 reason 但不是 tool-calls
+          // 注意：不要在这里清除 shortUUID，因为可能还有后续消息
+          const isTurnEnd = reason === "stop" || reason === "length" || reason === "content-filter" ||
+                            reason == null
+          if (isTurnEnd) {
+            debug(`step-finish: reason=${reason}, appending response`)
+            appendResponseToFile(state)
+          } else {
+            debug(`step-finish: reason=${reason}, not ending turn`)
           }
-
-          const responseRecord = {
-            type: "response",
-            turn: state.turn,
-            sessionID: state.sessionID,
-            timestamp,
-            texts: state.response.texts,
-            fullText: state.response.texts.join(""),
-            reasoning: state.response.reasoning,
-            toolCalls: state.response.toolCalls,
-            tools: state.response.tools,
-            finishReason: part.reason,
-            usage: {
-              tokens: part.tokens,
-              cost: part.cost,
-            },
-          }
-
-          const logPath = getLogPath(sessionID, state.shortUUID)
-          appendFileSync(logPath, JSON.stringify(requestRecord) + "\n")
-          appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
         }
         return
       }
@@ -218,40 +307,22 @@ export default (input: PluginInput): Promise<Hooks> => {
         const sessionID = event.data?.info?.id
         if (!sessionID) return
 
-        const state = turns.get(sessionID)
-        if (!state || !state.request) return
-
-        const timestamp = new Date().toISOString()
-        const logPath = getLogPath(sessionID, state.shortUUID)
-
-        const requestRecord = {
-          type: "request",
-          turn: state.turn,
-          sessionID: state.sessionID,
-          timestamp,
-          model: state.request.model,
-          agent: state.request.agent,
-          system: state.request.system,
-          messages: state.request.messages,
+        const shortUUID = activeShortUUIDs.get(sessionID)
+        if (shortUUID) {
+          const turnKey = `${sessionID}_${shortUUID}`
+          const state = turns.get(turnKey)
+          if (state && state.request) {
+            if (state.filePath) {
+              appendResponseToFile(state)
+            } else {
+              writeRequestToFile(state)
+              appendResponseToFile(state)
+            }
+          }
+          turns.delete(turnKey)
         }
 
-        const responseRecord = {
-          type: "response",
-          turn: state.turn,
-          sessionID: state.sessionID,
-          timestamp,
-          texts: state.response.texts,
-          fullText: state.response.texts.join(""),
-          reasoning: state.response.reasoning,
-          toolCalls: state.response.toolCalls,
-          tools: state.response.tools,
-        }
-
-        appendFileSync(logPath, JSON.stringify(requestRecord) + "\n")
-        appendFileSync(logPath, JSON.stringify(responseRecord) + "\n")
-
-        turns.delete(sessionID)
-        turns.delete(state.turnKey)
+        activeShortUUIDs.delete(sessionID)
       }
     },
   })
