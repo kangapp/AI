@@ -14,8 +14,7 @@
 | `step_start` | `step-start` part | 思维步骤开始 |
 | `text` | `text.complete` | 文本输出 |
 | `reasoning` | `messages.transform` (assistant) | 思考过程 |
-| `tool_call` | `tool.execute.before` | 工具调用 |
-| `tool_result` | `tool.execute.after` | 工具结果 |
+| `tool_call_result` | `tool.execute.after` | 工具调用+结果（配对） |
 | `agent_switch` | `agent` part | Agent 切换 |
 | `retry` | `retry` part | 重试事件（attempt, error） |
 | `file_reference` | `file` part | LLM 参考的文件/图片 |
@@ -97,24 +96,13 @@
 }
 ```
 
-### tool_call
+### tool_call_result
 
 ```json
 {
-  "type": "tool_call",
+  "type": "tool_call_result",
   "timestamp": "2026-03-22T00:00:03.000Z",
   "id": "call_xxx",
-  "tool": "read_file",
-  "args": { "path": "..." }
-}
-```
-
-### tool_result
-
-```json
-{
-  "type": "tool_result",
-  "timestamp": "2026-03-22T00:00:04.000Z",
   "tool": "read_file",
   "args": { "path": "..." },
   "output": "...",
@@ -236,6 +224,20 @@ const isTurnEnd = reason === "stop" ||
 
 自动消息（如后台任务完成通知）包含 `<!-- OMO_INTERNAL_INITIATOR -->`,不创建新 turn，继续使用当前 turn。
 
+## Turn 索引规则
+
+- **File-local turn**: 每个文件内的 turn 从 1 开始递增
+- **Turn 递增时机**: 当收到新的 user 消息且当前已有 state 时，turn += 1，继续使用同一文件
+- **首次 user 消息**: turn = 1
+- **不创建新文件**: 同一 shortUUID 的多个 turn 写入同一文件
+
+```typescript
+// 示例流程
+user msg 1 → turn=1, 写入 ses_xxx_yyy.jsonl
+user msg 2 → turn=2, 继续写入 ses_xxx_yyy.jsonl
+user msg 3 → turn=3, 继续写入 ses_xxx_yyy.jsonl
+```
+
 ## Hook 使用
 
 | Hook | 事件 |
@@ -244,8 +246,8 @@ const isTurnEnd = reason === "stop" ||
 | `chat.system.transform` | 获取 system prompt，写入 turn_start |
 | `chat.params` | 写入 llm_params |
 | `permission.ask` | 写入 permission_request |
-| `tool.execute.before` | 写入 tool_call |
-| `tool.execute.after` | 写入 tool_result |
+| `tool.execute.before` | 暂存 tool_call 到 pending |
+| `tool.execute.after` | 合并写入 tool_call_result |
 | `experimental.text.complete` | 写入 text |
 | `event (message.part.updated)` | step-start, agent, retry, file, subtask part |
 
@@ -267,8 +269,7 @@ const isTurnEnd = reason === "stop" ||
 {"type": "step_start", "timestamp": "...", "stepId": "..."}
 {"type": "text", "timestamp": "...", "content": "..."}
 {"type": "reasoning", "timestamp": "...", "content": "thinking..."}
-{"type": "tool_call", "timestamp": "...", "id": "...", "tool": "...", "args": {...}}
-{"type": "tool_result", "timestamp": "...", "tool": "...", "args": {...}, "output": "...", "title": "..."}
+{"type": "tool_call_result", "timestamp": "...", "id": "...", "tool": "...", "args": {...}, "output": "...", "title": "..."}
 {"type": "agent_switch", "timestamp": "...", "agent": "...", "source": {...}}
 {"type": "retry", "timestamp": "...", "attempt": 1, "error": "..."}
 {"type": "file_reference", "timestamp": "...", "mime": "...", "filename": "...", "url": "..."}
