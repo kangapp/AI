@@ -30,6 +30,7 @@ export default function App() {
   const [systemPaneWidth, setSystemPaneWidth] = useState(35) // percentage
   const [expandedTools, setExpandedTools] = useState<Set<number>>(new Set())
   const [toolTypeFilter, setToolTypeFilter] = useState<string | null>(null) // tool 类型筛选
+  const [chatPaneHeight, setChatPaneHeight] = useState(60) // percentage
   const [selectedTool, setSelectedTool] = useState<{ tool: any; index: number } | null>(null) // 选中的 tool 用于详情弹窗
   const { parseContent } = useJsonlParser()
   const resizeRef = useRef<HTMLDivElement>(null)
@@ -238,6 +239,31 @@ export default function App() {
       const delta = ((e.clientX - startX) / containerWidth) * 100
       const newWidth = Math.min(Math.max(startWidth + delta, 20), 60)
       setSystemPaneWidth(newWidth)
+    }
+
+    const handleMouseUp = () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+  }
+
+  // Chat pane vertical resize
+  const handleChatResizeStart = (e: React.MouseEvent) => {
+    e.preventDefault()
+    const startY = e.clientY
+    const startHeight = chatPaneHeight
+    const container = document.querySelector('.conversation-area') as HTMLElement
+    if (!container) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const containerRect = container.getBoundingClientRect()
+      const containerHeight = containerRect.height
+      const delta = ((startY - e.clientY) / containerHeight) * 100
+      const newHeight = Math.min(Math.max(startHeight + delta, 30), 80)
+      setChatPaneHeight(newHeight)
     }
 
     const handleMouseUp = () => {
@@ -565,8 +591,14 @@ export default function App() {
                     {currentView?.turnComplete?.texts?.join('').split(/\s+/).length || 0} words
                   </span>
                 </div>
-                <div className="pane-content">
-                  {renderMessages()}
+                <div className="conversation-area">
+                <div className="chat-history-pane" style={{ height: `${chatPaneHeight}%` }}>
+                  <div className="pane-content">
+                    {renderMessages()}
+                  </div>
+                </div>
+                <div className="chat-resize-handle" onMouseDown={handleChatResizeStart} />
+                <div className="tool-calls-pane" style={{ height: `${100 - chatPaneHeight}%` }}>
                   <div className="tool-section">
                     <div className="tool-section-header">
                       <span className="tool-section-title">Tool Calls</span>

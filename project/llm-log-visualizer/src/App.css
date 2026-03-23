@@ -394,6 +394,43 @@ body::before {
   background: var(--color-system-bg);
 }
 
+/* Conversation Area - Vertical Split */
+.conversation-area {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.chat-history-pane {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-resize-handle {
+  height: 6px;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: ns-resize;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.chat-resize-handle:hover {
+  background: var(--accent-amber);
+}
+
+.tool-calls-pane {
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
 .pane-content {
   flex: 1;
   overflow-y: auto;
@@ -726,9 +763,6 @@ body::before {
 
 /* Tool History */
 .tool-section {
-  margin-top: var(--space-md);
-  padding-top: var(--space-md);
-  border-top: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
   flex: 1;
