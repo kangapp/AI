@@ -528,6 +528,113 @@ body::before {
   border-left-color: var(--color-assistant);
 }
 
+/* Reasoning styles */
+.chat-message.reasoning {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed var(--border-default);
+  border-left: 3px solid var(--text-muted);
+}
+
+.chat-message.reasoning .chat-role {
+  color: var(--text-muted);
+  font-size: 10px;
+}
+
+.reasoning-content {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.6;
+}
+
+/* System event styles */
+.chat-message.system {
+  background: var(--color-system-bg);
+  border-color: var(--color-system-border);
+  border-left: 3px solid var(--color-system);
+}
+
+.chat-message.system .chat-role {
+  color: var(--color-system);
+}
+
+.system-event-content {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Warning/Retry styles */
+.chat-message.warning {
+  background: rgba(255, 152, 0, 0.08);
+  border-color: rgba(255, 152, 0, 0.25);
+  border-left: 3px solid #ff9800;
+}
+
+.chat-message.warning .chat-role {
+  color: #ff9800;
+}
+
+.retry-content {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* Attachment/File reference styles */
+.chat-message.attachment {
+  background: rgba(33, 150, 243, 0.08);
+  border-color: rgba(33, 150, 243, 0.25);
+  border-left: 3px solid #2196f3;
+}
+
+.chat-message.attachment .chat-role {
+  color: #2196f3;
+}
+
+.file-ref-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.file-ref-name {
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.file-ref-mime {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Permission styles */
+.chat-message.permission {
+  background: rgba(156, 39, 176, 0.08);
+  border-color: rgba(156, 39, 176, 0.25);
+  border-left: 3px solid #9c27b0;
+}
+
+.chat-message.permission .chat-role {
+  color: #9c27b0;
+}
+
+.permission-content {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+/* Subtask styles */
+.subtask-content {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
 .chat-role {
   font-family: var(--font-ui);
   font-weight: 600;
