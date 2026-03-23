@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import ReactMarkdown from 'react-markdown'
+import rehypeHighlight from 'rehype-highlight'
+import remarkGfm from 'remark-gfm'
 import { useJsonlParser } from './hooks/useJsonlParser'
 import { ContentBlock } from './components/ContentBlock'
+import { estimateTokens, formatTokens } from './utils/tokenizer'
 import type { JsonlFile } from './types'
 
 interface LoadedFile {
@@ -17,6 +21,8 @@ export default function App() {
   const dragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [systemPaneWidth, setSystemPaneWidth] = useState(35) // percentage
   const [expandedTools, setExpandedTools] = useState<Set<number>>(new Set())
+  const [expandedSystemSections, setExpandedSystemSections] = useState<Set<number>>(new Set([0])) // 默认展开第一个
+  const [toolTypeFilter, setToolTypeFilter] = useState<string | null>(null) // tool 类型筛选
   const { parseContent } = useJsonlParser()
   const resizeRef = useRef<HTMLDivElement>(null)
 
@@ -48,6 +54,9 @@ export default function App() {
       })
       setCurrentTurn(1)
       setExpandedTools(new Set())
+      // 初始化所有 system sections 为展开状态
+      const sectionCount = parsed.cachedViews[0]?.systemPrompt?.length || 0
+      setExpandedSystemSections(new Set(Array.from({ length: sectionCount }, (_, i) => i)))
     }
     reader.readAsText(file)
   }
@@ -227,50 +236,100 @@ export default function App() {
       )
     }
 
-    return (
-      <div className="tool-content">
-        {toolCalls.map((tool, index) => {
-          const { isCurrentTurn, turnLabel } = getToolTurnInfo(index)
-          const isExpanded = expandedTools.has(index) || isCurrentTurn
+    // 计算 tool 类型统计
+    const toolTypeStats = toolCalls.reduce((acc: Record<string, number>, tool) => {
+      acc[tool.tool] = (acc[tool.tool] || 0) + 1
+      return acc
+    }, {})
 
-          return (
-            <div
-              key={index}
-              className={`tool-card ${isExpanded ? 'expanded' : 'collapsed'} ${isCurrentTurn ? '' : 'historical'}`}
+    // 筛选 tool calls
+    const filteredTools = toolTypeFilter
+      ? toolCalls.filter(tool => tool.tool === toolTypeFilter)
+      : toolCalls
+
+    return (
+      <>
+        {/* Tool Type Filter Pills */}
+        <div className="tool-filter-bar">
+          <button
+            className={`tool-filter-pill ${toolTypeFilter === null ? 'active' : ''}`}
+            onClick={() => setToolTypeFilter(null)}
+          >
+            All
+            <span className="tool-filter-count">{toolCalls.length}</span>
+          </button>
+          {Object.entries(toolTypeStats).map(([toolName, count]) => (
+            <button
+              key={toolName}
+              className={`tool-filter-pill ${toolTypeFilter === toolName ? 'active' : ''}`}
+              onClick={() => setToolTypeFilter(toolTypeFilter === toolName ? null : toolName)}
             >
-              <div className="tool-card-header" onClick={() => toggleTool(index)}>
-                <span className="tool-name">
-                  {tool.tool}
-                  {turnLabel && <span className="tool-turn-badge">{turnLabel}</span>}
-                </span>
-                <span className="tool-status">{isExpanded ? '▼' : '▶'}</span>
-              </div>
-              <div className="tool-card-body">
-                <div className="tool-args">
-                  <div className="tool-section-title">Arguments</div>
-                  <pre>{JSON.stringify(tool.args, null, 2)}</pre>
-                </div>
-                {tool.output && (
-                  <div className="tool-output">
-                    <div className="tool-section-title">Output</div>
-                    <ContentBlock
-                      content={typeof tool.output === 'string' ? tool.output : JSON.stringify(tool.output, null, 2)}
-                      toolName={tool.tool}
-                      showLabel={true}
-                    />
+              {toolName}
+              <span className="tool-filter-count">{count}</span>
+            </button>
+          ))}
+        </div>
+
+        {/* Filtered Count */}
+        {toolTypeFilter && (
+          <div className="tool-filter-info">
+            Showing {filteredTools.length} of {toolCalls.length} tools
+          </div>
+        )}
+
+        {/* Tool Cards */}
+        <div className="tool-content">
+          {filteredTools.map((tool) => {
+            // 找到在原始数组中的索引
+            const originalIndex = toolCalls.indexOf(tool)
+            const { isCurrentTurn, turnLabel } = getToolTurnInfo(originalIndex)
+            const isExpanded = expandedTools.has(originalIndex) || isCurrentTurn
+
+            return (
+              <div
+                key={originalIndex}
+                className={`tool-card ${isExpanded ? 'expanded' : 'collapsed'} ${isCurrentTurn ? '' : 'historical'}`}
+              >
+                <div className="tool-card-header" onClick={() => toggleTool(originalIndex)}>
+                  <span className="tool-name">
+                    {tool.tool}
+                  </span>
+                  <div className="tool-card-actions">
+                    {turnLabel && <span className="tool-turn-badge">{turnLabel}</span>}
+                    <span className="tool-expand-icon">▼</span>
                   </div>
-                )}
+                </div>
+                <div className="tool-card-body">
+                  <div className="tool-card-body-inner">
+                    <div className="tool-args">
+                      <div className="tool-section-subtitle">Arguments</div>
+                      <pre>{JSON.stringify(tool.args, null, 2)}</pre>
+                    </div>
+                    <div className="tool-output">
+                      <div className="tool-section-subtitle">Output</div>
+                      <ContentBlock
+                        content={typeof tool.output === 'string' ? tool.output : JSON.stringify(tool.output, null, 2)}
+                        toolName={tool.tool}
+                        showLabel={true}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
-            </div>
-          )
-        })}
-      </div>
+            )
+          })}
+        </div>
+      </>
     )
   }
 
   // Render messages from current turn
   const renderContent = (content: any): string => {
     if (typeof content === 'string') return content
+    if (Array.isArray(content)) {
+      // Format: [{ type: "text", text: "...", id: "...", ... }]
+      return content.map((c: any) => c.text || '').join('')
+    }
     if (content && typeof content === 'object') {
       // Handle various message content formats
       if (content.text) return content.text
@@ -290,13 +349,21 @@ export default function App() {
         {messages.filter(m => m.role === 'user').map((msg, i) => (
           <div key={i} className="chat-message user">
             <div className="chat-role">User</div>
-            <ContentBlock content={renderContent(msg.content)} showLabel={false} />
+            <div className="markdown-block">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                {renderContent(msg.content)}
+              </ReactMarkdown>
+            </div>
           </div>
         ))}
         {texts.map((text, i) => (
           <div key={i} className="chat-message assistant">
             <div className="chat-role">Assistant</div>
-            <ContentBlock content={renderContent(text)} showLabel={false} />
+            <div className="markdown-block">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                {renderContent(text)}
+              </ReactMarkdown>
+            </div>
           </div>
         ))}
       </div>
@@ -307,18 +374,24 @@ export default function App() {
     <div className="app">
       <header className="header">
         <div className="header-left">
-          <span className="header-title">{currentFile?.filename || 'LLM Log Visualizer'}</span>
+          <div className="header-logo">L</div>
+          <span className="header-title">LLM Log</span>
+          {currentFile && (
+            <span className="header-filename">{currentFile.filename}</span>
+          )}
         </div>
         <div className="header-right">
-          <button className="nav-btn" onClick={handlePrevTurn} disabled={!currentFile || currentTurn <= 1}>
-            ←
-          </button>
-          <span className="turn-indicator">
-            {currentFile ? `Turn ${currentTurn} / ${currentFile.turns.length}` : '—'}
-          </span>
-          <button className="nav-btn" onClick={handleNextTurn} disabled={!currentFile || currentTurn >= (currentFile?.turns.length || 1)}>
-            →
-          </button>
+          <div className="turn-nav">
+            <button className="nav-btn" onClick={handlePrevTurn} disabled={!currentFile || currentTurn <= 1}>
+              ←
+            </button>
+            <span className="turn-indicator">
+              <span className="current">{currentTurn}</span> / {currentFile?.turns.length || '—'}
+            </span>
+            <button className="nav-btn" onClick={handleNextTurn} disabled={!currentFile || currentTurn >= (currentFile?.turns.length || 1)}>
+              →
+            </button>
+          </div>
         </div>
       </header>
 
@@ -330,7 +403,10 @@ export default function App() {
         onDrop={handleDrop}
       >
         <aside className="sidebar">
-          <div className="sidebar-header">Files ({loadedFiles.length})</div>
+          <div className="sidebar-header">
+            <span className="sidebar-title">Files</span>
+            <span className="sidebar-badge">{loadedFiles.length}</span>
+          </div>
           <div className="file-list">
             {loadedFiles.map((file, index) => (
               <div
@@ -343,7 +419,7 @@ export default function App() {
                 }}
               >
                 <span className="file-icon">📄</span>
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span className="file-name">
                   {file.filename}
                 </span>
               </div>
@@ -368,7 +444,52 @@ export default function App() {
                 </div>
                 <div className="pane-content">
                   <div className="system-content">
-                    {currentView?.systemPrompt?.join('\n\n')}
+                    {(!currentView?.systemPrompt || currentView.systemPrompt.length === 0) && (
+                      <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>No system prompt</div>
+                    )}
+                    {currentView?.systemPrompt?.map((prompt: string, index: number) => {
+                      const isExpanded = expandedSystemSections.has(index)
+                      const wordCount = prompt.split(/\s+/).filter(Boolean).length
+                      const tokenCount = estimateTokens(prompt)
+                      return (
+                        <div key={index} className={`system-section ${isExpanded ? 'expanded' : ''}`}>
+                          <div
+                            className="system-section-header"
+                            onClick={() => {
+                              setExpandedSystemSections(prev => {
+                                const next = new Set(prev)
+                                if (next.has(index)) {
+                                  next.delete(index)
+                                } else {
+                                  next.add(index)
+                                }
+                                return next
+                              })
+                            }}
+                          >
+                            <span className="system-section-toggle">
+                              {isExpanded ? '▼' : '▶'}
+                            </span>
+                            <span className="system-section-title">
+                              Section {index + 1}
+                            </span>
+                            <span className="system-section-meta">
+                              {wordCount} words | {formatTokens(tokenCount)} tokens
+                            </span>
+                          </div>
+                          {isExpanded && (
+                            <div className="system-section-content">
+                              <ReactMarkdown
+                                remarkPlugins={[remarkGfm]}
+                                rehypePlugins={[rehypeHighlight]}
+                              >
+                                {prompt}
+                              </ReactMarkdown>
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               </div>
@@ -385,7 +506,10 @@ export default function App() {
                 <div className="pane-content">
                   {renderMessages()}
                   <div className="tool-section">
-                    <div className="pane-title" style={{ marginBottom: '12px' }}>Tool Calls</div>
+                    <div className="tool-section-header">
+                      <span className="tool-section-title">Tool Calls</span>
+                      <span className="tool-section-badge">{currentView?.toolCalls?.length || 0}</span>
+                    </div>
                     {renderToolCalls()}
                   </div>
                 </div>
@@ -394,7 +518,7 @@ export default function App() {
           ) : (
             <div className="empty-state">
               <div className="empty-icon">📂</div>
-              <div className="empty-text">Drag & drop .jsonl files here</div>
+              <div className="empty-text">Drop .jsonl files to analyze</div>
               <div className="empty-hint">or use ← → keys to navigate turns</div>
             </div>
           )}
@@ -408,10 +532,12 @@ export default function App() {
               <span className="status-label">File:</span>
               <span className="status-value">{currentFile.filename}</span>
             </div>
+            <div className="status-separator" />
             <div className="status-item">
               <span className="status-label">Turn:</span>
               <span className="status-value">{currentTurn} / {currentFile.turns.length}</span>
             </div>
+            <div className="status-separator" />
             <div className="status-item">
               <span className="status-label">Tools:</span>
               <span className="status-value">{currentView?.toolCalls?.length || 0}</span>
@@ -421,15 +547,13 @@ export default function App() {
         {!currentFile && <span style={{ color: 'var(--text-muted)' }}>Ready</span>}
       </footer>
 
-      {isDragging && (
-        <div className="drop-zone">
-          <div className="drop-zone-inner">
-            <div className="drop-zone-icon">📥</div>
-            <div className="drop-zone-text">Drop JSONL files</div>
-            <div className="drop-zone-hint">Release to load</div>
-          </div>
+      <div className={`drop-zone ${isDragging ? 'active' : ''}`}>
+        <div className="drop-zone-inner">
+          <div className="drop-zone-icon">📥</div>
+          <div className="drop-zone-text">Drop JSONL files</div>
+          <div className="drop-zone-hint">Release to load</div>
         </div>
-      )}
+      </div>
     </div>
   )
 }

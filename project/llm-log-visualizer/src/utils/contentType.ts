@@ -1,7 +1,34 @@
 export type ContentType = 'text' | 'markdown' | 'command' | 'code' | 'todo' | 'error'
 
 export const inferContentType = (toolName?: string, content?: string): ContentType => {
-  // Error detection (highest priority)
+  // JSON detection - if content looks like JSON array/object, treat as text
+  if (content && typeof content === 'string') {
+    const trimmed = content.trim()
+    if ((trimmed.startsWith('[{') && trimmed.endsWith('}]')) ||
+        (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+      // Check if it's valid JSON (has "type" and "text" fields which indicate content blocks)
+      try {
+        const parsed = JSON.parse(trimmed)
+        if (Array.isArray(parsed) && parsed[0]?.type === 'text') {
+          return 'text'  // Content block format, render as text
+        }
+      } catch {
+        // Not valid JSON, continue with other checks
+      }
+    }
+  }
+
+  // XML/content block format detection (e.g., <path>, <content> tags) - treat as text
+  if (content && (/<path>|<content>|<type>/.test(content) || /<[a-z]+>[^<]+<\/[a-z]+>/.test(content))) {
+    return 'text'
+  }
+
+  // Markdown detection (highest priority for mixed content)
+  if (content && (/\n#{1,6}\s/.test(content) || /^\s*[-*]\s/.test(content) || /\n\|.*\|.*\|/.test(content))) {
+    return 'markdown'
+  }
+
+  // Error detection
   if (toolName === 'Bash' && content && /error|failed|exception/i.test(content)) {
     return 'error'
   }
@@ -19,11 +46,6 @@ export const inferContentType = (toolName?: string, content?: string): ContentTy
   // Todo detection
   if (content && /- \[.\]/.test(content)) {
     return 'todo'
-  }
-
-  // Markdown detection (simple heuristics)
-  if (content && /^#{1,6}\s|^[*_].|^\s*[-*]\s|^\d+\.\s/.test(content)) {
-    return 'markdown'
   }
 
   return 'text'
