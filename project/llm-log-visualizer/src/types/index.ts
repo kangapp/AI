@@ -144,6 +144,17 @@ export interface Turn {
   turnComplete: TurnComplete | null
 }
 
+// Unified chat item type for chronological display
+export type ChatItem =
+  | { kind: 'user'; content: string; turn: number }
+  | { kind: 'assistant'; content: string; turn: number }
+  | { kind: 'reasoning'; content: string; turn: number }
+  | { kind: 'agent_switch'; agent: string; turn: number }
+  | { kind: 'retry'; attempt: number; error: string; turn: number }
+  | { kind: 'file_reference'; filename: string; mime: string; url: string; turn: number }
+  | { kind: 'subtask_start'; description: string; turn: number }
+  | { kind: 'permission_request'; permissionType: string; title: string; status: string; turn: number }
+
 export interface Message {
   role: string
   content: string | object
@@ -152,16 +163,10 @@ export interface Message {
 export interface CachedView {
   currentTurn: number
   systemPrompt: string[]
-  messages: Message[]
+  chatItems: ChatItem[]
   toolCalls: ToolCall[]
   toolTurnCounts: number[]  // 每个 turn 的 tool 数量（从 Turn 1 到 currentTurn）
-  reasoning: ReasoningEvent[]
   turnComplete: TurnComplete | null
-  agentSwitches: AgentSwitchEvent[]
-  retries: RetryEvent[]
-  fileReferences: FileReferenceEvent[]
-  subtaskStarts: SubtaskStartEvent[]
-  permissionRequests: PermissionRequestEvent[]
 }
 
 export interface JsonlFile {
