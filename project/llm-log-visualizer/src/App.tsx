@@ -262,7 +262,7 @@ export default function App() {
       const containerRect = container.getBoundingClientRect()
       const containerHeight = containerRect.height
       const delta = ((e.clientY - startY) / containerHeight) * 100
-      const newHeight = Math.min(Math.max(startHeight + delta, 30), 80)
+      const newHeight = Math.min(Math.max(startHeight + delta, 40), 70)
       setChatPaneHeight(newHeight)
     }
 
@@ -301,7 +301,7 @@ export default function App() {
       : toolCalls
 
     return (
-      <>
+      <div className="tool-content">
         {/* Tool Type Filter Pills */}
         <div className="tool-filter-bar">
           <button
@@ -331,7 +331,7 @@ export default function App() {
         )}
 
         {/* Tool Cards */}
-        <div className="tool-content">
+        <div className="tool-cards">
           {filteredTools.map((tool) => {
             // 找到在原始数组中的索引
             const originalIndex = toolCalls.indexOf(tool)
@@ -382,7 +382,7 @@ export default function App() {
             )
           })}
         </div>
-      </>
+      </div>
     )
   }
 
@@ -480,14 +480,20 @@ export default function App() {
               {currentView?.chatItems.filter(i => i.kind === 'assistant').length || 0} msgs
             </span>
           </div>
-          <div className="conversation-area">
-            <div className="chat-history-pane" style={{ height: `${chatPaneHeight}%` }}>
+          <div
+            className="conversation-area"
+            style={{
+              '--chat-flex': `${chatPaneHeight}`,
+              '--tool-flex': `${100 - chatPaneHeight}`,
+            } as React.CSSProperties}
+          >
+            <div className="chat-history-pane">
               <div className="pane-content">
                 {renderMessages()}
               </div>
             </div>
             <div className="chat-resize-handle" onMouseDown={handleChatResizeStart} />
-            <div className="tool-calls-pane" style={{ height: `${100 - chatPaneHeight}%` }}>
+            <div className="tool-calls-pane">
               <div className="tool-section">
                 <div className="tool-section-header">
                   <span className="tool-section-title">Tool Calls</span>

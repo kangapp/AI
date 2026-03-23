@@ -77,16 +77,15 @@
 
 ## 待完成
 
-### Turn Isolation Feature (未开始)
+### Turn Isolation Feature (已搁置)
 
 **目标:** 每个 user turn 写入独立文件 `{sessionID}_{shortUUID}.jsonl`
 
-| # | Task | Status |
-|---|------|--------|
-| 1 | 修改 getLogPath 函数 | ⏳ |
-| 2 | 添加 shortUUID 生成逻辑 | ⏳ |
-| 3 | 更新所有使用 sessionID 的地方 | ⏳ |
-| 4 | 测试验证 | ⏳ |
+此功能已搁置，当前实现为每 session 一个文件。
+
+---
+
+如有新需求，请告诉我！
 
 ---
 

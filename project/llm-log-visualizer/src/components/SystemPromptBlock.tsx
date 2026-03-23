@@ -14,7 +14,27 @@ type ContentType = 'markdown' | 'json' | 'xml' | 'plain'
 
 function detectContentType(content: string): ContentType {
   const trimmed = content.trim()
-  
+
+  // 检查是否包含明显的 markdown 语法
+  const markdownIndicators = [
+    /^#+ /m,           // 标题
+    /\*\*[^*]+\*\*/m,  // 粗体
+    /\*[^*]+\*/m,      // 斜体
+    /^[-*]\s/m,        // 无序列表
+    /^\d+\.\s/m,       // 有序列表
+    /```/,             // 代码块
+    /`[^`]+`/,         // 行内代码
+    /\[.+\]\(.+\)/m,   // 链接
+    /!\[.+\]\(.+\)/m,  // 图片
+    /\|.+\|/m,         // 表格
+  ]
+
+  const hasMarkdown = markdownIndicators.some(pattern => pattern.test(trimmed))
+  if (hasMarkdown) {
+    return 'markdown'
+  }
+
+  // 检查是否是纯 JSON（不包含 markdown 语法）
   if ((trimmed.startsWith('{') && trimmed.endsWith('}')) ||
       (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
     try {
@@ -22,15 +42,12 @@ function detectContentType(content: string): ContentType {
       return 'json'
     } catch {}
   }
-  
+
+  // 检查是否是 XML
   if (/<[a-z]+[^>]*>[\s\S]*?<\/[a-z]+>/i.test(trimmed)) {
     return 'xml'
   }
-  
-  if (/#+\s|\*\*|\*|`{3}|```|\||^\s*[-*]\s/m.test(trimmed)) {
-    return 'markdown'
-  }
-  
+
   return 'plain'
 }
 
@@ -80,11 +97,20 @@ export const SystemPromptBlock: React.FC<SystemPromptBlockProps> = ({ content, d
         )
       
       case 'json':
-        return (
-          <pre className={`sp-code sp-${displayMode}`}>
-            <code>{JSON.stringify(JSON.parse(content), null, displayMode === 'compact' ? 0 : 2)}</code>
-          </pre>
-        )
+        try {
+          const parsed = JSON.parse(content)
+          return (
+            <pre className={`sp-code sp-${displayMode}`}>
+              <code>{JSON.stringify(parsed, null, 2)}</code>
+            </pre>
+          )
+        } catch {
+          return (
+            <pre className={`sp-code sp-${displayMode}`}>
+              <code>{content}</code>
+            </pre>
+          )
+        }
       
       case 'xml':
         return (
