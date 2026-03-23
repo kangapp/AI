@@ -1,5 +1,17 @@
 import { useCallback } from 'react'
-import type { Turn, AnyEvent, JsonlFile, CachedView, Message, ToolCall } from '../types'
+import type {
+  Turn,
+  AnyEvent,
+  JsonlFile,
+  CachedView,
+  Message,
+  ToolCall,
+  AgentSwitchEvent,
+  RetryEvent,
+  FileReferenceEvent,
+  SubtaskStartEvent,
+  PermissionRequestEvent,
+} from '../types'
 
 export function useJsonlParser() {
   const parseContent = useCallback((content: string): JsonlFile => {
@@ -73,6 +85,13 @@ export function useJsonlParser() {
       const toolCalls: ToolCall[] = []
       const toolTurnCounts: number[] = []  // 每个 turn 的 tool 数量
 
+      // 累积各类事件（按 turn 倒序，turn 内按时间正序）
+      const agentSwitches: AgentSwitchEvent[] = []
+      const retries: RetryEvent[] = []
+      const fileReferences: FileReferenceEvent[] = []
+      const subtaskStarts: SubtaskStartEvent[] = []
+      const permissionRequests: PermissionRequestEvent[] = []
+
       for (let i = index; i >= 0; i--) {
         // 从 turnComplete.toolCalls 获取（已合并的最终结果）
         const tcFromComplete = turns[i].turnComplete?.toolCalls || []
@@ -90,6 +109,27 @@ export function useJsonlParser() {
         const turnToolCount = tcFromComplete.length + tcFromEvents.length
         toolTurnCounts.push(turnToolCount)
         toolCalls.push(...tcFromComplete, ...tcFromEvents)
+
+        // 收集各类事件
+        for (const event of turns[i].events) {
+          switch (event.type) {
+            case 'agent_switch':
+              agentSwitches.push(event as AgentSwitchEvent)
+              break
+            case 'retry':
+              retries.push(event as RetryEvent)
+              break
+            case 'file_reference':
+              fileReferences.push(event as FileReferenceEvent)
+              break
+            case 'subtask_start':
+              subtaskStarts.push(event as SubtaskStartEvent)
+              break
+            case 'permission_request':
+              permissionRequests.push(event as PermissionRequestEvent)
+              break
+          }
+        }
       }
 
       return {
@@ -99,7 +139,12 @@ export function useJsonlParser() {
         toolCalls,
         toolTurnCounts,
         reasoning: turn.turnComplete?.reasoning || [],
-        turnComplete: turn.turnComplete
+        turnComplete: turn.turnComplete,
+        agentSwitches,
+        retries,
+        fileReferences,
+        subtaskStarts,
+        permissionRequests,
       }
     })
   }
