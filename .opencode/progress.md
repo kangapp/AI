@@ -2,6 +2,38 @@
 
 ## Session Log
 
+### 2026-03-23 (Evening Session)
+
+**Chat History 与 Tool Calls 独立滚动布局 ✅**
+
+新增布局：
+- Chat History 和 Tool Calls 各自独立区域，不共用滚动条
+- 可拖拽分隔条调整高度比例
+- 拖拽方向：向上变小，向下变大
+
+提交记录:
+- `80edeb0` fix: reverse chat resize direction
+- `553993e` feat(styles): add CSS for independent scrolling panes
+- `18de81e` feat(layout): add independent chat and tool panes with resize handle
+
+**Event Stream 事件流展示 ✅**
+
+Chat History 现在按 chronological 顺序展示所有事件类型：
+- Reasoning (🔄 Thinking) - 默认展开
+- Agent Switch (🔀)
+- Retry (⚠️)
+- File Reference (📎)
+- Subtask Started (📋)
+- Permission Request (🔒)
+
+提交记录:
+- `c388e5b` feat(types): add unified ChatItem type for chronological display
+- `0f61de6` feat(parser): collect chat items in chronological order
+- `7e4ee2a` feat(app): add render functions for all event types
+- `4c7246c` feat(styles): add CSS for event stream display
+
+---
+
 ### 2026-03-23 (Afternoon Session) - Catchup Synced
 
 **浅黄色主题 (Warm Yellow Theme) ✅**

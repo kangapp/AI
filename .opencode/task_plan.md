@@ -4,7 +4,7 @@
 
 创建 opencode plugin，用于捕获每个 Turn 的 LLM 输入输出，写入 jsonl 文件用于学习 agent 和 LLM 交互流程。
 
-## Status: ✅ LLM Log Plugin 完成 | ✅ LLM Log Visualizer 完成
+## Status: ✅ LLM Log Plugin 完成 | ✅ LLM Log Visualizer 完成（Event Stream + 独立滚动布局）
 
 ---
 
@@ -17,8 +17,8 @@
 
 ### 2. LLM Log Visualizer
 - 路径: `project/llm-log-visualizer/`
-- 状态: ✅ UI Redesign + Tool Filter + Tool Output 修复
-- Dev Server: http://localhost:5175/
+- 状态: ✅ Event Stream + 独立滚动布局
+- Dev Server: http://localhost:5176/
 
 ---
 
@@ -31,13 +31,14 @@
 | 2 | 文件列表侧边栏 | ✅ |
 | 3 | 按 turn 索引显示内容 | ✅ |
 | 4 | System Prompt 显示 + 折叠 | ✅ |
-| 5 | Chat History 显示 | ✅ |
+| 5 | Chat History 显示（chronological 顺序） | ✅ |
 | 6 | Tool Calls 显示 | ✅ |
 | 7 | Tool 类型筛选 | ✅ |
 | 8 | Tool Output 渲染 | ✅ |
 | 9 | 键盘 ← → 切换 turn | ✅ |
 | 10 | 状态栏显示统计信息 | ✅ |
-| 11 | 可拖拽调整分隔布局 | ✅ |
+| 11 | Chat History 与 Tool Calls 独立滚动 | ✅ |
+| 12 | 可拖拽调整上下区域高度 | ✅ |
 
 ### UI/UX ✅
 | # | 功能 | 状态 |
@@ -93,11 +94,16 @@
 
 ### LLM Log Visualizer (最新批次)
 ```
-aea719d docs: update planning files with cumulative view and content formatting
-2dab01f feat: add proper Markdown rendering with react-markdown
-089df94 feat: integrate ContentBlock in App.tsx
-bec9539 feat: add content block CSS styles
-abea69a feat: add ContentBlock component
+80edeb0 fix: reverse chat resize direction
+553993e feat(styles): add CSS for independent scrolling panes
+18de81e feat(layout): add independent chat and tool panes with resize handle
+0f61de6 feat(parser): collect chat items in chronological order
+c388e5b feat(types): add unified ChatItem type for chronological display
+ceaf70b fix: collect reasoning events from events array not turnComplete
+4c7246c feat(styles): add CSS for event stream display
+7e4ee2a feat(app): add render functions for all event types
+0810a54 feat(app): import new event types
+e1c26c4 feat(parser): collect all event types in buildCachedViews
 ```
 
 ### LLM Log Plugin (历史)
