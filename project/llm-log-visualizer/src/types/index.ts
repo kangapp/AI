@@ -71,6 +71,50 @@ export interface ReasoningEvent {
   content: string
 }
 
+export interface AgentSwitchEvent {
+  type: "agent_switch"
+  turn: number
+  agent: string
+  source: string
+}
+
+export interface RetryEvent {
+  type: "retry"
+  turn: number
+  attempt: number
+  error: string
+}
+
+export interface FileReferenceEvent {
+  type: "file_reference"
+  turn: number
+  mime: string
+  filename: string
+  url: string
+}
+
+export interface SubtaskStartEvent {
+  type: "subtask_start"
+  turn: number
+  sessionID: string
+  shortUUID: string
+  parentShortUUID: string
+  prompt: string
+  description: string
+  agent: string
+  model: { providerID: string; modelID: string }
+  command: string
+}
+
+export interface PermissionRequestEvent {
+  type: "permission_request"
+  turn: number
+  permissionType: string
+  pattern: string
+  title: string
+  status: string
+}
+
 export interface ToolCallResult {
   type: "tool_call_result"
   turn: number
@@ -88,6 +132,11 @@ export type AnyEvent =
   | TextEvent
   | ReasoningEvent
   | ToolCallResult
+  | AgentSwitchEvent
+  | RetryEvent
+  | FileReferenceEvent
+  | SubtaskStartEvent
+  | PermissionRequestEvent
 
 export interface Turn {
   turnStart: TurnStart
@@ -108,6 +157,11 @@ export interface CachedView {
   toolTurnCounts: number[]  // 每个 turn 的 tool 数量（从 Turn 1 到 currentTurn）
   reasoning: string[]
   turnComplete: TurnComplete | null
+  agentSwitches: AgentSwitchEvent[]
+  retries: RetryEvent[]
+  fileReferences: FileReferenceEvent[]
+  subtaskStarts: SubtaskStartEvent[]
+  permissionRequests: PermissionRequestEvent[]
 }
 
 export interface JsonlFile {
