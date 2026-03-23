@@ -356,6 +356,9 @@ body::before {
   flex: 1;
   min-width: 400px;
   background: var(--bg-deep);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .pane-header {
@@ -404,20 +407,31 @@ body::before {
 }
 
 .chat-history-pane {
-  min-height: 0;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .chat-resize-handle {
   height: 6px;
-  background: var(--bg-secondary);
-  border-top: 1px solid var(--border-subtle);
-  border-bottom: 1px solid var(--border-subtle);
+  background: var(--border-subtle);
   cursor: ns-resize;
   flex-shrink: 0;
-  transition: background 0.2s;
+  transition: background var(--transition-fast);
+  position: relative;
+}
+
+.chat-resize-handle::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 40px;
+  height: 3px;
+  background: var(--border-default);
+  border-radius: 2px;
 }
 
 .chat-resize-handle:hover {
@@ -425,16 +439,31 @@ body::before {
 }
 
 .tool-calls-pane {
-  min-height: 0;
-  overflow-y: auto;
   display: flex;
   flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
 }
 
-.pane-content {
+.chat-history-pane .pane-content {
   flex: 1;
   overflow-y: auto;
   padding: var(--space-md);
+}
+
+.tool-calls-pane .tool-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: 0;
+  padding-top: 0;
+  border-top: none;
+}
+
+.tool-calls-pane .tool-content {
+  flex: 1;
+  overflow-y: auto;
 }
 
 /* System Prompt */
