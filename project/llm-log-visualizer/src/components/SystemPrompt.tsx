@@ -1,9 +1,7 @@
 import { useState } from 'react'
-import ReactMarkdown from 'react-markdown'
-import rehypeHighlight from 'rehype-highlight'
-import remarkGfm from 'remark-gfm'
 import type { Turn } from '../types'
 import { estimateTokens, formatTokens } from '../utils/tokenizer'
+import { SystemPromptBlock, DisplayMode } from './SystemPromptBlock'
 
 interface SystemPromptProps {
   turn: Turn
@@ -14,6 +12,7 @@ export function SystemPrompt({ turn }: SystemPromptProps) {
   const [expandedSections, setExpandedSections] = useState<Set<number>>(
     new Set(systemPrompts.map((_, i) => i))
   )
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('compact')
 
   const toggleSection = (index: number) => {
     setExpandedSections(prev => {
@@ -27,24 +26,53 @@ export function SystemPrompt({ turn }: SystemPromptProps) {
     })
   }
 
+  const toggleAll = () => {
+    if (expandedSections.size === systemPrompts.length) {
+      setExpandedSections(new Set())
+    } else {
+      setExpandedSections(new Set(systemPrompts.map((_, i) => i)))
+    }
+  }
+
   const totalTokens = systemPrompts.reduce((sum, p) => sum + estimateTokens(p), 0)
+
+  const displayModes: { mode: DisplayMode; label: string; icon: string }[] = [
+    { mode: 'compact', label: '紧凑', icon: '▤' },
+    { mode: 'comfortable', label: '舒适', icon: '▦' },
+    { mode: 'detailed', label: '详细', icon: '▣' },
+  ]
 
   return (
     <div className="system-column">
       <div className="column-header">
-        System Prompt ({formatTokens(totalTokens)} tokens, {systemPrompts.length} sections)
+        <span className="column-title">
+          System Prompt ({formatTokens(totalTokens)} tokens, {systemPrompts.length} sections)
+        </span>
+        <div className="display-mode-switcher">
+          {displayModes.map(({ mode, label, icon }) => (
+            <button
+              key={mode}
+              className={`mode-btn ${displayMode === mode ? 'active' : ''}`}
+              onClick={() => setDisplayMode(mode)}
+              title={label}
+            >
+              {icon}
+            </button>
+          ))}
+        </div>
       </div>
       <div className="column-content">
         <div className="system-content">
           {systemPrompts.length === 0 && (
-            <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>No system prompt</div>
+            <div className="no-content">No system prompt</div>
           )}
           {systemPrompts.map((prompt, index) => {
             const isExpanded = expandedSections.has(index)
             const tokens = estimateTokens(prompt)
+            const preview = prompt.slice(0, 80).replace(/\n/g, ' ')
 
             return (
-              <div key={index} className="system-section">
+              <div key={index} className={`system-section ${isExpanded ? 'expanded' : ''}`}>
                 <div
                   className="system-section-header"
                   onClick={() => toggleSection(index)}
@@ -58,21 +86,27 @@ export function SystemPrompt({ turn }: SystemPromptProps) {
                   <span className="system-section-meta">
                     {formatTokens(tokens)} tokens
                   </span>
+                  {!isExpanded && (
+                    <span className="system-section-preview">{preview}...</span>
+                  )}
                 </div>
                 {isExpanded && (
                   <div className="system-section-content">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeHighlight]}
-                    >
-                      {prompt}
-                    </ReactMarkdown>
+                    <SystemPromptBlock
+                      content={prompt}
+                      displayMode={displayMode}
+                    />
                   </div>
                 )}
               </div>
             )
           })}
         </div>
+        {systemPrompts.length > 1 && (
+          <button className="toggle-all-btn" onClick={toggleAll}>
+            {expandedSections.size === systemPrompts.length ? '折叠全部' : '展开全部'}
+          </button>
+        )}
       </div>
     </div>
   )
