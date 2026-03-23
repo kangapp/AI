@@ -4,14 +4,8 @@ import type {
   AnyEvent,
   JsonlFile,
   CachedView,
-  Message,
+  ChatItem,
   ToolCall,
-  ReasoningEvent,
-  AgentSwitchEvent,
-  RetryEvent,
-  FileReferenceEvent,
-  SubtaskStartEvent,
-  PermissionRequestEvent,
 } from '../types'
 
 export function useJsonlParser() {
@@ -74,30 +68,54 @@ export function useJsonlParser() {
 
   const buildCachedViews = (turns: Turn[]): CachedView[] => {
     return turns.map((turn, index) => {
-      // 累积 messages（每个 turn 的 user message，按 turn 倒序）
-      const messages: Message[] = []
-      for (let i = index; i >= 0; i--) {
-        const userMsgs = turns[i].turnStart.messages.filter(m => m.role === 'user')
-        messages.push(...userMsgs)
+      // Collect chat items in chronological order (older → newer)
+      const chatItems: ChatItem[] = []
+
+      for (let i = 0; i <= index; i++) {
+        const currentTurn = turns[i]
+
+        // 1. User messages from turnStart.messages
+        for (const msg of currentTurn.turnStart.messages) {
+          if (msg.role === 'user') {
+            const content = extractContent(msg.content)
+            chatItems.push({ kind: 'user', content, turn: currentTurn.turnStart.turn })
+          }
+        }
+
+        // 2. Events from turns[i].events (chronological order within turn)
+        for (const event of currentTurn.events) {
+          switch (event.type) {
+            case 'reasoning':
+              chatItems.push({ kind: 'reasoning', content: (event as any).content, turn: (event as any).turn })
+              break
+            case 'text':
+              chatItems.push({ kind: 'assistant', content: (event as any).content, turn: (event as any).turn })
+              break
+            case 'agent_switch':
+              chatItems.push({ kind: 'agent_switch', agent: (event as any).agent, turn: (event as any).turn })
+              break
+            case 'retry':
+              chatItems.push({ kind: 'retry', attempt: (event as any).attempt, error: (event as any).error, turn: (event as any).turn })
+              break
+            case 'file_reference':
+              chatItems.push({ kind: 'file_reference', filename: (event as any).filename, mime: (event as any).mime, url: (event as any).url, turn: (event as any).turn })
+              break
+            case 'subtask_start':
+              chatItems.push({ kind: 'subtask_start', description: (event as any).description || (event as any).prompt?.substring(0, 100) || '', turn: (event as any).turn })
+              break
+            case 'permission_request':
+              chatItems.push({ kind: 'permission_request', permissionType: (event as any).permissionType, title: (event as any).title || '', status: (event as any).status, turn: (event as any).turn })
+              break
+          }
+        }
       }
 
-      // 累积 toolCalls（按 turn 倒序，turn 内按时间正序）
-      // 从 turnComplete.toolCalls 和 events 中的 tool_call_result 收集
+      // Collect toolCalls and toolTurnCounts (unchanged)
       const toolCalls: ToolCall[] = []
-      const toolTurnCounts: number[] = []  // 每个 turn 的 tool 数量
+      const toolTurnCounts: number[] = []
 
-      // 累积各类事件（按 turn 倒序，turn 内按时间正序）
-      const agentSwitches: AgentSwitchEvent[] = []
-      const retries: RetryEvent[] = []
-      const fileReferences: FileReferenceEvent[] = []
-      const subtaskStarts: SubtaskStartEvent[] = []
-      const permissionRequests: PermissionRequestEvent[] = []
-      const reasoningEvents: ReasoningEvent[] = []
-
-      for (let i = index; i >= 0; i--) {
-        // 从 turnComplete.toolCalls 获取（已合并的最终结果）
+      for (let i = 0; i <= index; i++) {
         const tcFromComplete = turns[i].turnComplete?.toolCalls || []
-        // 从 events 中的 tool_call_result 获取（原始事件）
         const tcFromEvents = turns[i].events
           .filter(e => e.type === 'tool_call_result')
           .map(e => ({
@@ -111,47 +129,29 @@ export function useJsonlParser() {
         const turnToolCount = tcFromComplete.length + tcFromEvents.length
         toolTurnCounts.push(turnToolCount)
         toolCalls.push(...tcFromComplete, ...tcFromEvents)
-
-        // 收集各类事件
-        for (const event of turns[i].events) {
-          switch (event.type) {
-            case 'reasoning':
-              reasoningEvents.push(event as ReasoningEvent)
-              break
-            case 'agent_switch':
-              agentSwitches.push(event as AgentSwitchEvent)
-              break
-            case 'retry':
-              retries.push(event as RetryEvent)
-              break
-            case 'file_reference':
-              fileReferences.push(event as FileReferenceEvent)
-              break
-            case 'subtask_start':
-              subtaskStarts.push(event as SubtaskStartEvent)
-              break
-            case 'permission_request':
-              permissionRequests.push(event as PermissionRequestEvent)
-              break
-          }
-        }
       }
 
       return {
         currentTurn: turn.turnStart.turn,
         systemPrompt: turn.turnStart.system,
-        messages,
+        chatItems,
         toolCalls,
         toolTurnCounts,
-        reasoning: reasoningEvents,
         turnComplete: turn.turnComplete,
-        agentSwitches,
-        retries,
-        fileReferences,
-        subtaskStarts,
-        permissionRequests,
       }
     })
+  }
+
+  function extractContent(content: any): string {
+    if (typeof content === 'string') return content
+    if (Array.isArray(content)) {
+      return content.map((c: any) => c.text || '').join('')
+    }
+    if (content && typeof content === 'object') {
+      if (content.text) return content.text
+      if (content.content) return typeof content.content === 'string' ? content.content : JSON.stringify(content.content)
+    }
+    return JSON.stringify(content)
   }
 
   return { parseContent }

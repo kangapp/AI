@@ -439,51 +439,50 @@ export default function App() {
 
   const renderMessages = () => {
     if (!currentView) return null
-    const messages = currentView?.messages || []
-    const texts = currentView?.turnComplete?.texts || []
-    const reasoning = currentView?.reasoning || []
-    const agentSwitches = currentView?.agentSwitches || []
-    const retries = currentView?.retries || []
-    const fileReferences = currentView?.fileReferences || []
-    const subtaskStarts = currentView?.subtaskStarts || []
-    const permissionRequests = currentView?.permissionRequests || []
+    const chatItems = currentView?.chatItems || []
 
     return (
       <div className="chat-content">
-        {/* User messages */}
-        {messages.filter(m => m.role === 'user').map((msg, i) => (
-          <div key={`user-${i}`} className="chat-message user">
-            <div className="chat-role">User</div>
-            <div className="markdown-block">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-                {renderContent(msg.content)}
-              </ReactMarkdown>
-            </div>
-          </div>
-        ))}
-        {/* Reasoning events */}
-        {reasoning.map((reasoningContent, i) => renderReasoning(reasoningContent, i))}
-        {/* Assistant texts */}
-        {texts.map((text, i) => (
-          <div key={`text-${i}`} className="chat-message assistant">
-            <div className="chat-role">Assistant</div>
-            <div className="markdown-block">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-                {renderContent(text)}
-              </ReactMarkdown>
-            </div>
-          </div>
-        ))}
-        {/* Agent switch events */}
-        {agentSwitches.map((event, i) => renderAgentSwitch(event, i))}
-        {/* Retry events */}
-        {retries.map((event, i) => renderRetry(event, i))}
-        {/* File reference events */}
-        {fileReferences.map((event, i) => renderFileReference(event, i))}
-        {/* Subtask start events */}
-        {subtaskStarts.map((event, i) => renderSubtaskStart(event, i))}
-        {/* Permission request events */}
-        {permissionRequests.map((event, i) => renderPermissionRequest(event, i))}
+        {chatItems.map((item, i) => {
+          switch (item.kind) {
+            case 'user':
+              return (
+                <div key={`user-${i}`} className="chat-message user">
+                  <div className="chat-role">User</div>
+                  <div className="markdown-block">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                      {renderContent(item.content)}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              )
+            case 'assistant':
+              return (
+                <div key={`assistant-${i}`} className="chat-message assistant">
+                  <div className="chat-role">Assistant</div>
+                  <div className="markdown-block">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                      {renderContent(item.content)}
+                    </ReactMarkdown>
+                  </div>
+                </div>
+              )
+            case 'reasoning':
+              return renderReasoning({ type: 'reasoning', turn: item.turn, content: item.content } as ReasoningEvent, i)
+            case 'agent_switch':
+              return renderAgentSwitch({ type: 'agent_switch', turn: item.turn, agent: item.agent, source: '' } as AgentSwitchEvent, i)
+            case 'retry':
+              return renderRetry({ type: 'retry', turn: item.turn, attempt: item.attempt, error: item.error } as RetryEvent, i)
+            case 'file_reference':
+              return renderFileReference({ type: 'file_reference', turn: item.turn, filename: item.filename, mime: item.mime, url: item.url } as FileReferenceEvent, i)
+            case 'subtask_start':
+              return renderSubtaskStart({ type: 'subtask_start', turn: item.turn, description: item.description, prompt: '', sessionID: '', shortUUID: '', parentShortUUID: '', agent: '', model: { providerID: '', modelID: '' }, command: '' } as SubtaskStartEvent, i)
+            case 'permission_request':
+              return renderPermissionRequest({ type: 'permission_request', turn: item.turn, permissionType: item.permissionType, title: item.title, status: item.status, pattern: '' } as PermissionRequestEvent, i)
+            default:
+              return null
+          }
+        })}
       </div>
     )
   }
