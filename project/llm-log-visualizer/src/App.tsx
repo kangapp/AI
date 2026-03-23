@@ -5,7 +5,14 @@ import remarkGfm from 'remark-gfm'
 import { useJsonlParser } from './hooks/useJsonlParser'
 import { ContentBlock } from './components/ContentBlock'
 import { SystemPrompt } from './components/SystemPrompt'
-import type { JsonlFile } from './types'
+import type {
+  JsonlFile,
+  AgentSwitchEvent,
+  RetryEvent,
+  FileReferenceEvent,
+  SubtaskStartEvent,
+  PermissionRequestEvent,
+} from './types'
 
 interface LoadedFile {
   filename: string
