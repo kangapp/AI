@@ -375,15 +375,83 @@ export default function App() {
     return String(content)
   }
 
+  // Render reasoning event
+  const renderReasoning = (reasoning: string, index: number) => (
+    <div key={`reasoning-${index}`} className="chat-message reasoning">
+      <div className="chat-role">🔄 Thinking</div>
+      <div className="reasoning-content">
+        {reasoning}
+      </div>
+    </div>
+  )
+
+  // Render agent switch event
+  const renderAgentSwitch = (event: AgentSwitchEvent, index: number) => (
+    <div key={`agent-switch-${index}`} className="chat-message system">
+      <div className="chat-role">🔀 Agent Switch</div>
+      <div className="system-event-content">
+        Switched to: <strong>{event.agent}</strong>
+      </div>
+    </div>
+  )
+
+  // Render retry event
+  const renderRetry = (event: RetryEvent, index: number) => (
+    <div key={`retry-${index}`} className="chat-message warning">
+      <div className="chat-role">⚠️ Retry</div>
+      <div className="retry-content">
+        Attempt {event.attempt}: {event.error}
+      </div>
+    </div>
+  )
+
+  // Render file reference event
+  const renderFileReference = (event: FileReferenceEvent, index: number) => (
+    <div key={`file-ref-${index}`} className="chat-message attachment">
+      <div className="chat-role">📎 File Reference</div>
+      <div className="file-ref-content">
+        <span className="file-ref-name">{event.filename}</span>
+        <span className="file-ref-mime">{event.mime}</span>
+      </div>
+    </div>
+  )
+
+  // Render subtask start event
+  const renderSubtaskStart = (event: SubtaskStartEvent, index: number) => (
+    <div key={`subtask-${index}`} className="chat-message system">
+      <div className="chat-role">📋 Subtask Started</div>
+      <div className="subtask-content">
+        {event.description || (event.prompt ? event.prompt.substring(0, 100) : '')}
+      </div>
+    </div>
+  )
+
+  // Render permission request event
+  const renderPermissionRequest = (event: PermissionRequestEvent, index: number) => (
+    <div key={`permission-${index}`} className="chat-message permission">
+      <div className="chat-role">🔒 Permission</div>
+      <div className="permission-content">
+        {event.title || event.permissionType}: {event.status}
+      </div>
+    </div>
+  )
+
   const renderMessages = () => {
     if (!currentView) return null
     const messages = currentView?.messages || []
     const texts = currentView?.turnComplete?.texts || []
+    const reasoning = currentView?.reasoning || []
+    const agentSwitches = currentView?.agentSwitches || []
+    const retries = currentView?.retries || []
+    const fileReferences = currentView?.fileReferences || []
+    const subtaskStarts = currentView?.subtaskStarts || []
+    const permissionRequests = currentView?.permissionRequests || []
 
     return (
       <div className="chat-content">
+        {/* User messages */}
         {messages.filter(m => m.role === 'user').map((msg, i) => (
-          <div key={i} className="chat-message user">
+          <div key={`user-${i}`} className="chat-message user">
             <div className="chat-role">User</div>
             <div className="markdown-block">
               <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
@@ -392,8 +460,11 @@ export default function App() {
             </div>
           </div>
         ))}
+        {/* Reasoning events */}
+        {reasoning.map((reasoningContent, i) => renderReasoning(reasoningContent, i))}
+        {/* Assistant texts */}
         {texts.map((text, i) => (
-          <div key={i} className="chat-message assistant">
+          <div key={`text-${i}`} className="chat-message assistant">
             <div className="chat-role">Assistant</div>
             <div className="markdown-block">
               <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
@@ -402,6 +473,16 @@ export default function App() {
             </div>
           </div>
         ))}
+        {/* Agent switch events */}
+        {agentSwitches.map((event, i) => renderAgentSwitch(event, i))}
+        {/* Retry events */}
+        {retries.map((event, i) => renderRetry(event, i))}
+        {/* File reference events */}
+        {fileReferences.map((event, i) => renderFileReference(event, i))}
+        {/* Subtask start events */}
+        {subtaskStarts.map((event, i) => renderSubtaskStart(event, i))}
+        {/* Permission request events */}
+        {permissionRequests.map((event, i) => renderPermissionRequest(event, i))}
       </div>
     )
   }
