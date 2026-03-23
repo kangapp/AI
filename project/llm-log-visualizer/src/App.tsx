@@ -7,6 +7,7 @@ import { ContentBlock } from './components/ContentBlock'
 import { SystemPrompt } from './components/SystemPrompt'
 import type {
   JsonlFile,
+  ReasoningEvent,
   AgentSwitchEvent,
   RetryEvent,
   FileReferenceEvent,
@@ -376,11 +377,11 @@ export default function App() {
   }
 
   // Render reasoning event
-  const renderReasoning = (reasoning: string, index: number) => (
+  const renderReasoning = (event: ReasoningEvent, index: number) => (
     <div key={`reasoning-${index}`} className="chat-message reasoning">
       <div className="chat-role">🔄 Thinking</div>
       <div className="reasoning-content">
-        {reasoning}
+        {event.content}
       </div>
     </div>
   )

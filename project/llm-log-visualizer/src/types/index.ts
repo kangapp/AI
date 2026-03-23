@@ -155,7 +155,7 @@ export interface CachedView {
   messages: Message[]
   toolCalls: ToolCall[]
   toolTurnCounts: number[]  // 每个 turn 的 tool 数量（从 Turn 1 到 currentTurn）
-  reasoning: string[]
+  reasoning: ReasoningEvent[]
   turnComplete: TurnComplete | null
   agentSwitches: AgentSwitchEvent[]
   retries: RetryEvent[]

@@ -6,6 +6,7 @@ import type {
   CachedView,
   Message,
   ToolCall,
+  ReasoningEvent,
   AgentSwitchEvent,
   RetryEvent,
   FileReferenceEvent,
@@ -91,6 +92,7 @@ export function useJsonlParser() {
       const fileReferences: FileReferenceEvent[] = []
       const subtaskStarts: SubtaskStartEvent[] = []
       const permissionRequests: PermissionRequestEvent[] = []
+      const reasoningEvents: ReasoningEvent[] = []
 
       for (let i = index; i >= 0; i--) {
         // 从 turnComplete.toolCalls 获取（已合并的最终结果）
@@ -113,6 +115,9 @@ export function useJsonlParser() {
         // 收集各类事件
         for (const event of turns[i].events) {
           switch (event.type) {
+            case 'reasoning':
+              reasoningEvents.push(event as ReasoningEvent)
+              break
             case 'agent_switch':
               agentSwitches.push(event as AgentSwitchEvent)
               break
@@ -138,7 +143,7 @@ export function useJsonlParser() {
         messages,
         toolCalls,
         toolTurnCounts,
-        reasoning: turn.turnComplete?.reasoning || [],
+        reasoning: reasoningEvents,
         turnComplete: turn.turnComplete,
         agentSwitches,
         retries,
