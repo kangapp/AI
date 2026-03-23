@@ -2,21 +2,67 @@
 
 ## Session Log
 
+### 2026-03-23 (Afternoon Session)
+
+**浅黄色主题 (Warm Yellow Theme) ✅**
+
+整体配色调整:
+- 主背景: `#fffdf7` (米白), `#ffffff` (纯白)
+- 强调色: Amber `#f5a623` + Lemon `#f7d154`
+- 用户消息: Coral `#e07a5f`
+- Assistant: Blue `#6b8fd4`
+- Tool: Mint `#6b9e78`
+
+Content Type 标签多样化:
+- command: `linear-gradient(135deg, #f5a623, #f7d154)` 黄橙渐变
+- code: `linear-gradient(135deg, #9b7dbe, #d67dbe)` 紫粉渐变
+- todo: `linear-gradient(135deg, #7dbe7d, #a3d17d)` 绿色渐变
+- markdown: `linear-gradient(135deg, #6b8fd4, #8fadde)` 蓝色渐变
+- error: `linear-gradient(135deg, #d67d7d, #e69999)` 红色渐变
+- text: `linear-gradient(135deg, #8b8b8b, #ababab)` 灰色渐变
+
+卡片左边框颜色区分:
+- User: 3px solid `#e07a5f` (coral)
+- Assistant: 3px solid `#6b8fd4` (blue)
+- Tool: 3px solid `#6b9e78` (mint)
+
+---
+
 ### 2026-03-23 (Morning Session)
 
-**Tool Calls 卡片内容滚动修复**
+**Tool Calls 区域优化 - 移除双滚动条，内容更紧凑**
 
-问题: Tool Calls 区域展开后，内容被截断无法滚动
+问题: 双滚动条、卡片太小、内容太稀疏
 
 修复:
-- `.tool-card.expanded .tool-card-body`: 添加 `overflow-y: auto; max-height: 250px`
-- `.tool-args pre`: 添加 `overflow: auto; max-height: 150px`
-- `.shell-block`: 添加 `overflow: auto; max-height: 150px`
-- `.code-block`: 添加 `overflow: auto; max-height: 150px`
+- 移除所有内部元素的 max-height 限制
+- `.tool-card-body`: `max-height: 250px → 2000px` (完全展开)
+- `.tool-args pre`, `.shell-block`, `.code-block`, `.content-text`: `max-height: none`
+- 字号从 12-14px 减小到 11-12px
+- padding 和 gap 减小使内容更紧凑
+- 只保留外层 `.tool-content` 的滚动
+
+**Markdown 样式和排版优化**
+
+- 统一 markdown-block 子元素间距
+- 添加 `word-break: break-all` 处理长文件路径
+- 列表添加 `.::marker` 样式
+- CodeBlock/ShellBlock 添加 HTML 转义
+- ContentBlock text 类型添加 HTML 转义
+- 添加 `<command-instruction>` 等标签识别为 code 类型
 - `.markdown-block`: 添加 `overflow: auto; max-height: 150px`
 - `.content-text`: 添加 `overflow: auto; max-height: 150px`
 
-**Tool Detail Modal 功能**
+**Tool Detail Modal 功能（修复展开/点击冲突）**
+
+问题: 点击 header 直接打开 modal，与展开功能冲突
+
+修复:
+- 分离展开和详情功能
+- 点击 tool-name 区域打开 Modal
+- 点击 +/- 按钮控制展开/折叠
+- 卡片默认折叠（移除 isCurrentTurn 自动展开）
+- 添加 `.tool-card-main` 和 `.tool-expand-btn` 样式
 
 - 点击 Tool Card 打开全屏详情 Modal
 - Modal 显示完整的 Arguments 和 Output

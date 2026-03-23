@@ -4,7 +4,7 @@ import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
 import { useJsonlParser } from './hooks/useJsonlParser'
 import { ContentBlock } from './components/ContentBlock'
-import { estimateTokens, formatTokens } from './utils/tokenizer'
+import { SystemPrompt } from './components/SystemPrompt'
 import type { JsonlFile } from './types'
 
 interface LoadedFile {
@@ -21,7 +21,6 @@ export default function App() {
   const dragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [systemPaneWidth, setSystemPaneWidth] = useState(35) // percentage
   const [expandedTools, setExpandedTools] = useState<Set<number>>(new Set())
-  const [expandedSystemSections, setExpandedSystemSections] = useState<Set<number>>(new Set([0])) // 默认展开第一个
   const [toolTypeFilter, setToolTypeFilter] = useState<string | null>(null) // tool 类型筛选
   const [selectedTool, setSelectedTool] = useState<{ tool: any; index: number } | null>(null) // 选中的 tool 用于详情弹窗
   const { parseContent } = useJsonlParser()
@@ -55,9 +54,6 @@ export default function App() {
       })
       setCurrentTurn(1)
       setExpandedTools(new Set())
-      // 初始化所有 system sections 为展开状态
-      const sectionCount = parsed.cachedViews[0]?.systemPrompt?.length || 0
-      setExpandedSystemSections(new Set(Array.from({ length: sectionCount }, (_, i) => i)))
     }
     reader.readAsText(file)
   }
@@ -122,17 +118,39 @@ export default function App() {
 
   const currentView = currentFile?.cachedViews[currentTurn - 1]
 
+  // 计算指定 turn 的工具索引集合
+  const getToolIndicesForTurn = (turn: number, toolTurnCounts: number[]): Set<number> => {
+    const indices = new Set<number>()
+    let accumulated = 0
+    for (let i = 0; i < toolTurnCounts.length; i++) {
+      const turnNumber = turn - i
+      if (turnNumber === turn) {
+        for (let j = 0; j < toolTurnCounts[i]; j++) {
+          indices.add(accumulated + j)
+        }
+      }
+      accumulated += toolTurnCounts[i]
+    }
+    return indices
+  }
+
   const handlePrevTurn = () => {
     if (currentTurn > 1) {
-      setCurrentTurn(currentTurn - 1)
-      setExpandedTools(new Set())
+      const newTurn = currentTurn - 1
+      const newView = currentFile?.cachedViews[newTurn - 1]
+      const toolTurnCounts = newView?.toolTurnCounts || []
+      setCurrentTurn(newTurn)
+      setExpandedTools(getToolIndicesForTurn(newTurn, toolTurnCounts))
     }
   }
 
   const handleNextTurn = () => {
     if (currentFile && currentTurn < currentFile.turns.length) {
-      setCurrentTurn(currentTurn + 1)
-      setExpandedTools(new Set())
+      const newTurn = currentTurn + 1
+      const newView = currentFile?.cachedViews[newTurn - 1]
+      const toolTurnCounts = newView?.toolTurnCounts || []
+      setCurrentTurn(newTurn)
+      setExpandedTools(getToolIndicesForTurn(newTurn, toolTurnCounts))
     }
   }
 
@@ -284,21 +302,31 @@ export default function App() {
             // 找到在原始数组中的索引
             const originalIndex = toolCalls.indexOf(tool)
             const { isCurrentTurn, turnLabel } = getToolTurnInfo(originalIndex)
-            const isExpanded = expandedTools.has(originalIndex) || isCurrentTurn
+            const isExpanded = expandedTools.has(originalIndex)
 
             return (
               <div
                 key={originalIndex}
                 className={`tool-card ${isExpanded ? 'expanded' : 'collapsed'} ${isCurrentTurn ? '' : 'historical'}`}
               >
-                <div className="tool-card-header" onClick={() => setSelectedTool({ tool, index: originalIndex })}>
-                  <span className="tool-name">
-                    {tool.tool}
-                  </span>
-                  <div className="tool-card-actions">
-                    {turnLabel && <span className="tool-turn-badge">{turnLabel}</span>}
-                    <span className="tool-expand-icon">▼</span>
+                <div className="tool-card-header">
+                  <div className="tool-card-main" onClick={() => setSelectedTool({ tool, index: originalIndex })}>
+                    <span className="tool-name">
+                      {tool.tool}
+                    </span>
+                    <div className="tool-card-actions">
+                      {turnLabel && <span className="tool-turn-badge">{turnLabel}</span>}
+                    </div>
                   </div>
+                  <button
+                    className="tool-expand-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      toggleTool(originalIndex)
+                    }}
+                  >
+                    {isExpanded ? '−' : '+'}
+                  </button>
                 </div>
                 <div className="tool-card-body">
                   <div className="tool-card-body-inner">
@@ -437,62 +465,7 @@ export default function App() {
           {currentView ? (
             <div className="content-panes">
               <div className="pane pane-system" style={{ width: `${systemPaneWidth}%` }}>
-                <div className="pane-header">
-                  <span className="pane-title">System Prompt</span>
-                  <span className="pane-badge">
-                    {currentView?.systemPrompt?.join('').split(/\s+/).length || 0} words
-                  </span>
-                </div>
-                <div className="pane-content">
-                  <div className="system-content">
-                    {(!currentView?.systemPrompt || currentView.systemPrompt.length === 0) && (
-                      <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>No system prompt</div>
-                    )}
-                    {currentView?.systemPrompt?.map((prompt: string, index: number) => {
-                      const isExpanded = expandedSystemSections.has(index)
-                      const wordCount = prompt.split(/\s+/).filter(Boolean).length
-                      const tokenCount = estimateTokens(prompt)
-                      return (
-                        <div key={index} className={`system-section ${isExpanded ? 'expanded' : ''}`}>
-                          <div
-                            className="system-section-header"
-                            onClick={() => {
-                              setExpandedSystemSections(prev => {
-                                const next = new Set(prev)
-                                if (next.has(index)) {
-                                  next.delete(index)
-                                } else {
-                                  next.add(index)
-                                }
-                                return next
-                              })
-                            }}
-                          >
-                            <span className="system-section-toggle">
-                              {isExpanded ? '▼' : '▶'}
-                            </span>
-                            <span className="system-section-title">
-                              Section {index + 1}
-                            </span>
-                            <span className="system-section-meta">
-                              {wordCount} words | {formatTokens(tokenCount)} tokens
-                            </span>
-                          </div>
-                          {isExpanded && (
-                            <div className="system-section-content">
-                              <ReactMarkdown
-                                remarkPlugins={[remarkGfm]}
-                                rehypePlugins={[rehypeHighlight]}
-                              >
-                                {prompt}
-                              </ReactMarkdown>
-                            </div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
+                <SystemPrompt turn={currentFile?.turns[currentTurn - 1]} />
               </div>
 
               <div className="resize-handle" onMouseDown={handleResizeStart} ref={resizeRef} />

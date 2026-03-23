@@ -4,6 +4,16 @@ interface ShellBlockProps {
   children: string
 }
 
+// Escape HTML to display tags as text
+const escapeHtml = (text: string): string => {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 export const ShellBlock: React.FC<ShellBlockProps> = ({ children }) => {
   const lines = children.split('\n')
 
@@ -14,10 +24,10 @@ export const ShellBlock: React.FC<ShellBlockProps> = ({ children }) => {
           {line.startsWith('$ ') ? (
             <>
               <span className="shell-prompt">$</span>
-              <span className="shell-command">{line.slice(2)}</span>
+              <span className="shell-command" dangerouslySetInnerHTML={{ __html: escapeHtml(line.slice(2)) }} />
             </>
           ) : (
-            <span className="shell-output">{line}</span>
+            <span className="shell-output" dangerouslySetInnerHTML={{ __html: escapeHtml(line) }} />
           )}
         </div>
       ))}

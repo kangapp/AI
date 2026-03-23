@@ -30,6 +30,16 @@ function extractTextFromJson(content: string): string {
   return content
 }
 
+// Escape HTML to display tags as text
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 export const ContentBlock: React.FC<ContentBlockProps> = ({ content, toolName, showLabel = true }) => {
   const contentType = inferContentType(toolName, content)
   const borderColor = getContentTypeColor(contentType)
@@ -48,10 +58,10 @@ export const ContentBlock: React.FC<ContentBlockProps> = ({ content, toolName, s
       case 'text':
         // Try to extract text from JSON content block format
         const extractedText = extractTextFromJson(content)
-        return <div className="content-text">{extractedText}</div>
+        return <div className="content-text" dangerouslySetInnerHTML={{ __html: escapeHtml(extractedText) }} />
       case 'error':
       default:
-        return <div className="content-text">{extractTextFromJson(content)}</div>
+        return <div className="content-text" dangerouslySetInnerHTML={{ __html: escapeHtml(extractTextFromJson(content)) }} />
     }
   }
 

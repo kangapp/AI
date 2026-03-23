@@ -23,6 +23,11 @@ export const inferContentType = (toolName?: string, content?: string): ContentTy
     return 'text'
   }
 
+  // Command instruction tags - treat as code
+  if (content && (/<command-instruction>|<file-path>|<instruction>/.test(content))) {
+    return 'code'
+  }
+
   // Markdown detection (highest priority for mixed content)
   if (content && (/\n#{1,6}\s/.test(content) || /^\s*[-*]\s/.test(content) || /\n\|.*\|.*\|/.test(content))) {
     return 'markdown'
