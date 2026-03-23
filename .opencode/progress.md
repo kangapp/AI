@@ -9,12 +9,20 @@
 问题: Tool Calls 区域展开后，内容被截断无法滚动
 
 修复:
-- `.tool-card.expanded .tool-card-body`: 添加 `overflow-y: auto; max-height: 600px`
-- `.tool-args pre`: 添加 `overflow: auto; max-height: 300px`
-- `.shell-block`: 添加 `overflow: auto; max-height: 200px`
-- `.code-block`: 添加 `overflow: auto; max-height: 200px`
-- `.markdown-block`: 添加 `overflow: auto; max-height: 200px`
-- `.content-text`: 添加 `overflow: auto; max-height: 200px`
+- `.tool-card.expanded .tool-card-body`: 添加 `overflow-y: auto; max-height: 250px`
+- `.tool-args pre`: 添加 `overflow: auto; max-height: 150px`
+- `.shell-block`: 添加 `overflow: auto; max-height: 150px`
+- `.code-block`: 添加 `overflow: auto; max-height: 150px`
+- `.markdown-block`: 添加 `overflow: auto; max-height: 150px`
+- `.content-text`: 添加 `overflow: auto; max-height: 150px`
+
+**Tool Detail Modal 功能**
+
+- 点击 Tool Card 打开全屏详情 Modal
+- Modal 显示完整的 Arguments 和 Output
+- 添加 `.tool-modal-overlay` 遮罩层
+- 添加 `.tool-modal` 弹窗容器
+- 点击遮罩或 × 按钮关闭 Modal
 
 ---
 

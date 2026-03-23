@@ -23,6 +23,7 @@ export default function App() {
   const [expandedTools, setExpandedTools] = useState<Set<number>>(new Set())
   const [expandedSystemSections, setExpandedSystemSections] = useState<Set<number>>(new Set([0])) // 默认展开第一个
   const [toolTypeFilter, setToolTypeFilter] = useState<string | null>(null) // tool 类型筛选
+  const [selectedTool, setSelectedTool] = useState<{ tool: any; index: number } | null>(null) // 选中的 tool 用于详情弹窗
   const { parseContent } = useJsonlParser()
   const resizeRef = useRef<HTMLDivElement>(null)
 
@@ -290,7 +291,7 @@ export default function App() {
                 key={originalIndex}
                 className={`tool-card ${isExpanded ? 'expanded' : 'collapsed'} ${isCurrentTurn ? '' : 'historical'}`}
               >
-                <div className="tool-card-header" onClick={() => toggleTool(originalIndex)}>
+                <div className="tool-card-header" onClick={() => setSelectedTool({ tool, index: originalIndex })}>
                   <span className="tool-name">
                     {tool.tool}
                   </span>
@@ -554,6 +555,37 @@ export default function App() {
           <div className="drop-zone-hint">Release to load</div>
         </div>
       </div>
+
+      {/* Tool Detail Modal */}
+      {selectedTool && (
+        <div className="tool-modal-overlay" onClick={() => setSelectedTool(null)}>
+          <div className="tool-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="tool-modal-header">
+              <div className="tool-modal-title">
+                <span className="tool-name">{selectedTool.tool.tool}</span>
+                {getToolTurnInfo(selectedTool.index).turnLabel && (
+                  <span className="tool-turn-badge">{getToolTurnInfo(selectedTool.index).turnLabel}</span>
+                )}
+              </div>
+              <button className="tool-modal-close" onClick={() => setSelectedTool(null)}>×</button>
+            </div>
+            <div className="tool-modal-body">
+              <div className="tool-modal-section">
+                <div className="tool-section-subtitle">Arguments</div>
+                <pre className="tool-modal-pre">{JSON.stringify(selectedTool.tool.args, null, 2)}</pre>
+              </div>
+              <div className="tool-modal-section">
+                <div className="tool-section-subtitle">Output</div>
+                <ContentBlock
+                  content={typeof selectedTool.tool.output === 'string' ? selectedTool.tool.output : JSON.stringify(selectedTool.tool.output, null, 2)}
+                  toolName={selectedTool.tool.tool}
+                  showLabel={true}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
