@@ -261,7 +261,7 @@ export default function App() {
     const handleMouseMove = (e: MouseEvent) => {
       const containerRect = container.getBoundingClientRect()
       const containerHeight = containerRect.height
-      const delta = ((startY - e.clientY) / containerHeight) * 100
+      const delta = ((e.clientY - startY) / containerHeight) * 100
       const newHeight = Math.min(Math.max(startHeight + delta, 30), 80)
       setChatPaneHeight(newHeight)
     }
@@ -463,6 +463,53 @@ export default function App() {
     </div>
   )
 
+  const renderContentPanes = () => {
+    if (!currentView) return null
+    return (
+      <div className="content-panes">
+        <div className="pane pane-system" style={{ width: `${systemPaneWidth}%` }}>
+          <SystemPrompt turn={currentFile?.turns[currentTurn - 1]} />
+        </div>
+
+        <div className="resize-handle" onMouseDown={handleResizeStart} ref={resizeRef} />
+
+        <div className="pane pane-chat">
+          <div className="pane-header">
+            <span className="pane-title">Conversation</span>
+            <span className="pane-badge">
+              {currentView?.chatItems.filter(i => i.kind === 'assistant').length || 0} msgs
+            </span>
+          </div>
+          <div className="conversation-area">
+            <div className="chat-history-pane" style={{ height: `${chatPaneHeight}%` }}>
+              <div className="pane-content">
+                {renderMessages()}
+              </div>
+            </div>
+            <div className="chat-resize-handle" onMouseDown={handleChatResizeStart} />
+            <div className="tool-calls-pane" style={{ height: `${100 - chatPaneHeight}%` }}>
+              <div className="tool-section">
+                <div className="tool-section-header">
+                  <span className="tool-section-title">Tool Calls</span>
+                  <span className="tool-section-badge">{currentView?.toolCalls?.length || 0}</span>
+                </div>
+                {renderToolCalls()}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const renderEmptyState = () => (
+    <div className="empty-state">
+      <div className="empty-icon">📂</div>
+      <div className="empty-text">Drop .jsonl files to analyze</div>
+      <div className="empty-hint">or use ← → keys to navigate turns</div>
+    </div>
+  )
+
   const renderMessages = () => {
     if (!currentView) return null
     const chatItems = currentView?.chatItems || []
@@ -576,46 +623,7 @@ export default function App() {
         </aside>
 
         <main className="content">
-          {currentView ? (
-            <div className="content-panes">
-              <div className="pane pane-system" style={{ width: `${systemPaneWidth}%` }}>
-                <SystemPrompt turn={currentFile?.turns[currentTurn - 1]} />
-              </div>
-
-              <div className="resize-handle" onMouseDown={handleResizeStart} ref={resizeRef} />
-
-              <div className="pane pane-chat">
-                <div className="pane-header">
-                  <span className="pane-title">Conversation</span>
-                  <span className="pane-badge">
-                    {currentView?.turnComplete?.texts?.join('').split(/\s+/).length || 0} words
-                  </span>
-                </div>
-                <div className="conversation-area">
-                <div className="chat-history-pane" style={{ height: `${chatPaneHeight}%` }}>
-                  <div className="pane-content">
-                    {renderMessages()}
-                  </div>
-                </div>
-                <div className="chat-resize-handle" onMouseDown={handleChatResizeStart} />
-                <div className="tool-calls-pane" style={{ height: `${100 - chatPaneHeight}%` }}>
-                  <div className="tool-section">
-                    <div className="tool-section-header">
-                      <span className="tool-section-title">Tool Calls</span>
-                      <span className="tool-section-badge">{currentView?.toolCalls?.length || 0}</span>
-                    </div>
-                    {renderToolCalls()}
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="empty-state">
-              <div className="empty-icon">📂</div>
-              <div className="empty-text">Drop .jsonl files to analyze</div>
-              <div className="empty-hint">or use ← → keys to navigate turns</div>
-            </div>
-          )}
+          {currentView ? renderContentPanes() : renderEmptyState()}
         </main>
       </div>
 
