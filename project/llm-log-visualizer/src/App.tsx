@@ -563,7 +563,6 @@ export default function App() {
                     {item.contentType === 'file' ? (
                       <span className="file-tag">
                         <span className="file-tag-label">📎 FILE</span>
-                        {item.filename && <span className="file-tag-name">{item.filename}</span>}
                         {item.mime && <span className="file-tag-mime">{item.mime}</span>}
                       </span>
                     ) : item.contentType === 'command' ? (
@@ -574,9 +573,6 @@ export default function App() {
                   </div>
                   {item.contentType === 'file' && item.hasContent && (
                     <div className="file-content-wrapper">
-                      <div className="file-info-bar">
-                        <span className="file-info-path">{item.url || item.filename}</span>
-                      </div>
                       <div className="markdown-block">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
