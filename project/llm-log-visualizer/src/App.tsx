@@ -561,7 +561,10 @@ export default function App() {
                 <div key={`user-${i}`} className={`chat-message user ${item.contentType === 'file' ? 'user-file' : item.contentType === 'command' ? 'user-command' : ''}`}>
                   <div className="chat-role">
                     {item.contentType === 'file' ? (
-                      <span className="file-tag-label">📎 FILE</span>
+                      <span className="file-tag">
+                        <span className="file-tag-label">📎 FILE</span>
+                        {item.filename && <span className="file-tag-name">{item.filename}</span>}
+                      </span>
                     ) : item.contentType === 'command' ? (
                       '⌨️ Command'
                     ) : (
