@@ -262,3 +262,50 @@ ContentBlock
 - `.shell-block` - 深色背景 (#1e1e1e)
 - `.code-block` - 浅色背景，行号
 - `.markdown-block` - GitHub 风格 Markdown
+
+---
+
+## LLM Log Visualizer (2026-03-24 更新)
+
+### `<content>` 标签解析
+
+日志中的 `<content>...</content>` 标签包含被读取的 markdown 文件内容：
+
+```typescript
+function extractContentFromTag(text: string): string {
+  const match = text.match(/<content>([\s\S]*?)<\/content>/)
+  if (match) {
+    return match[1].trim()
+  }
+  return text
+}
+```
+
+### 行号清理
+
+日志中的内容常带有行号前缀 (`1:`, `2:`, etc.)，需要清理：
+
+```typescript
+function cleanLineNumbers(text: string): string {
+  return text.replace(/^\d+:\s*/gm, '')
+}
+```
+
+### Mermaid 图表支持
+
+- 安装 `mermaid` npm 包
+- 初始化配置使用 `dark` 主题
+- ReactMarkdown components 自定义渲染 `language-mermaid` 代码块
+- `useEffect` 调用 `mermaid.run()` 渲染图表
+
+### ChatItem 类型扩展
+
+```typescript
+export type ChatItem =
+  | { kind: 'user'; content: string; contentType?: 'text' | 'file' | 'command' | 'reference'; turn: number; filename?: string }
+```
+
+每个 content block 独立生成一个 ChatItem，支持：
+- `contentType: 'file'` - 文件引用，带 filename
+- `contentType: 'command'` - 命令
+- `contentType: 'text'` - 普通文本

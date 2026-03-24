@@ -93,6 +93,8 @@
 
 ### LLM Log Visualizer (最新批次)
 ```
+fddbee3 feat: parse file content from <content> tags and support mermaid diagrams
+34af8b5 fix: improve tool calls scrolling and system prompt display
 80edeb0 fix: reverse chat resize direction
 553993e feat(styles): add CSS for independent scrolling panes
 18de81e feat(layout): add independent chat and tool panes with resize handle

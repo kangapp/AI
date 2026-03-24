@@ -2,21 +2,44 @@
 
 ## Session Log
 
+### 2026-03-24 (Catchup Session)
+
+**Catchup 时间:** 2026-03-24
+**状态:** 待提交变更
+
+**待提交内容:**
+1. **README.md** - 添加 LLM Log Visualizer 项目文档
+2. **findings.md** - 添加 `<content>` 标签解析和 Mermaid 支持文档
+3. **package-lock.json** - 更新 mermaid 依赖
+
+---
+
+### 2026-03-24 (Morning Session)
+
+**最新提交:**
+- `fddbee3` feat: parse file content from `<content>` tags and support mermaid diagrams
+- `34af8b5` fix: improve tool calls scrolling and system prompt display
+
+**修复内容:**
+1. **Tool Calls 滚动问题** - 重构 DOM 结构，确保独立滚动
+2. **System Prompt 显示** - 添加横向滚动条，改进 markdown 排版
+3. **Content 标签解析** - 提取 `<content>...</content>` 内的 markdown 内容
+4. **行号清理** - 移除 `1:`, `2:` 等前缀
+5. **Mermaid 支持** - 安装 mermaid 包，支持图表渲染
+
+---
+
 ### 2026-03-23 (Session Catchup - 16c3e729)
 
 **Catchup 同步时间:** 2026-03-23
 **状态:** ✅ 所有变更已提交，Working Tree Clean
 **Dev Server:** http://localhost:5176/
 
-**同步内容:**
-- LLM Log Plugin: ✅ 功能完成
-- LLM Log Visualizer: ✅ Event Stream + 独立滚动布局完成
-
 **Git 状态:**
 - Branch: master
-- Ahead of origin/master by 15 commits
+- 所有变更已推送到 origin/master
 
-### 2026-03-23 (Evening Session)
+### 2026-03-24 (Morning Session - Continuing)
 
 **Chat History 与 Tool Calls 独立滚动布局 ✅**
 

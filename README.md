@@ -8,6 +8,7 @@
 
 - [001 - 数据库查询工具 (DB Query Tool)](#001---数据库查询工具-db-query-tool)
 - [002 - RaFlow (实时语音转录工具)](#002---raflow-实时语音转录工具)
+- [003 - LLM Log Visualizer (LLM 日志可视化工具)](#003---llm-log-visualizer-llm-日志可视化工具)
 
 ---
 
@@ -87,3 +88,36 @@ pnpm tauri build
 ```
 
 **详细文档**: [project/raflow/README.md](project/raflow/README.md)
+
+---
+
+### 003 - LLM Log Visualizer (LLM 日志可视化工具)
+
+**路径**: `project/llm-log-visualizer/`
+
+**简介**: 一个用于可视化 LLM Agent 日志文件的 React 前端应用，支持 JSONL 格式日志解析、Turn 导航、工具调用追踪等功能。
+
+**核心特性**:
+- **JSONL 日志解析**：支持解析 .opencode/logs/ 目录下的 JSONL 日志文件
+- **Turn 导航**：支持键盘 ← → 键切换 Turn，每个 Turn 累积展示历史数据
+- **System Prompt 可视化**：Markdown 渲染 System Prompt，支持代码高亮
+- **对话历史**：完整展示 user/assistant 消息、reasoning、agent 切换等事件
+- **工具调用追踪**：展示工具调用参数和输出，支持按类型筛选、展开查看详情
+- **多文件管理**：支持同时加载多个 JSONL 文件，快速切换
+- **拖拽上传**：支持直接将 JSONL 文件拖拽到页面加载
+- **可调整面板**：支持横向和纵向调整面板大小
+
+**技术栈**:
+- **前端**：React 18 / TypeScript / Vite / react-markdown / rehype-highlight / remark-gfm
+
+**快速开始**:
+```bash
+cd project/llm-log-visualizer
+npm install     # 安装依赖
+npm run dev     # 启动开发服务器
+```
+
+访问：
+- **前端**：http://localhost:5173
+
+**详细文档**: [project/llm-log-visualizer/README.md](project/llm-log-visualizer/README.md)
