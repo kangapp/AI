@@ -1,3 +1,4 @@
+import React, { useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
@@ -39,6 +40,19 @@ export function ChatHistory({ turn }: ChatHistoryProps) {
     .join('')
 
   const tokens = estimateTokens(fullText)
+  const [collapsed, setCollapsed] = useState<Set<number>>(new Set())
+
+  const toggleCollapse = (idx: number) => {
+    setCollapsed(prev => {
+      const next = new Set(prev)
+      if (next.has(idx)) {
+        next.delete(idx)
+      } else {
+        next.add(idx)
+      }
+      return next
+    })
+  }
 
   return (
     <div className="chat-column">
@@ -50,13 +64,21 @@ export function ChatHistory({ turn }: ChatHistoryProps) {
           {messages.map((msg: any, idx: number) => {
             const role = msg.role || 'assistant'
             const content = extractTextContent(msg.content)
+            const isCollapsed = collapsed.has(idx)
 
             return (
-              <div key={idx} className={`chat-message ${role}`}>
-                <div className="chat-role">{role}</div>
-                <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-                  {content}
-                </ReactMarkdown>
+              <div key={idx} className={`chat-message ${role} ${isCollapsed ? 'collapsed' : ''}`}>
+                <div className="chat-message-header" onClick={() => toggleCollapse(idx)}>
+                  <div className="chat-role">{role}</div>
+                  <button className="chat-collapse-btn">
+                    {isCollapsed ? '▶' : '▼'}
+                  </button>
+                </div>
+                {!isCollapsed && (
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                    {content}
+                  </ReactMarkdown>
+                )}
               </div>
             )
           })}

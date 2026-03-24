@@ -642,25 +642,24 @@ body::before {
 }
 
 .chat-message.user.user-file .markdown-block h1 { font-size: 18px; color: #c44d2a; }
-.chat-message.user.user-file .markdown-block h2 { font-size: 16px; color: #b35928; }
-.chat-message.user.user-file .markdown-block h3 { font-size: 14px; color: #5a5a5a; }
+.chat-message.user.user-file .markdown-block h2 { font-size: 14px; color: #b35928; }
+.chat-message.user.user-file .markdown-block h3 { font-size: 12px; color: #5a5a5a; }
 
-/* Code blocks - High contrast dark theme */
+/* Code blocks - Light theme */
 .chat-message.user.user-file .markdown-block pre {
-  background: #0d1117;
-  border-radius: 8px;
-  padding: 14px 18px;
-  margin: 12px 0;
+  background: #f6f8fa;
+  border-radius: 6px;
+  padding: 10px 14px;
+  margin: 8px 0;
   overflow-x: auto;
-  border: 1px solid #30363d;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  border: 1px solid #d0d7de;
 }
 
 .chat-message.user.user-file .markdown-block pre code {
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-  font-size: 13px;
-  line-height: 1.7;
-  color: #c9d1d9;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #24292f;
   background: transparent;
   padding: 0;
 }
@@ -668,11 +667,11 @@ body::before {
 /* Inline code - Light style for contrast */
 .chat-message.user.user-file .markdown-block code {
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
-  font-size: 12px;
+  font-size: 10px;
   color: #c44d2a;
   background: #f0e8e0;
-  padding: 2px 6px;
-  border-radius: 4px;
+  padding: 2px 4px;
+  border-radius: 3px;
   border: 1px solid #e0d8d0;
 }
 
@@ -681,48 +680,47 @@ body::before {
   background: transparent;
 }
 
-/* Syntax highlighting - GitHub Dark inspired, high contrast */
-.chat-message.user.user-file .markdown-block .hljs-keyword { color: #ff7b72; font-weight: 600; }
-.chat-message.user.user-file .markdown-block .hljs-string { color: #a5d6ff; }
-.chat-message.user.user-file .markdown-block .hljs-number { color: #79c0ff; }
-.chat-message.user.user-file .markdown-block .hljs-function { color: #d2a8ff; }
-.chat-message.user.user-file .markdown-block .hljs-title { color: #d2a8ff; }
-.chat-message.user.user-file .markdown-block .hljs-params { color: #c9d1d9; }
+/* Syntax highlighting - GitHub Light theme */
+.chat-message.user.user-file .markdown-block .hljs-keyword { color: #cf222e; font-weight: 600; }
+.chat-message.user.user-file .markdown-block .hljs-string { color: #0a3069; }
+.chat-message.user.user-file .markdown-block .hljs-number { color: #0550ae; }
+.chat-message.user.user-file .markdown-block .hljs-function { color: #8250df; }
+.chat-message.user.user-file .markdown-block .hljs-title { color: #8250df; }
 .chat-message.user.user-file .hljs-comment,
-.chat-message.user.user-file .markdown-block .hljs-comment { color: #8b949e; font-style: italic; }
-.chat-message.user.user-file .markdown-block .hljs-variable { color: #ffa657; }
-.chat-message.user.user-file .markdown-block .hljs-attr { color: #79c0ff; }
-.chat-message.user.user-file .markdown-block .hljs-built_in { color: #ffa657; }
-.chat-message.user.user-file .markdown-block .hljs-type { color: #ffa657; }
-.chat-message.user.user-file .markdown-block .hljs-literal { color: #79c0ff; }
-.chat-message.user.user-file .markdown-block .hljs-meta { color: #8b949e; }
-.chat-message.user.user-file .markdown-block .hljs-symbol { color: #79c0ff; }
-.chat-message.user.user-file .markdown-block .hljs-punctuation { color: #c9d1d9; }
-.chat-message.user.user-file .markdown-block .hljs-operator { color: #c9d1d9; }
-.chat-message.user.user-file .markdown-block .hljs-class { color: #ffa657; }
-.chat-message.user.user-file .markdown-block .hljs-selector-class { color: #7ee787; }
-.chat-message.user.user-file .markdown-block .hljs-selector-tag { color: #7ee787; }
-.chat-message.user.user-file .markdown-block .hljs-attribute { color: #79c0ff; }
-.chat-message.user.user-file .markdown-block .hljs-name { color: #7ee787; }
-.chat-message.user.user-file .markdown-block .hljs-tag { color: #7ee787; }
-.chat-message.user.user-file .markdown-block .hljs-selector-id { color: #7ee787; }
-.chat-message.user.user-file .markdown-block .hljs-addition { color: #7ee787; background: rgba(63, 185, 80, 0.15); }
-.chat-message.user.user-file .markdown-block .hljs-deletion { color: #ffa657; background: rgba(255, 166, 87, 0.15); }
+.chat-message.user.user-file .markdown-block .hljs-comment { color: #6e7781; }
+.chat-message.user.user-file .markdown-block .hljs-variable { color: #24292f; }
+.chat-message.user.user-file .markdown-block .hljs-attr { color: #0550ae; }
+.chat-message.user.user-file .markdown-block .hljs-built_in { color: #953800; }
+.chat-message.user.user-file .markdown-block .hljs-type { color: #953800; }
+.chat-message.user.user-file .markdown-block .hljs-literal { color: #0550ae; }
+.chat-message.user.user-file .markdown-block .hljs-meta { color: #6e7781; }
+.chat-message.user.user-file .markdown-block .hljs-symbol { color: #0550ae; }
+.chat-message.user.user-file .markdown-block .hljs-punctuation { color: #24292f; }
+.chat-message.user.user-file .markdown-block .hljs-operator { color: #24292f; }
+.chat-message.user.user-file .markdown-block .hljs-class { color: #953800; }
+.chat-message.user.user-file .markdown-block .hljs-selector-class { color: #116329; }
+.chat-message.user.user-file .markdown-block .hljs-selector-tag { color: #116329; }
+.chat-message.user.user-file .markdown-block .hljs-attribute { color: #0550ae; }
+.chat-message.user.user-file .markdown-block .hljs-name { color: #116329; }
+.chat-message.user.user-file .markdown-block .hljs-tag { color: #116329; }
+.chat-message.user.user-file .markdown-block .hljs-selector-id { color: #116329; }
+.chat-message.user.user-file .markdown-block .hljs-addition { color: #116329; background: rgba(63, 185, 80, 0.15); }
+.chat-message.user.user-file .markdown-block .hljs-deletion { color: #cf222e; background: rgba(207, 34, 46, 0.15); }
 
 /* Table styling - Clean and readable */
 .chat-message.user.user-file .markdown-block table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 12px;
-  margin: 12px 0;
+  font-size: 10px;
+  margin: 8px 0;
   border: 1px solid #ddd;
-  border-radius: 6px;
+  border-radius: 4px;
   overflow: hidden;
 }
 
 .chat-message.user.user-file .markdown-block th,
 .chat-message.user.user-file .markdown-block td {
-  padding: 8px 12px;
+  padding: 5px 8px;
   border: 1px solid #ddd;
   text-align: left;
 }
@@ -852,15 +850,15 @@ body::before {
   margin: 0;
 }
 
-/* Mermaid diagram container */
+/* Mermaid diagram container - Light theme */
 .mermaid-chart {
   display: block;
   margin: var(--space-sm) 0;
   overflow-x: auto;
-  background: var(--bg-card);
+  background: #ffffff;
   border-radius: 8px;
   padding: var(--space-sm);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid #d0d7de;
 }
 
 .mermaid {
@@ -873,6 +871,43 @@ body::before {
 .mermaid svg {
   max-width: 100%;
   height: auto;
+}
+
+/* Mermaid text - ensure dark color for readability */
+.mermaid svg text,
+.mermaid svg tspan,
+.mermaid svg g text {
+  fill: #24292f !important;
+  color: #24292f !important;
+}
+
+/* Mermaid nodes - light fill */
+.mermaid svg .node rect,
+.mermaid svg .node circle,
+.mermaid svg .node ellipse,
+.mermaid svg .node polygon,
+.mermaid svg .actor {
+  fill: #f6f8fa !important;
+  stroke: #0969da !important;
+}
+
+/* Mermaid edges */
+.mermaid svg .edge path,
+.mermaid svg .edge-label,
+.mermaid svg .messageLine {
+  stroke: #57606a !important;
+}
+
+/* Mermaid sequence diagram */
+.mermaid svg .activation {
+  fill: #f6f8fa !important;
+  stroke: #0969da !important;
+}
+
+/* Remove any dark backgrounds */
+.mermaid svg [fill*="rgb"],
+.mermaid svg [fill="#"] {
+  fill: #f6f8fa !important;
 }
 
 .chat-message.assistant {
@@ -1019,6 +1054,39 @@ body::before {
   height: 6px;
   border-radius: 50%;
   background: currentColor;
+}
+
+/* Chat message collapse */
+.chat-message-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+}
+
+.chat-collapse-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 8px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 3px;
+  transition: all 0.2s;
+}
+
+.chat-collapse-btn:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+.chat-message.collapsed {
+  opacity: 0.7;
+}
+
+.chat-message.collapsed .chat-collapse-btn {
+  opacity: 1;
 }
 
 /* Tool Filter Bar */
@@ -1457,6 +1525,72 @@ body::before {
   color: var(--text-primary);
 }
 
+/* Tool content file - similar to chat-file style */
+.tool-content-file {
+  border-radius: 8px;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid var(--border-subtle);
+}
+
+.tool-content-file-header {
+  padding: 6px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.tool-content-file-header .file-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tool-content-file-header .file-tag-label {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--accent-amber);
+  background: rgba(255, 183, 77, 0.15);
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.tool-content-file-header .file-tag-name {
+  font-size: 10px;
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+}
+
+.tool-content-file-body {
+  padding: 10px 12px;
+}
+
+.tool-content-file-body .markdown-block {
+  font-size: 11px;
+}
+
+/* Code file rendering */
+.tool-file-code {
+  background: #f6f8fa;
+  border-radius: 6px;
+  padding: 10px 14px;
+  overflow: auto;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 11px;
+  line-height: 1.6;
+  color: #24292f;
+  border: 1px solid #d0d7de;
+  margin: 0;
+}
+
+.tool-file-code code {
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  font-size: 100%;
+  color: inherit;
+}
+
 /* Shell Block */
 .shell-block {
   background: #3d3425;
@@ -1491,14 +1625,14 @@ body::before {
   margin-top: 2px;
 }
 
-/* Code Block */
+/* Code Block - Light theme */
 .code-block {
-  background: #3d3425;
+  background: #f6f8fa;
   padding: var(--space-sm);
   border-radius: 8px;
   font-family: var(--font-mono);
   font-size: 11px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid #d0d7de;
   overflow: auto;
 }
 
@@ -1508,7 +1642,7 @@ body::before {
 }
 
 .code-line-number {
-  color: #8a7d6a;
+  color: #6e7781;
   min-width: 28px;
   text-align: right;
   margin-right: var(--space-sm);
@@ -1519,7 +1653,7 @@ body::before {
 .code-content {
   white-space: pre-wrap;
   word-break: break-all;
-  color: #f5f0e8;
+  color: #24292f;
 }
 
 /* Todo Block */
@@ -1552,14 +1686,14 @@ body::before {
 
 /* Markdown Block */
 .markdown-block {
-  font-size: 12px;
-  line-height: 1.7;
+  font-size: 11px;
+  line-height: 1.6;
   color: var(--text-primary);
   overflow: auto;
 }
 
 .markdown-block > * + * {
-  margin-top: 8px;
+  margin-top: 6px;
 }
 
 .markdown-block h1,
@@ -1569,16 +1703,16 @@ body::before {
 .markdown-block h5,
 .markdown-block h6 {
   font-family: var(--font-display);
-  margin-top: 12px;
-  margin-bottom: 6px;
+  margin-top: 10px;
+  margin-bottom: 4px;
   font-weight: 600;
   line-height: 1.3;
   color: var(--text-primary);
 }
 
-.markdown-block h1 { font-size: 1.25em; color: var(--accent-coral); }
-.markdown-block h2 { font-size: 1.15em; color: var(--accent-amber); }
-.markdown-block h3 { font-size: 1.05em; color: var(--accent-mint); }
+.markdown-block h1 { font-size: 1.2em; color: var(--accent-coral); }
+.markdown-block h2 { font-size: 1.1em; color: var(--accent-amber); }
+.markdown-block h3 { font-size: 1em; color: var(--accent-mint); }
 
 .markdown-block p {
   margin: 0;
@@ -1609,14 +1743,14 @@ body::before {
 }
 
 .markdown-block pre {
-  padding: 14px 18px;
+  padding: 10px 14px;
   overflow: auto;
-  font-size: 13px;
-  line-height: 1.7;
-  background-color: #0d1117;
-  border-radius: 8px;
-  margin: 12px 0;
-  border: 1px solid #30363d;
+  font-size: 11px;
+  line-height: 1.6;
+  background-color: #f6f8fa;
+  border-radius: 6px;
+  margin: 8px 0;
+  border: 1px solid #d0d7de;
   font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
 }
 
@@ -1626,11 +1760,108 @@ body::before {
   background-color: transparent;
   border: 0;
   font-size: 100%;
-  color: #c9d1d9;
+  color: #24292f;
 }
-  white-space: pre-wrap;
-  word-break: break-all;
-  color: #f5f0e8;
+
+/* Global hljs syntax highlighting - Light theme (GitHub style) */
+.markdown-block .hljs {
+  color: #24292f;
+  background: transparent;
+}
+
+.markdown-block .hljs-keyword,
+.markdown-block .hljs-selector-tag,
+.markdown-block .hljs-literal,
+.markdown-block .hljs-section,
+.markdown-block .hljs-link { color: #cf222e; font-weight: 600; }
+
+.markdown-block .hljs-string,
+.markdown-block .hljs-title,
+.markdown-block .hljs-name,
+.markdown-block .hljs-type,
+.markdown-block .hljs-attribute,
+.markdown-block .hljs-symbol,
+.markdown-block .hljs-bullet,
+.markdown-block .hljs-addition { color: #0a3069; }
+
+.markdown-block .hljs-variable,
+.markdown-block .hljs-template-tag,
+.markdown-block .hljs-template-variable { color: #24292f; font-weight: 500; }
+
+.markdown-block .hljs-title.function_,
+.markdown-block .hljs-function { color: #8250df; font-weight: 500; }
+
+.markdown-block .hljs-comment,
+.markdown-block .hljs-quote,
+.markdown-block .hljs-deletion,
+.markdown-block .hljs-meta { color: #6e7781; }
+
+.markdown-block .hljs-number,
+.markdown-block .hljs-regexp,
+.markdown-block .hljs-selector-attr,
+.markdown-block .hljs-selector-pseudo { color: #0550ae; }
+
+.markdown-block .hljs-params { color: #24292f; }
+
+.markdown-block .hljs-class .hljs-title { color: #953800; }
+
+.markdown-block .hljs-attr { color: #0550ae; }
+
+.markdown-block .hljs-selector-class,
+.markdown-block .hljs-selector-id { color: #116329; }
+
+.markdown-block .hljs-emphasis { font-style: italic; }
+
+.markdown-block .hljs-strong { font-weight: bold; }
+
+.markdown-block .hljs-built_in { color: #953800; }
+
+.markdown-block .hljs-deletion { color: #cf222e; }
+
+/* Python specific - class names, function names should be readable */
+.markdown-block .hljs-title.class_,
+.markdown-block .hljs-name { color: #24292f; font-weight: 600; }
+
+/* Improve variable and identifier contrast */
+.markdown-block .hljs-var { color: #24292f; }
+
+/* Remove any underline from hljs elements */
+.markdown-block .hljs span {
+  text-decoration: none !important;
+  border: none !important;
+}
+
+.markdown-block code span {
+  text-decoration: none !important;
+}
+
+/* Remove rehype-highlight default marks */
+.markdown-block mark,
+.markdown-block .hljs-title,
+.markdown-block .hljs-section {
+  text-decoration: none !important;
+  background: transparent !important;
+}
+
+/* Remove ALL possible underline/border effects in code */
+.markdown-block pre *,
+.markdown-block code *,
+.markdown-block pre span,
+.markdown-block code span {
+  text-decoration: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  border-bottom: none !important;
+  border-top: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  background-image: none !important;
+}
+
+.markdown-block pre mark {
+  text-decoration: none !important;
+  background: transparent !important;
 }
 
 .markdown-block table {

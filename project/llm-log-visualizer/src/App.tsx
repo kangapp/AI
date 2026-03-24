@@ -19,14 +19,22 @@ import type {
 // Initialize mermaid
 mermaid.initialize({
   startOnLoad: false,
-  theme: 'dark',
+  theme: 'base',
   themeVariables: {
-    primaryColor: '#6b8fd4',
-    primaryTextColor: '#fff',
-    primaryBorderColor: '#444',
-    lineColor: '#888',
-    secondaryColor: '#3d3425',
-    tertiaryColor: '#292524',
+    primaryColor: '#f6f8fa',
+    primaryTextColor: '#24292f',
+    primaryBorderColor: '#d0d7de',
+    lineColor: '#57606a',
+    secondaryColor: '#f6f8fa',
+    tertiaryColor: '#ffffff',
+    noteBkgColor: '#fff',
+    noteTextColor: '#24292f',
+    noteBorderColor: '#d0d7de',
+    actorBkg: '#f6f8fa',
+    actorBorder: '#0969da',
+    actorTextColor: '#24292f',
+    signalColor: '#24292f',
+    signalTextColor: '#24292f',
   }
 })
 
@@ -44,6 +52,7 @@ export default function App() {
   const dragTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [systemPaneWidth, setSystemPaneWidth] = useState(35) // percentage
   const [expandedTools, setExpandedTools] = useState<Set<number>>(new Set())
+  const [collapsedMessages, setCollapsedMessages] = useState<Set<number>>(new Set())
   const [toolTypeFilter, setToolTypeFilter] = useState<string | null>(null) // tool 类型筛选
   const [chatPaneHeight, setChatPaneHeight] = useState(60) // percentage
   const [selectedTool, setSelectedTool] = useState<{ tool: any; index: number } | null>(null) // 选中的 tool 用于详情弹窗
@@ -62,8 +71,19 @@ export default function App() {
 
       const newFile: LoadedFile = { filename: file.name, data: parsed }
 
+      // Get tool indices for turn 1 to expand by default
+      const toolTurnCounts = parsed.cachedViews[0]?.toolTurnCounts || []
+      const defaultExpanded = getToolIndicesForTurn(1, toolTurnCounts)
+
       setLoadedFiles(prev => {
         const existingIndex = prev.findIndex(f => f.filename === file.name)
+        const newIndex = existingIndex >= 0 ? existingIndex : prev.length
+
+        // Use functional update for currentFileIndex to get correct value
+        setCurrentFileIndex(newIndex)
+        setCurrentTurn(1)
+        setExpandedTools(defaultExpanded)
+
         if (existingIndex >= 0) {
           const updated = [...prev]
           updated[existingIndex] = newFile
@@ -71,13 +91,6 @@ export default function App() {
         }
         return [...prev, newFile]
       })
-
-      setCurrentFileIndex(() => {
-        const newIndex = loadedFiles.findIndex(f => f.filename === file.name)
-        return newIndex >= 0 ? newIndex : loadedFiles.length
-      })
-      setCurrentTurn(1)
-      setExpandedTools(new Set())
     }
     reader.readAsText(file)
   }
@@ -160,12 +173,13 @@ export default function App() {
   }, [currentView])
 
   // 计算指定 turn 的工具索引集合
+  // toolTurnCounts 是正序 [turn1Count, turn2Count, ..., turnNCount]
   const getToolIndicesForTurn = (turn: number, toolTurnCounts: number[]): Set<number> => {
     const indices = new Set<number>()
     let accumulated = 0
+    // i=0 对应 turn 1, i=1 对应 turn 2, 以此类推
     for (let i = 0; i < toolTurnCounts.length; i++) {
-      const turnNumber = turn - i
-      if (turnNumber === turn) {
+      if (i + 1 === turn) {
         for (let j = 0; j < toolTurnCounts[i]; j++) {
           indices.add(accumulated + j)
         }
@@ -207,20 +221,30 @@ export default function App() {
     })
   }
 
+  const toggleCollapse = (index: number) => {
+    setCollapsedMessages(prev => {
+      const next = new Set(prev)
+      if (next.has(index)) {
+        next.delete(index)
+      } else {
+        next.add(index)
+      }
+      return next
+    })
+  }
+
   // 判断某个 tool index 是否属于当前 turn
-  // toolCalls 是从当前 turn 向下累积的倒序数组
-  // toolTurnCounts 也是倒序（[turnN, turnN-1, ..., turn1]）
+  // toolTurnCounts 是正序 [turn1Count, turn2Count, ..., turnNCount]
   const getToolTurnInfo = (toolIndex: number): { isCurrentTurn: boolean; turnLabel: string } => {
     const totalTools = currentView?.toolCalls?.length || 0
     const toolTurnCounts = currentView?.toolTurnCounts || []
     if (totalTools === 0 || toolTurnCounts.length === 0) return { isCurrentTurn: false, turnLabel: '' }
 
-    // toolTurnCounts 是倒序：[turnN, turnN-1, ..., turn1]
-    // 所以 toolIndices[0] 对应 turnN，toolIndices[last] 对应 turn1
+    // toolTurnCounts 正序: i=0 对应 turn 1, i=1 对应 turn 2, ...
     let accumulated = 0
     for (let i = 0; i < toolTurnCounts.length; i++) {
       const turnToolCount = toolTurnCounts[i]
-      const turnNumber = currentTurn - i  // turnN = currentTurn, turnN-1 = currentTurn-1, ...
+      const turnNumber = i + 1
       const start = accumulated
       const end = accumulated + turnToolCount
 
@@ -327,10 +351,12 @@ export default function App() {
       return acc
     }, {})
 
-    // 筛选 tool calls
-    const filteredTools = toolTypeFilter
-      ? toolCalls.filter(tool => tool.tool === toolTypeFilter)
-      : toolCalls
+    // 筛选 tool calls，并记录原始索引
+    const filteredToolsWithIndex = toolTypeFilter
+      ? toolCalls
+          .map((tool, idx) => ({ tool, originalIndex: idx }))
+          .filter(item => item.tool.tool === toolTypeFilter)
+      : toolCalls.map((tool, idx) => ({ tool, originalIndex: idx }))
 
     return (
       <div className="tool-content">
@@ -358,15 +384,13 @@ export default function App() {
         {/* Filtered Count */}
         {toolTypeFilter && (
           <div className="tool-filter-info">
-            Showing {filteredTools.length} of {toolCalls.length} tools
+            Showing {filteredToolsWithIndex.length} of {toolCalls.length} tools
           </div>
         )}
 
-        {/* Tool Cards */}
+        {/* Tool Cards - reversed to show latest turn first */}
         <div className="tool-cards">
-          {filteredTools.map((tool) => {
-            // 找到在原始数组中的索引
-            const originalIndex = toolCalls.indexOf(tool)
+          {[...filteredToolsWithIndex].reverse().map(({ tool, originalIndex }) => {
             const { isCurrentTurn, turnLabel } = getToolTurnInfo(originalIndex)
             const isExpanded = expandedTools.has(originalIndex)
 
@@ -557,65 +581,81 @@ export default function App() {
         {chatItems.map((item, i) => {
           switch (item.kind) {
             case 'user':
+              const userCollapsed = collapsedMessages.has(i)
               return (
-                <div key={`user-${i}`} className={`chat-message user ${item.contentType === 'file' ? 'user-file' : item.contentType === 'command' ? 'user-command' : ''}`}>
-                  <div className="chat-role">
-                    {item.contentType === 'file' ? (
-                      <span className="file-tag">
-                        <span className="file-tag-label">📎 FILE</span>
-                        {item.filename && <span className="file-tag-name">{item.filename}</span>}
-                      </span>
-                    ) : item.contentType === 'command' ? (
-                      '⌨️ Command'
-                    ) : (
-                      'User'
-                    )}
+                <div key={`user-${i}`} className={`chat-message user ${item.contentType === 'file' ? 'user-file' : item.contentType === 'command' ? 'user-command' : ''} ${userCollapsed ? 'collapsed' : ''}`}>
+                  <div className="chat-message-header" onClick={() => toggleCollapse(i)}>
+                    <div className="chat-role">
+                      {item.contentType === 'file' ? (
+                        <span className="file-tag">
+                          <span className="file-tag-label">📎 FILE</span>
+                          {item.filename && <span className="file-tag-name">{item.filename}</span>}
+                        </span>
+                      ) : item.contentType === 'command' ? (
+                        '⌨️ Command'
+                      ) : (
+                        'User'
+                      )}
+                    </div>
+                    <button className="chat-collapse-btn">
+                      {userCollapsed ? '▶' : '▼'}
+                    </button>
                   </div>
-                  <div className="markdown-block">
-                    <ReactMarkdown
-                      remarkPlugins={[remarkGfm]}
-                      rehypePlugins={[rehypeHighlight]}
-                      components={{
-                        code: ({ node, className, children, ...props }) => {
-                          const match = /language-(\w+)/.exec(className || '')
-                          const codeString = String(children).replace(/\n$/, '')
+                  {!userCollapsed && (
+                    <div className="markdown-block">
+                      <ReactMarkdown
+                        remarkPlugins={[remarkGfm]}
+                        rehypePlugins={[rehypeHighlight]}
+                        components={{
+                          code: ({ node, className, children, ...props }) => {
+                            const match = /language-(\w+)/.exec(className || '')
+                            const codeString = String(children).replace(/\n$/, '')
 
-                          // Render mermaid diagrams
-                          if (match && match[1] === 'mermaid') {
-                            return (
-                              <div className="mermaid-chart">
-                                <div className="mermaid" dangerouslySetInnerHTML={{ __html: codeString }} />
-                              </div>
-                            )
+                            // Render mermaid diagrams
+                            if (match && match[1] === 'mermaid') {
+                              return (
+                                <div className="mermaid-chart">
+                                  <div className="mermaid" dangerouslySetInnerHTML={{ __html: codeString }} />
+                                </div>
+                              )
+                            }
+
+                            // Regular code block
+                            if (className) {
+                              return (
+                                <code className={className} {...props}>
+                                  {children}
+                                </code>
+                              )
+                            }
+
+                            return <code {...props}>{children}</code>
                           }
-
-                          // Regular code block
-                          if (className) {
-                            return (
-                              <code className={className} {...props}>
-                                {children}
-                              </code>
-                            )
-                          }
-
-                          return <code {...props}>{children}</code>
-                        }
-                      }}
-                    >
-                      {renderContent(item.content)}
-                    </ReactMarkdown>
-                  </div>
+                        }}
+                      >
+                        {renderContent(item.content)}
+                      </ReactMarkdown>
+                    </div>
+                  )}
                 </div>
               )
             case 'assistant':
+              const assistantCollapsed = collapsedMessages.has(i)
               return (
-                <div key={`assistant-${i}`} className="chat-message assistant">
-                  <div className="chat-role">Assistant</div>
-                  <div className="markdown-block">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
-                      {renderContent(item.content)}
-                    </ReactMarkdown>
+                <div key={`assistant-${i}`} className={`chat-message assistant ${assistantCollapsed ? 'collapsed' : ''}`}>
+                  <div className="chat-message-header" onClick={() => toggleCollapse(i)}>
+                    <div className="chat-role">Assistant</div>
+                    <button className="chat-collapse-btn">
+                      {assistantCollapsed ? '▶' : '▼'}
+                    </button>
                   </div>
+                  {!assistantCollapsed && (
+                    <div className="markdown-block">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                        {renderContent(item.content)}
+                      </ReactMarkdown>
+                    </div>
+                  )}
                 </div>
               )
             case 'reasoning':
