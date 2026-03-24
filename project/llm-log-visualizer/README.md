@@ -128,7 +128,7 @@ flowchart TB
     end
 
     subgraph Types["类型定义"]
-        Types["types/index.ts<br/>事件和接口定义"]
+        TypesModule["types/index.ts<br/>事件和接口定义"]
     end
 
     Entry --> Pages
