@@ -628,16 +628,18 @@ body::before {
 }
 
 .chat-message.user.user-file .markdown-block pre {
-  background: var(--bg-deep);
+  background: #3d3425;
   border-radius: 6px;
   padding: var(--space-sm);
   overflow-x: auto;
   margin: var(--space-xs) 0;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .chat-message.user.user-file .markdown-block code {
   font-family: var(--font-mono);
   font-size: 11px;
+  color: #f5f5f5;
 }
 
 /* File tag styling */
