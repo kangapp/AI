@@ -189,26 +189,22 @@ export function useJsonlParser() {
     if (Array.isArray(content)) {
       return content.map((c: any) => {
         if (c.type === 'file') {
-          let text = c.source?.text?.value || c.text || `[File: ${c.filename || c.url}]`
+          // Support both 'path' and 'filename' field names
+          const filePath = c.path || c.filename || c.url || ''
+          // Content can be in 'content', 'text', or 'source.text.value'
+          let text = c.content || c.source?.text?.value || c.text || `[File: ${filePath}]`
           // Check for <content> tags and extract content while preserving file info
           const extractedContent = extractContentFromTag(text)
           if (extractedContent !== text) {
-            // Content was extracted from tags - return file block with content
-            return {
-              type: 'file' as const,
-              text: cleanLineNumbers(extractedContent),
-              mime: c.mime,
-              filename: c.filename,
-              url: c.url,
-              hasContent: true,
-            }
+            text = extractedContent
           }
           return {
             type: 'file' as const,
             text: cleanLineNumbers(text),
             mime: c.mime,
-            filename: c.filename,
-            url: c.url,
+            filename: filePath,
+            url: c.url || c.path,
+            hasContent: !!c.content || extractedContent !== c.text,
           }
         }
         if (c.type === 'command') {
@@ -230,6 +226,20 @@ export function useJsonlParser() {
       })
     }
     if (content && typeof content === 'object') {
+      // Handle file type object
+      if (content.type === 'file') {
+        const filePath = content.path || content.filename || content.url || ''
+        let text = content.content || content.text || `[File: ${filePath}]`
+        text = extractContentFromTag(text)
+        return [{
+          type: 'file' as const,
+          text: cleanLineNumbers(text),
+          mime: content.mime,
+          filename: filePath,
+          url: content.url || content.path,
+          hasContent: !!content.content,
+        }]
+      }
       if (content.text) {
         let text = content.text
         text = extractContentFromTag(text)
