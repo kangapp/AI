@@ -189,6 +189,19 @@ export function useJsonlParser() {
       } catch {
         // Not JSON, treat as text
       }
+      // Check if the string contains <type>file</type> tags
+      if (content.includes('<type>file</type>')) {
+        const pathMatch = content.match(/<path>(.*?)<\/path>/s)
+        const contentMatch = content.match(/<content>([\s\S]*?)<\/content>/)
+        if (pathMatch || contentMatch) {
+          return [{
+            type: 'file' as const,
+            text: cleanLineNumbers(contentMatch ? contentMatch[1] : content),
+            filename: pathMatch ? pathMatch[1] : '',
+            hasContent: !!contentMatch,
+          }]
+        }
+      }
       // Check if the string contains <content> tags
       const extracted = extractContentFromTag(content)
       if (extracted !== content) {
