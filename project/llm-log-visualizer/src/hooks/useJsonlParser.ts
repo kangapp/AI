@@ -179,6 +179,16 @@ export function useJsonlParser() {
 
   function extractContentBlocks(content: any): ContentBlock[] {
     if (typeof content === 'string') {
+      // Try to parse as JSON if it looks like an object
+      try {
+        const parsed = JSON.parse(content)
+        if (parsed && typeof parsed === 'object') {
+          // Recursively process parsed JSON
+          return extractContentBlocks(parsed)
+        }
+      } catch {
+        // Not JSON, treat as text
+      }
       // Check if the string contains <content> tags
       const extracted = extractContentFromTag(content)
       if (extracted !== content) {
