@@ -239,8 +239,18 @@ export function useJsonlParser() {
             text: cleanLineNumbers(text),
           }
         }
-        // For text type, check for <content> tags
+        // For text type, check if it contains <type>file</type>
         let text = c.text || ''
+        if (text.includes('<type>file</type>')) {
+          const pathMatch = text.match(/<path>(.*?)<\/path>/s)
+          const contentMatch = text.match(/<content>([\s\S]*?)<\/content>/)
+          return {
+            type: 'file' as const,
+            text: cleanLineNumbers(contentMatch ? contentMatch[1] : text),
+            filename: pathMatch ? pathMatch[1] : '',
+            hasContent: !!contentMatch,
+          }
+        }
         text = extractContentFromTag(text)
         return {
           type: 'text' as const,
