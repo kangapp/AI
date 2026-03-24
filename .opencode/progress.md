@@ -2,6 +2,28 @@
 
 ## Session Log
 
+### 2026-03-24 (Afternoon Session)
+
+**File 类型日志改进**
+
+问题: File 类型日志缺少明显的 "file" 标签，且 `<content>` 内容没有和文件信息一起显示
+
+修复内容:
+1. **extractContentBlocks** - 为 file 类型添加 `<content>` 标签检测，添加 `hasContent` 字段
+2. **ChatItem 类型** - 添加 `mime`, `url`, `hasContent` 字段
+3. **UI 渲染** - 为 file 类型显示显眼的 "📎 FILE" 标签，显示 filename 和 mime
+4. **CSS 样式** - 添加 `.file-tag-label`, `.file-tag-name`, `.file-content-wrapper` 等样式
+
+修改文件:
+- `src/hooks/useJsonlParser.ts` - extractContentBlocks 函数
+- `src/types/index.ts` - ChatItem 类型
+- `src/App.tsx` - renderMessages 函数
+- `src/App.css` - 添加 file 相关样式
+
+**Dev Server:** http://localhost:5177/
+
+---
+
 ### 2026-03-24 (Catchup Session)
 
 **Catchup 时间:** 2026-03-24

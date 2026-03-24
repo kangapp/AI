@@ -640,6 +640,68 @@ body::before {
   font-size: 11px;
 }
 
+/* File tag styling */
+.file-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  flex-wrap: wrap;
+}
+
+.file-tag-label {
+  display: inline-block;
+  padding: 2px 8px;
+  background: linear-gradient(135deg, var(--accent-mint), #8bc9a3);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.file-tag-name {
+  font-weight: 500;
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.file-tag-mime {
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--bg-elevated);
+  padding: 1px 6px;
+  border-radius: 3px;
+}
+
+/* File content wrapper */
+.file-content-wrapper {
+  margin-top: var(--space-sm);
+}
+
+.file-info-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-deep);
+  border-radius: 4px 4px 0 0;
+  border: 1px solid var(--border-subtle);
+  border-bottom: none;
+  font-size: 12px;
+}
+
+.file-info-path {
+  font-family: var(--font-mono);
+  color: var(--accent-mint);
+  word-break: break-all;
+}
+
+.file-content-wrapper .markdown-block {
+  border-radius: 0 0 4px 4px;
+  margin: 0;
+}
+
 /* Mermaid diagram container */
 .mermaid-chart {
   display: block;

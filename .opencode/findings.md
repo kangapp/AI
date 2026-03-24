@@ -302,10 +302,39 @@ function cleanLineNumbers(text: string): string {
 
 ```typescript
 export type ChatItem =
-  | { kind: 'user'; content: string; contentType?: 'text' | 'file' | 'command' | 'reference'; turn: number; filename?: string }
+  | { kind: 'user'; content: string; contentType?: 'text' | 'file' | 'command' | 'reference'; turn: number; filename?: string; mime?: string; url?: string; hasContent?: boolean }
 ```
 
 每个 content block 独立生成一个 ChatItem，支持：
 - `contentType: 'file'` - 文件引用，带 filename
 - `contentType: 'command'` - 命令
 - `contentType: 'text'` - 普通文本
+
+### File 类型日志改进 (2026-03-24)
+
+**问题:** File 类型日志没有明显的 "file" 标签，且 `<content>` 内容没有和文件信息一起显示
+
+**修复:**
+1. **FILE 标签:** 为 file 类型添加显眼的 "📎 FILE" 标签
+2. **文件信息:** 显示 filename 和 mime type
+3. **内容显示:** 当有 `<content>` 内容时，显示文件信息栏和实际内容
+
+**UI 改进:**
+```tsx
+// 显示格式
+<span className="file-tag">
+  <span className="file-tag-label">📎 FILE</span>
+  <span className="file-tag-name">{item.filename}</span>
+  <span className="file-tag-mime">{item.mime}</span>
+</span>
+
+// 有内容时额外显示
+<div className="file-content-wrapper">
+  <div className="file-info-bar">
+    <span className="file-info-path">{item.url || item.filename}</span>
+  </div>
+  <div className="markdown-block">
+    {/* 实际内容 */}
+  </div>
+</div>
+```

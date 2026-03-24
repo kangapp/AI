@@ -85,6 +85,9 @@ export function useJsonlParser() {
                 content: block.text,
                 contentType: block.type,
                 filename: block.filename,
+                mime: block.mime,
+                url: block.url,
+                hasContent: block.hasContent,
                 turn: currentTurn.turnStart.turn
               })
             }
@@ -157,6 +160,7 @@ export function useJsonlParser() {
     mime?: string
     filename?: string
     url?: string
+    hasContent?: boolean
   }
 
   function cleanLineNumbers(text: string): string {
@@ -185,9 +189,23 @@ export function useJsonlParser() {
     if (Array.isArray(content)) {
       return content.map((c: any) => {
         if (c.type === 'file') {
+          let text = c.source?.text?.value || c.text || `[File: ${c.filename || c.url}]`
+          // Check for <content> tags and extract content while preserving file info
+          const extractedContent = extractContentFromTag(text)
+          if (extractedContent !== text) {
+            // Content was extracted from tags - return file block with content
+            return {
+              type: 'file' as const,
+              text: cleanLineNumbers(extractedContent),
+              mime: c.mime,
+              filename: c.filename,
+              url: c.url,
+              hasContent: true,
+            }
+          }
           return {
             type: 'file' as const,
-            text: cleanLineNumbers(c.source?.text?.value || c.text || `[File: ${c.filename || c.url}]`),
+            text: cleanLineNumbers(text),
             mime: c.mime,
             filename: c.filename,
             url: c.url,
