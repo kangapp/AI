@@ -229,7 +229,19 @@ export function useJsonlParser() {
       // Handle file type object
       if (content.type === 'file') {
         const filePath = content.path || content.filename || content.url || ''
-        let text = content.content || content.text || `[File: ${filePath}]`
+        // Handle content being an object like {type: 'text', text: '...'}
+        let text = ''
+        if (content.content) {
+          if (typeof content.content === 'string') {
+            text = content.content
+          } else if (content.content.text) {
+            text = content.content.text
+          } else {
+            text = JSON.stringify(content.content)
+          }
+        } else {
+          text = content.text || `[File: ${filePath}]`
+        }
         text = extractContentFromTag(text)
         return [{
           type: 'file' as const,
