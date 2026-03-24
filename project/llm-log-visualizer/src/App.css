@@ -691,10 +691,17 @@ body::before {
   font-size: 12px;
 }
 
+.file-info-name {
+  font-weight: 600;
+  color: var(--accent-amber);
+  font-size: 12px;
+}
+
 .file-info-path {
   font-family: var(--font-mono);
   color: var(--accent-mint);
   word-break: break-all;
+  font-size: 11px;
 }
 
 .file-content-wrapper .markdown-block {

@@ -573,6 +573,10 @@ export default function App() {
                   </div>
                   {item.contentType === 'file' && item.hasContent && (
                     <div className="file-content-wrapper">
+                      <div className="file-info-bar">
+                        {item.filename && <span className="file-info-name">{item.filename}</span>}
+                        {item.url && item.url !== item.filename && <span className="file-info-path">{item.url}</span>}
+                      </div>
                       <div className="markdown-block">
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
