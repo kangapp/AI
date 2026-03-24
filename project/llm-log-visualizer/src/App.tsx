@@ -559,23 +559,13 @@ export default function App() {
             case 'user':
               return (
                 <div key={`user-${i}`} className={`chat-message user ${item.contentType === 'file' ? 'user-file' : item.contentType === 'command' ? 'user-command' : ''}`}>
-                  <div className="chat-role">
-                    {item.contentType === 'file' ? (
-                      <span className="file-tag">
-                        <span className="file-tag-label">📎 FILE</span>
-                        {item.mime && <span className="file-tag-mime">{item.mime}</span>}
-                      </span>
-                    ) : item.contentType === 'command' ? (
-                      '⌨️ Command'
-                    ) : (
-                      'User'
-                    )}
-                  </div>
-                  {item.contentType === 'file' && item.hasContent && (
+                  {item.contentType === 'file' ? (
                     <div className="file-content-wrapper">
                       <div className="file-info-bar">
+                        <span className="file-tag-label">📎 FILE</span>
                         {item.filename && <span className="file-info-name">{item.filename}</span>}
                         {item.url && item.url !== item.filename && <span className="file-info-path">{item.url}</span>}
+                        {item.mime && <span className="file-tag-mime">{item.mime}</span>}
                       </div>
                       <div className="markdown-block">
                         <ReactMarkdown
@@ -612,42 +602,50 @@ export default function App() {
                         </ReactMarkdown>
                       </div>
                     </div>
-                  )}
-                  {(!item.hasContent || item.contentType !== 'file') && (
-                    <div className="markdown-block">
-                      <ReactMarkdown
-                        remarkPlugins={[remarkGfm]}
-                        rehypePlugins={[rehypeHighlight]}
-                        components={{
-                          code: ({ node, className, children, ...props }) => {
-                            const match = /language-(\w+)/.exec(className || '')
-                            const codeString = String(children).replace(/\n$/, '')
+                  ) : (
+                    <>
+                      <div className="chat-role">
+                        {item.contentType === 'command' ? (
+                          '⌨️ Command'
+                        ) : (
+                          'User'
+                        )}
+                      </div>
+                      <div className="markdown-block">
+                        <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeHighlight]}
+                          components={{
+                            code: ({ node, className, children, ...props }) => {
+                              const match = /language-(\w+)/.exec(className || '')
+                              const codeString = String(children).replace(/\n$/, '')
 
-                            // Render mermaid diagrams
-                            if (match && match[1] === 'mermaid') {
-                              return (
-                                <div className="mermaid-chart">
-                                  <div className="mermaid" dangerouslySetInnerHTML={{ __html: codeString }} />
-                                </div>
-                              )
+                              // Render mermaid diagrams
+                              if (match && match[1] === 'mermaid') {
+                                return (
+                                  <div className="mermaid-chart">
+                                    <div className="mermaid" dangerouslySetInnerHTML={{ __html: codeString }} />
+                                  </div>
+                                )
+                              }
+
+                              // Regular code block
+                              if (className) {
+                                return (
+                                  <code className={className} {...props}>
+                                    {children}
+                                  </code>
+                                )
+                              }
+
+                              return <code {...props}>{children}</code>
                             }
-
-                            // Regular code block
-                            if (className) {
-                              return (
-                                <code className={className} {...props}>
-                                  {children}
-                                </code>
-                              )
-                            }
-
-                            return <code {...props}>{children}</code>
-                          }
-                        }}
-                      >
-                        {renderContent(item.content)}
-                      </ReactMarkdown>
-                    </div>
+                          }}
+                        >
+                          {renderContent(item.content)}
+                        </ReactMarkdown>
+                      </div>
+                    </>
                   )}
                 </div>
               )
