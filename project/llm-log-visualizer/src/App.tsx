@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import rehypeHighlight from 'rehype-highlight'
 import remarkGfm from 'remark-gfm'
+import mermaid from 'mermaid'
 import { useJsonlParser } from './hooks/useJsonlParser'
 import { ContentBlock } from './components/ContentBlock'
 import { SystemPrompt } from './components/SystemPrompt'
@@ -14,6 +15,20 @@ import type {
   SubtaskStartEvent,
   PermissionRequestEvent,
 } from './types'
+
+// Initialize mermaid
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'dark',
+  themeVariables: {
+    primaryColor: '#6b8fd4',
+    primaryTextColor: '#fff',
+    primaryBorderColor: '#444',
+    lineColor: '#888',
+    secondaryColor: '#3d3425',
+    tertiaryColor: '#292524',
+  }
+})
 
 interface LoadedFile {
   filename: string
@@ -126,6 +141,23 @@ export default function App() {
   }, [parseContent])
 
   const currentView = currentFile?.cachedViews[currentTurn - 1]
+
+  // Render mermaid diagrams after content updates
+  useEffect(() => {
+    const renderMermaid = async () => {
+      const mermaidElements = document.querySelectorAll('.mermaid')
+      if (mermaidElements.length > 0) {
+        try {
+          await mermaid.run({
+            querySelector: '.mermaid'
+          })
+        } catch (e) {
+          console.warn('Mermaid render error:', e)
+        }
+      }
+    }
+    renderMermaid()
+  }, [currentView])
 
   // 计算指定 turn 的工具索引集合
   const getToolIndicesForTurn = (turn: number, toolTurnCounts: number[]): Set<number> => {
@@ -526,10 +558,47 @@ export default function App() {
           switch (item.kind) {
             case 'user':
               return (
-                <div key={`user-${i}`} className="chat-message user">
-                  <div className="chat-role">User</div>
+                <div key={`user-${i}`} className={`chat-message user ${item.contentType === 'file' ? 'user-file' : item.contentType === 'command' ? 'user-command' : ''}`}>
+                  <div className="chat-role">
+                    {item.contentType === 'file' ? (
+                      <>📎 {item.filename || 'File'}</>
+                    ) : item.contentType === 'command' ? (
+                      '⌨️ Command'
+                    ) : (
+                      'User'
+                    )}
+                  </div>
                   <div className="markdown-block">
-                    <ReactMarkdown remarkPlugins={[remarkGfm]} rehypePlugins={[rehypeHighlight]}>
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      rehypePlugins={[rehypeHighlight]}
+                      components={{
+                        code: ({ node, className, children, ...props }) => {
+                          const match = /language-(\w+)/.exec(className || '')
+                          const codeString = String(children).replace(/\n$/, '')
+
+                          // Render mermaid diagrams
+                          if (match && match[1] === 'mermaid') {
+                            return (
+                              <div className="mermaid-chart">
+                                <div className="mermaid" dangerouslySetInnerHTML={{ __html: codeString }} />
+                              </div>
+                            )
+                          }
+
+                          // Regular code block
+                          if (className) {
+                            return (
+                              <code className={className} {...props}>
+                                {children}
+                              </code>
+                            )
+                          }
+
+                          return <code {...props}>{children}</code>
+                        }
+                      }}
+                    >
                       {renderContent(item.content)}
                     </ReactMarkdown>
                   </div>

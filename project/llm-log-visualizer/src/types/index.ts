@@ -146,7 +146,7 @@ export interface Turn {
 
 // Unified chat item type for chronological display
 export type ChatItem =
-  | { kind: 'user'; content: string; turn: number }
+  | { kind: 'user'; content: string; contentType?: 'text' | 'file' | 'command' | 'reference'; turn: number; filename?: string }
   | { kind: 'assistant'; content: string; turn: number }
   | { kind: 'reasoning'; content: string; turn: number }
   | { kind: 'agent_switch'; agent: string; turn: number }

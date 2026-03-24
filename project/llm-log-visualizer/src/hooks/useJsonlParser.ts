@@ -75,10 +75,19 @@ export function useJsonlParser() {
         const currentTurn = turns[i]
 
         // 1. User messages from turnStart.messages
+        // Each content block becomes a separate chat item
         for (const msg of currentTurn.turnStart.messages) {
           if (msg.role === 'user') {
-            const content = extractContent(msg.content)
-            chatItems.push({ kind: 'user', content, turn: currentTurn.turnStart.turn })
+            const contentBlocks = extractContentBlocks(msg.content)
+            for (const block of contentBlocks) {
+              chatItems.push({
+                kind: 'user',
+                content: block.text,
+                contentType: block.type,
+                filename: block.filename,
+                turn: currentTurn.turnStart.turn
+              })
+            }
           }
         }
 
@@ -142,16 +151,79 @@ export function useJsonlParser() {
     })
   }
 
-  function extractContent(content: any): string {
-    if (typeof content === 'string') return content
+  interface ContentBlock {
+    type: 'text' | 'file' | 'command' | 'reference'
+    text: string
+    mime?: string
+    filename?: string
+    url?: string
+  }
+
+  function cleanLineNumbers(text: string): string {
+    // Remove "1: ", "2: ", etc. prefixes at the start of lines
+    return text.replace(/^\d+:\s*/gm, '')
+  }
+
+  function extractContentFromTag(text: string): string {
+    // Extract content from <content>...</content> tags
+    const match = text.match(/<content>([\s\S]*?)<\/content>/)
+    if (match) {
+      return match[1].trim()
+    }
+    return text
+  }
+
+  function extractContentBlocks(content: any): ContentBlock[] {
+    if (typeof content === 'string') {
+      // Check if the string contains <content> tags
+      const extracted = extractContentFromTag(content)
+      if (extracted !== content) {
+        return [{ type: 'text', text: cleanLineNumbers(extracted) }]
+      }
+      return [{ type: 'text', text: content }]
+    }
     if (Array.isArray(content)) {
-      return content.map((c: any) => c.text || '').join('')
+      return content.map((c: any) => {
+        if (c.type === 'file') {
+          return {
+            type: 'file' as const,
+            text: cleanLineNumbers(c.source?.text?.value || c.text || `[File: ${c.filename || c.url}]`),
+            mime: c.mime,
+            filename: c.filename,
+            url: c.url,
+          }
+        }
+        if (c.type === 'command') {
+          let text = c.text || ''
+          // Extract content from tags if present
+          text = extractContentFromTag(text)
+          return {
+            type: 'command' as const,
+            text: cleanLineNumbers(text),
+          }
+        }
+        // For text type, check for <content> tags
+        let text = c.text || ''
+        text = extractContentFromTag(text)
+        return {
+          type: 'text' as const,
+          text: cleanLineNumbers(text),
+        }
+      })
     }
     if (content && typeof content === 'object') {
-      if (content.text) return content.text
-      if (content.content) return typeof content.content === 'string' ? content.content : JSON.stringify(content.content)
+      if (content.text) {
+        let text = content.text
+        text = extractContentFromTag(text)
+        return [{ type: 'text', text: cleanLineNumbers(text) }]
+      }
+      if (content.content) {
+        let text = typeof content.content === 'string' ? content.content : JSON.stringify(content.content)
+        text = extractContentFromTag(text)
+        return [{ type: 'text', text: cleanLineNumbers(text) }]
+      }
     }
-    return JSON.stringify(content)
+    return [{ type: 'text', text: JSON.stringify(content) }]
   }
 
   return { parseContent }

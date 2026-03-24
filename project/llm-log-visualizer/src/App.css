@@ -607,6 +607,62 @@ body::before {
   border-left-color: var(--color-user);
 }
 
+.chat-message.user.user-file {
+  background: rgba(107, 158, 120, 0.1);
+  border-color: rgba(107, 158, 120, 0.25);
+  border-left-color: var(--accent-mint);
+}
+
+.chat-message.user.user-command {
+  background: rgba(245, 166, 35, 0.1);
+  border-color: rgba(245, 166, 35, 0.25);
+  border-left-color: var(--accent-amber);
+}
+
+/* File content in markdown block */
+.chat-message.user.user-file .markdown-block {
+  background: var(--bg-card);
+  border-radius: 6px;
+  padding: var(--space-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.chat-message.user.user-file .markdown-block pre {
+  background: var(--bg-deep);
+  border-radius: 6px;
+  padding: var(--space-sm);
+  overflow-x: auto;
+  margin: var(--space-xs) 0;
+}
+
+.chat-message.user.user-file .markdown-block code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+/* Mermaid diagram container */
+.mermaid-chart {
+  display: block;
+  margin: var(--space-sm) 0;
+  overflow-x: auto;
+  background: var(--bg-card);
+  border-radius: 8px;
+  padding: var(--space-sm);
+  border: 1px solid var(--border-subtle);
+}
+
+.mermaid {
+  display: flex;
+  justify-content: center;
+  padding: var(--space-sm);
+  background: transparent;
+}
+
+.mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
 .chat-message.assistant {
   background: var(--color-assistant-bg);
   border-color: var(--color-assistant-border);
