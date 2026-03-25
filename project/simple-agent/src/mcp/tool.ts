@@ -6,7 +6,7 @@
 
 import { z } from "zod";
 import type { MCPTool } from "./types";
-import type { ToolContext, ToolResult, ToolDefinition } from "../tools/types";
+import type { ToolContext, ToolResult, ToolDefinition, Tool } from "../tools/types";
 
 /**
  * Convert an MCP tool's inputSchema to a Zod schema
@@ -109,5 +109,21 @@ export function createMcpToolExecutor(
         error: error instanceof Error ? error.message : String(error),
       };
     }
+  };
+}
+
+/**
+ * Convert an MCP tool to a Tool with execute function
+ * The callToolFn should have signature: (name: string, args: any) => Promise<any>
+ */
+export function convertMcpTool(
+  mcpTool: MCPTool,
+  callToolFn: (name: string, args: unknown) => Promise<unknown>
+): Tool {
+  return {
+    name: mcpTool.name,
+    description: mcpTool.description || "",
+    parameters: convertMcpInputSchema(mcpTool.inputSchema),
+    execute: createMcpToolExecutor(mcpTool, callToolFn),
   };
 }

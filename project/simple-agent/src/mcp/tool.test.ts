@@ -1,5 +1,5 @@
 import { describe, test, expect } from "bun:test";
-import { convertMcpInputSchema, convertMcpToolDefinition } from "./tool";
+import { convertMcpInputSchema, convertMcpToolDefinition, convertMcpTool } from "./tool";
 import type { MCPTool } from "./types";
 
 describe("convertMcpInputSchema", () => {
@@ -133,5 +133,74 @@ describe("convertMcpToolDefinition", () => {
 
     const definition = convertMcpToolDefinition(mcpTool);
     expect(definition.parameters.required).toBeUndefined();
+  });
+});
+
+describe("convertMcpTool", () => {
+  test("converts MCP tool with execute function", () => {
+    const mcpTool: MCPTool = {
+      name: "test-tool",
+      description: "A test tool",
+      inputSchema: {
+        type: "object",
+        properties: {
+          input: { type: "string" },
+        },
+        required: ["input"],
+      },
+    };
+
+    const mockCallTool = async (name: string, args: unknown) => {
+      return { success: true, name, args };
+    };
+
+    const tool = convertMcpTool(mcpTool, mockCallTool);
+    expect(tool.name).toBe("test-tool");
+    expect(tool.description).toBe("A test tool");
+    expect(tool.parameters).toBeDefined();
+  });
+
+  test("execute returns successful result", async () => {
+    const mcpTool: MCPTool = {
+      name: "exec-tool",
+      description: "An executable tool",
+      inputSchema: {
+        type: "object",
+        properties: {
+          value: { type: "string" },
+        },
+      },
+    };
+
+    const mockCallTool = async (name: string, args: unknown) => {
+      return { executed: true, tool: name, args };
+    };
+
+    const tool = convertMcpTool(mcpTool, mockCallTool);
+    const result = await tool.execute({ value: "test" }, {});
+
+    expect(result.success).toBe(true);
+    expect(result.result).toBeDefined();
+  });
+
+  test("execute returns error on tool failure", async () => {
+    const mcpTool: MCPTool = {
+      name: "fail-tool",
+      description: "A failing tool",
+      inputSchema: {
+        type: "object",
+        properties: {},
+      },
+    };
+
+    const mockCallTool = async (_name: string, _args: unknown) => {
+      throw new Error("Tool execution failed");
+    };
+
+    const tool = convertMcpTool(mcpTool, mockCallTool);
+    const result = await tool.execute({}, {});
+
+    expect(result.success).toBe(false);
+    expect(result.error).toBe("Tool execution failed");
   });
 });

@@ -22,6 +22,7 @@ import { convertMcpInputSchema, createMcpToolExecutor } from "./tool";
  */
 export class MCPClient {
   private connections: Map<string, MCPConnection> = new Map();
+  private toolToServer: Map<string, string> = new Map();
 
   /**
    * Connect to an MCP server with the given configuration
@@ -150,9 +151,24 @@ export class MCPClient {
   }
 
   /**
-   * Call a tool on a specific MCP server
+   * Call a tool by its qualified name (format: "serverName:toolName")
+   * The name can also be just the tool name if it was registered via createTool
    */
-  async callTool(serverName: string, toolName: string, args: unknown): Promise<unknown> {
+  async callTool(name: string, args: unknown): Promise<unknown> {
+    let serverName: string;
+    let toolName: string;
+
+    // Check if name contains a server prefix (format: "serverName:toolName")
+    if (name.includes(":")) {
+      const lastColonIndex = name.lastIndexOf(":");
+      serverName = name.substring(0, lastColonIndex);
+      toolName = name.substring(lastColonIndex + 1);
+    } else {
+      // Look up server from registered tools
+      serverName = this.toolToServer.get(name) || name;
+      toolName = name;
+    }
+
     const connection = this.connections.get(serverName);
     if (!connection) {
       throw new Error(`MCP server "${serverName}" is not connected`);
@@ -179,12 +195,15 @@ export class MCPClient {
     const fullName = `${serverName}:${mcpTool.name}`;
     const zodSchema = convertMcpInputSchema(mcpTool.inputSchema);
 
+    // Register tool name to server mapping for callTool routing
+    this.toolToServer.set(fullName, serverName);
+
     return {
       name: fullName,
       description: mcpTool.description || `MCP tool: ${mcpTool.name}`,
       parameters: zodSchema,
       execute: createMcpToolExecutor(mcpTool, (name, args) =>
-        this.callTool(serverName, name, args)
+        this.callTool(name, args)
       ),
     };
   }
