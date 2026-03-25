@@ -140,6 +140,28 @@ git commit -m "chore: initialize simple-agent project with Bun and TypeScript"
 ```typescript
 import { z } from 'zod'
 
+// ============ 事件类型 ============
+
+export type AgentEvent =
+  | 'start'           // Agent 开始执行
+  | 'step_start'      // 每个步骤开始
+  | 'step_complete'   // 每个步骤完成
+  | 'llm_request'     // LLM 请求发送
+  | 'llm_response'    // LLM 响应接收
+  | 'tool_call'       // 工具调用
+  | 'tool_result'     // 工具执行结果
+  | 'error'           // 错误发生
+  | 'complete'        // Agent 执行完成
+  | 'mcp_connect'     // MCP 服务器连接
+  | 'mcp_disconnect'  // MCP 服务器断开
+
+export interface EventData {
+  timestamp: number
+  event: AgentEvent
+  data: unknown
+  sessionId: string
+}
+
 // ============ 消息类型 ============
 
 export interface Message {
@@ -222,6 +244,18 @@ export interface Session {
 }
 
 export interface SessionMeta {
+  id: string
+  createdAt: number
+  updatedAt: number
+  messageCount: number
+}
+
+export interface SessionStorage {
+  save(session: Session): Promise<void>
+  load(sessionId: string): Promise<Session | null>
+  list(): Promise<SessionMeta[]>
+  delete(sessionId: string): Promise<void>
+}
   id: string
   createdAt: number
   updatedAt: number
@@ -646,91 +680,6 @@ git commit -m "feat: implement LLM provider abstraction layer"
 - Create: `simple-agent/tests/llm.test.ts`
 
 - [ ] **Step 1: 创建 llm/openai.ts**
-
-```typescript
-import { createOpenAI } from '@ai-sdk/openai'
-import type { Message, ToolDefinition } from '../types'
-import type { ChatOptions, ChatResponse } from './types'
-import { BaseLLMProvider } from './base'
-
-export class OpenAIProvider extends BaseLLMProvider {
-  readonly name = 'openai'
-  private client: ReturnType<typeof createOpenAI>
-  private modelId: string
-
-  constructor(model: string, apiKey: string, baseURL?: string) {
-    super()
-    this.modelId = model
-    this.client = createOpenAI({
-      apiKey,
-      baseURL,
-    })
-  }
-
-  get model(): string {
-    return this.modelId
-  }
-
-  supportsTools(): boolean {
-    return true
-  }
-
-  async chat(messages: Message[], options?: ChatOptions): Promise<ChatResponse> {
-    const model = this.client(this.modelId)
-
-    const tools = options?.tools?.map((tool) => ({
-      type: 'function' as const,
-      name: tool.name,
-      description: tool.description,
-      parameters: tool.parameters,
-    }))
-
-    // Use streamText or generateText - using generateText for simpler response handling
-    const { output, usage, finishReason } = await model.withConfig({
-      temperature: options?.temperature,
-      maxTokens: options?.maxTokens,
-    }).generateText({
-      model: this.client(this.modelId),
-      messages: messages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      })),
-      tools,
-      toolChoice: options?.toolChoice,
-    })
-
-    // Parse output - could be text or tool calls
-    let content = ''
-    let toolCalls: ChatResponse['toolCalls'] = []
-
-    if (typeof output === 'string') {
-      content = output
-    } else if (output && typeof output === 'object') {
-      // Handle tool call responses
-      const outputObj = output as Record<string, unknown>
-      if (outputObj.content) {
-        content = String(outputObj.content)
-      }
-      if (outputObj.toolCalls) {
-        toolCalls = outputObj.toolCalls as ChatResponse['toolCalls']
-      }
-    }
-
-    return {
-      content,
-      toolCalls: toolCalls?.length ? toolCalls : undefined,
-      usage: usage
-        ? {
-            inputTokens: usage.promptTokens,
-            outputTokens: usage.completionTokens,
-          }
-        : undefined,
-    }
-  }
-}
-```
-
-- [ ] **Step 2: 简化 Provider 实现（适配 Vercel AI SDK v5）**
 
 ```typescript
 import { createOpenAI } from '@ai-sdk/openai'
@@ -1708,10 +1657,10 @@ export function convertMcpTool(mcpTool: MCPTool, client: MCPClient): Tool {
     name: mcpTool.name,
     description: mcpTool.description || `MCP tool: ${mcpTool.name}`,
     parameters: z.object(properties),
-    execute: async (params: unknown) => {
+    execute: async (params: unknown, context: ToolContext) => {
       const result = await client.callTool(mcpTool.name, params as Record<string, unknown>)
       return {
-        toolCallId: crypto.randomUUID(),
+        toolCallId: context.sessionId,
         success: true,
         result,
       }
@@ -1908,44 +1857,48 @@ import { stepMode } from './step'
 import { loopMode } from './loop'
 
 export class Agent {
-  private config: AgentConfig
-  private llm = createLLMProvider({
-    provider: this.config.provider,
-    model: this.config.model,
-    apiKey: this.config.apiKey,
-    baseURL: this.config.baseURL,
-  })
+  private _config: AgentConfig
+  private llm
   private tools: ToolRegistry
   private events: EventEmitter
   private mcp: MCPClient
   private sessionId: string
 
   constructor(config: AgentConfig) {
-    this.config = {
+    // Initialize config first
+    this._config = {
       maxIterations: 10,
       ...config,
     }
+
+    // Initialize LLM with config (after config is set)
+    this.llm = createLLMProvider({
+      provider: this._config.provider,
+      model: this._config.model,
+      apiKey: this._config.apiKey,
+      baseURL: this._config.baseURL,
+    })
+
+    // Initialize other properties
     this.tools = new ToolRegistry()
     this.events = new EventEmitter()
     this.mcp = new MCPClient()
     this.sessionId = crypto.randomUUID()
 
     // Register tools
-    for (const tool of this.config.tools) {
+    for (const tool of this._config.tools) {
       this.tools.register(tool)
     }
 
     // Connect MCP servers if configured
-    if (this.config.mcpServers) {
-      this.connectMCP(this.config.mcpServers)
+    if (this._config.mcpServers) {
+      this.connectMCP(this._config.mcpServers)
     }
   }
 
-  get config() {
+  get config(): AgentConfig {
     return this._config
   }
-
-  private _config: AgentConfig
 
   async connectMCP(configs: Parameters<typeof this.mcp.connect extends (config: infer P) => Promise<void> ? P : never>[]): Promise<void> {
     for (const config of configs) {
