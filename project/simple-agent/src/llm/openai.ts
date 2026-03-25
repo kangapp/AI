@@ -11,10 +11,12 @@ export class OpenAIProvider extends LLMProvider {
 	readonly model: string;
 	private readonly openai: ReturnType<typeof createOpenAI>;
 
-	constructor(model: string = 'gpt-4o') {
+	constructor(model: string = 'gpt-4o', baseURL?: string) {
 		super();
 		this.model = model;
-		this.openai = createOpenAI({});
+		this.openai = createOpenAI({
+			baseURL: baseURL || undefined,
+		});
 	}
 
 	supportsTools(): boolean {

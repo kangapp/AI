@@ -39,7 +39,7 @@ export class Agent {
     } else {
       // Create LLM provider
       const { createProvider } = require('../llm');
-      this.llm = createProvider(config.provider, config.model);
+      this.llm = createProvider(config.provider, config.model, config.baseURL);
     }
 
     // Set API key if provided
