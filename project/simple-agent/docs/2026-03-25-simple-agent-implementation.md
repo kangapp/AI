@@ -89,6 +89,7 @@ simple-agent/
   "dependencies": {
     "@ai-sdk/openai": "^1.0.0",
     "@ai-sdk/anthropic": "^1.0.0",
+    "ai": "^3.0.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
@@ -218,6 +219,7 @@ export interface AgentConfig {
   systemPrompt?: string
   maxIterations?: number
   tools: Tool[]
+  mcpServers?: MCPConfig[]
 }
 
 export type AgentMode = 'step' | 'loop'
@@ -255,11 +257,6 @@ export interface SessionStorage {
   load(sessionId: string): Promise<Session | null>
   list(): Promise<SessionMeta[]>
   delete(sessionId: string): Promise<void>
-}
-  id: string
-  createdAt: number
-  updatedAt: number
-  messageCount: number
 }
 
 // ============ MCP 类型 ============
@@ -1967,19 +1964,20 @@ export async function* stepMode(
 ): AsyncGenerator<StepResult> {
   agent.emit('step_start', { iteration: 1 })
 
-  // Get tool definitions
-  const toolDefs = agent.getTools().getDefinitions()
-
-  // Add MCP tools if available
+  // Add MCP tools if available (register them first)
   try {
     const mcpTools = await agent.getMCP().listTools()
     for (const tool of mcpTools) {
-      agent.getTools().register(tool)
+      if (!agent.getTools().get(tool.name)) {
+        agent.getTools().register(tool)
+      }
     }
-    toolDefs.push(...agent.getTools().getDefinitions())
   } catch {
     // Ignore MCP errors in step mode
   }
+
+  // Get tool definitions (including MCP tools)
+  const toolDefs = agent.getTools().getDefinitions()
 
   // Build system message with tools
   const systemMessage = agent.config.systemPrompt || 'You are a helpful AI assistant.'
@@ -2086,9 +2084,6 @@ export async function* loopMode(
   for (let iteration = 1; iteration <= maxIterations; iteration++) {
     agent.emit('step_start', { iteration })
 
-    // Get tool definitions
-    let toolDefs = agent.getTools().getDefinitions()
-
     // Add MCP tools dynamically
     try {
       const mcpTools = await agent.getMCP().listTools()
@@ -2097,10 +2092,12 @@ export async function* loopMode(
           agent.getTools().register(tool)
         }
       }
-      toolDefs = agent.getTools().getDefinitions()
     } catch {
       // Continue without MCP tools if unavailable
     }
+
+    // Get tool definitions (including newly registered MCP tools)
+    const toolDefs = agent.getTools().getDefinitions()
 
     // Build system message with tools
     const systemMessage = agent.config.systemPrompt || 'You are a helpful AI assistant.'
