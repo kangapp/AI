@@ -32,7 +32,31 @@ interface CLIArgs {
   baseURL?: string;
 }
 
+function getNextArg(argv: string[], i: number, optionName: string): string | undefined {
+  if (i + 1 >= argv.length) {
+    console.error(`Error: ${optionName} requires a value`);
+    process.exit(1);
+  }
+  return argv[++i];
+}
+
 function parseArgs(argv: string[]): CLIArgs {
+  // Check for help flag before parsing
+  for (const arg of argv) {
+    if (arg === '--help' || arg === '-h') {
+      console.log(`Usage: bun src/index.ts [options]
+Options:
+  --prompt, -p <text>     User prompt (required)
+  --model, -m <model>     Model name (default: gpt-4o)
+  --provider <provider>    Provider: openai|anthropic (default: openai)
+  --session <id>          Session ID to resume
+  --mode <mode>           step|loop (default: loop)
+  --api-key <key>         API key (or use OPENAI_API_KEY env var)
+  --base-url <url>        Base URL for openai-compatible provider`);
+      process.exit(0);
+    }
+  }
+
   const args: CLIArgs = {
     prompt: '',
     model: 'gpt-4o',
@@ -44,29 +68,36 @@ function parseArgs(argv: string[]): CLIArgs {
     const arg = argv[i];
 
     if (arg === '--prompt' || arg === '-p') {
-      args.prompt = argv[++i] || '';
+      args.prompt = getNextArg(argv, i, arg) || '';
+      i++; // consume the value we just read
     } else if (arg === '--model' || arg === '-m') {
-      args.model = argv[++i] || 'gpt-4o';
+      args.model = getNextArg(argv, i, arg) || 'gpt-4o';
+      i++;
     } else if (arg === '--provider') {
-      const provider = argv[++i] || 'openai';
+      const provider = getNextArg(argv, i, arg) || 'openai';
+      i++;
       if (provider !== 'openai' && provider !== 'anthropic') {
         console.error(`Invalid provider: ${provider}. Using 'openai'.`);
       } else {
         args.provider = provider;
       }
     } else if (arg === '--session') {
-      args.session = argv[++i];
+      args.session = getNextArg(argv, i, arg);
+      i++;
     } else if (arg === '--mode') {
-      const mode = argv[++i] || 'loop';
+      const mode = getNextArg(argv, i, arg) || 'loop';
+      i++;
       if (mode !== 'step' && mode !== 'loop') {
         console.error(`Invalid mode: ${mode}. Using 'loop'.`);
       } else {
         args.mode = mode;
       }
     } else if (arg === '--api-key') {
-      args.apiKey = argv[++i];
+      args.apiKey = getNextArg(argv, i, arg);
+      i++;
     } else if (arg === '--base-url') {
-      args.baseURL = argv[++i];
+      args.baseURL = getNextArg(argv, i, arg);
+      i++;
     }
   }
 
