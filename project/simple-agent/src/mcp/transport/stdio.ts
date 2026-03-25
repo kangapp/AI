@@ -126,19 +126,20 @@ export class StdioTransport implements MCPTransport {
       throw new Error("Process not connected");
     }
 
-    // Assign ID to request if not present (for notifications)
-    const isNotification = !("id" in message) || message.id === undefined;
-    if (isNotification) {
+    // 如果消息没有 id 字段，这是一个通知，直接发送，不分配 ID
+    if (!("id" in message)) {
+      const json = JSON.stringify(message) + "\n";
+      this.process.stdin.write(json);
+      return undefined;  // 通知不等待响应
+    }
+
+    // 这是一个请求（需要有 id）
+    if (message.id === undefined) {
       message.id = ++this.idCounter;
     }
 
     const json = JSON.stringify(message) + "\n";
     this.process.stdin.write(json);
-
-    // If this is a notification, don't wait for response
-    if (isNotification) {
-      return undefined;
-    }
 
     // Wait for response
     return new Promise((resolve, reject) => {
