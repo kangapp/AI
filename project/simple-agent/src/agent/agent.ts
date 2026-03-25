@@ -42,9 +42,13 @@ export class Agent {
       this.llm = createProvider(config.provider, config.model, config.baseURL);
     }
 
-    // Set API key if provided
+    // Set API key if provided (set env var for AI SDK to pick up)
     if (config.apiKey) {
-      // Provider API key would be set here if needed
+      if (config.provider === 'anthropic') {
+        process.env.ANTHROPIC_API_KEY = config.apiKey;
+      } else {
+        process.env.OPENAI_API_KEY = config.apiKey;
+      }
     }
 
     // Set base URL if provided

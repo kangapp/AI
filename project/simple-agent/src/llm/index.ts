@@ -13,7 +13,7 @@ export function createProvider(name: 'openai' | 'anthropic', model?: string, bas
 		case 'openai':
 			return new OpenAIProvider(model, baseURL);
 		case 'anthropic':
-			return new AnthropicProvider(model);
+			return new AnthropicProvider(model, baseURL);
 		default:
 			throw new Error(`Unknown provider: ${name}`);
 	}

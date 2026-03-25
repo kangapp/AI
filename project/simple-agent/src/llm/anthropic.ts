@@ -11,10 +11,12 @@ export class AnthropicProvider extends LLMProvider {
 	readonly model: string;
 	private readonly anthropic: ReturnType<typeof createAnthropic>;
 
-	constructor(model: string = 'claude-3-5-sonnet-20241022') {
+	constructor(model: string = 'claude-3-5-sonnet-20241022', baseURL?: string) {
 		super();
 		this.model = model;
-		this.anthropic = createAnthropic({});
+		this.anthropic = createAnthropic({
+			baseURL: baseURL || undefined,
+		});
 	}
 
 	supportsTools(): boolean {

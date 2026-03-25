@@ -1,0 +1,19 @@
+{
+  "id": "session-1774482102874",
+  "createdAt": 1774482102877,
+  "updatedAt": 1774482102877,
+  "messages": [
+    {
+      "role": "user",
+      "content": "say hello"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! 👋 How can I help you today?"
+    },
+    {
+      "role": "assistant",
+      "content": "Hello! 👋 How can I help you today?"
+    }
+  ]
+}
