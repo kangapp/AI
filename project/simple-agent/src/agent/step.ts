@@ -8,6 +8,7 @@
 import type { Message, StepResult } from '../types';
 import type { LLMProvider, ChatResponse } from '../llm';
 import type { Tool, ToolContext } from '../tools/types';
+import { zodToJsonSchema } from 'zod-to-json-schema';
 
 /**
  * Execute a single step of agent execution
@@ -29,7 +30,7 @@ export async function step(
     tools: tools.map(t => ({
       name: t.name,
       description: t.description,
-      parameters: t.parameters,
+      parameters: zodToJsonSchema(t.parameters),
     })),
   });
 

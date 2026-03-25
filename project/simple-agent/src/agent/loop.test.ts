@@ -1,4 +1,5 @@
 import { describe, test, expect, vi } from 'bun:test';
+import { z } from 'zod';
 import { loop } from './loop';
 import type { LLMProvider } from '../llm';
 import type { Tool } from '../tools/types';
@@ -33,7 +34,7 @@ class MockLLMProvider implements LLMProvider {
 const createMockTool = (name: string, execute: Function): Tool => ({
   name,
   description: `Mock tool: ${name}`,
-  parameters: {} as any,
+  parameters: z.object({}),
   execute: execute as any,
 });
 

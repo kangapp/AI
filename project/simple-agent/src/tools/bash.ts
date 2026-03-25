@@ -33,8 +33,8 @@ export class BashTool implements Tool {
       });
 
       const [stdout, stderr] = await Promise.all([
-        process.stdout.text(),
-        process.stderr.text(),
+        new Response(process.stdout).text(),
+        new Response(process.stderr).text(),
       ]);
 
       await process.exited;

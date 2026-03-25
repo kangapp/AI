@@ -5,6 +5,7 @@
  */
 
 import { z } from "zod";
+import { zodToJsonSchema } from "zod-to-json-schema";
 import { StdioTransport, StreamableHTTPTransport, MCPTransport } from "./transport";
 import {
   MCPConfig,
@@ -150,7 +151,7 @@ export class MCPClient {
     return tools.map((tool) => ({
       name: tool.name,
       description: tool.description,
-      parameters: tool.parameters,
+      parameters: zodToJsonSchema(tool.parameters) as ToolDefinition["parameters"],
     }));
   }
 

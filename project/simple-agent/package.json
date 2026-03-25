@@ -6,7 +6,7 @@
     "@ai-sdk/anthropic": "2.0.65",
     "@ai-sdk/openai": "2.0.89",
     "ai": "5.0.124",
-    "zod": "4.1.8",
+    "zod": "^3.25.76",
     "zod-to-json-schema": "^3.25.1"
   },
   "devDependencies": {

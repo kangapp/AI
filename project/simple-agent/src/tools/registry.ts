@@ -43,7 +43,7 @@ export class ToolRegistry {
       return {
         name: tool.name,
         description: tool.description,
-        parameters: zodToJsonSchema(tool.parameters),
+        parameters: zodToJsonSchema(tool.parameters) as ToolDefinition["parameters"],
       };
     });
   }

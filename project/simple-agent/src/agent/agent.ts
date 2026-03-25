@@ -33,7 +33,7 @@ export class Agent {
     this.mcpClient = null;
 
     // Check if an LLM was provided for testing (extends config)
-    const llmOverride = (config as Record<string, unknown>).llm as LLMProvider | undefined;
+    const llmOverride = (config as unknown as { llm?: LLMProvider }).llm;
     if (llmOverride) {
       this.llm = llmOverride;
     } else {

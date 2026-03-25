@@ -7,6 +7,8 @@ export interface Message {
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
   toolCalls?: ToolCall[];
+  toolCallId?: string;
+  toolName?: string;
 }
 
 // Tool-related types
