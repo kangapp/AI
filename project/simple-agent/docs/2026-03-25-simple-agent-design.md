@@ -562,11 +562,11 @@ async function main() {
 
 ## 7. 使用示例
 
-### 6.1 基本使用
+### 7.1 基本使用（Loop 模式）
 
 ```typescript
 import { Agent } from 'simple-agent'
-import { OpenAIProvider } from 'simple-agent/llm'
+import { BashTool, ReadTool, WriteTool } from 'simple-agent/tools'
 
 const agent = new Agent({
   provider: 'openai',
@@ -575,41 +575,403 @@ const agent = new Agent({
   tools: [BashTool, ReadTool, WriteTool],
 })
 
+// Loop 模式：自动循环直到任务完成
+const messages = [
+  { role: 'user', content: '创建一个 hello.txt 文件，内容为 "Hello, Agent!"' }
+]
+
+for await (const step of agent.run(messages, 'loop')) {
+  switch (step.type) {
+    case 'message':
+      console.log('Agent:', step.content)
+      break
+    case 'tool_call':
+      console.log(`Calling: ${step.metadata?.toolName}`)
+      break
+    case 'tool_result':
+      console.log(`Result: ${JSON.stringify(step.content)}`)
+      break
+    case 'error':
+      console.error('Error:', step.content)
+      break
+    case 'complete':
+      console.log('Task completed!')
+      break
+  }
+}
+```
+
+### 7.2 Step by Step 模式（调试模式）
+
+```typescript
+import { Agent } from 'simple-agent'
+import { BashTool, ReadTool, WriteTool } from 'simple-agent/tools'
+
+const agent = new Agent({
+  provider: 'anthropic',
+  model: 'claude-sonnet-4-20250514',
+  apiKey: process.env.ANTHROPIC_API_KEY,
+  tools: [BashTool, ReadTool, WriteTool],
+})
+
+const messages = [
+  { role: 'user', content: '列出当前目录的所有 TypeScript 文件' }
+]
+
+// Step 模式：每一步都暂停，等待确认
+for await (const step of agent.run(messages, 'step')) {
+  console.log(`[Step] ${step.type}:`, step.content)
+
+  // 可以在这里检查中间状态，决定是否继续
+  if (step.type === 'tool_call') {
+    const continue_ = await askUser('Continue? (y/n)')
+    if (continue_ !== 'y') {
+      console.log('Aborted by user')
+      break
+    }
+  }
+}
+```
+
+### 7.3 连接 MCP 服务器（文件系统工具）
+
+```typescript
+import { Agent } from 'simple-agent'
+import { MCPClient } from 'simple-agent/mcp'
+import { BashTool } from 'simple-agent/tools'
+
+async function exampleWithMCP() {
+  const mcpClient = new MCPClient()
+
+  // 连接官方 filesystem MCP 服务器
+  await mcpClient.connect({
+    name: 'filesystem',
+    transport: 'stdio',
+    command: 'npx',
+    args: ['-y', '@modelcontextprotocol/server-filesystem', '/tmp'],
+  })
+
+  // 获取 MCP 工具列表
+  const mcpTools = await mcpClient.listTools()
+  console.log('MCP Tools:', mcpTools.map(t => t.name))
+
+  // 创建 Agent，合并内置工具和 MCP 工具
+  const agent = new Agent({
+    provider: 'openai',
+    model: 'gpt-4o',
+    apiKey: process.env.OPENAI_API_KEY,
+    tools: [BashTool, ...mcpTools],  // 合并工具
+    mcpClient,  // 传入 MCP 客户端
+  })
+
+  // 执行任务
+  for await (const step of agent.run([
+    { role: 'user', content: '在 /tmp 目录下创建一个名为 notes 的文件夹' }
+  ], 'loop')) {
+    console.log(step)
+  }
+
+  // 断开连接
+  await mcpClient.disconnect('filesystem')
+}
+```
+
+### 7.4 连接远程 MCP 服务器（GitHub API）
+
+```typescript
+import { Agent } from 'simple-agent'
+import { MCPClient } from 'simple-agent/mcp'
+
+async function exampleWithGitHubMCP() {
+  const mcpClient = new MCPClient()
+
+  // 连接 GitHub MCP 服务器（需要 GitHub Token）
+  await mcpClient.connect({
+    name: 'github',
+    transport: 'streamable-http',
+    url: 'https://api.github.com/mcp',
+    env: {
+      GITHUB_TOKEN: process.env.GITHUB_TOKEN,
+    },
+  })
+
+  const mcpTools = await mcpClient.listTools()
+  // 可能的工具：search_repos, get_repo, create_issue, etc.
+
+  const agent = new Agent({
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-20250514',
+    apiKey: process.env.ANTHROPIC_API_KEY,
+    tools: mcpTools,
+    mcpClient,
+  })
+
+  // 搜索 GitHub 仓库
+  for await (const step of agent.run([
+    { role: 'user', content: '搜索最近一周内有最多 star 的 TypeScript 仓库' }
+  ], 'loop')) {
+    console.log(step)
+  }
+}
+```
+
+### 7.5 自定义工具（Skill）
+
+```typescript
+import { Agent } from 'simple-agent'
+import { z } from 'zod'
+
+// 定义一个搜索网页的工具
+const WebSearchTool = {
+  name: 'web_search',
+  description: 'Search the web for information',
+  parameters: z.object({
+    query: z.string().describe('The search query'),
+    limit: z.number().optional().default(5).describe('Max results'),
+  }),
+
+  async execute(params: { query: string; limit: number }, context) {
+    // 实际实现中调用搜索 API
+    const results = await searchWeb(params.query, params.limit)
+    return {
+      success: true,
+      result: results,
+    }
+  },
+}
+
+// 定义一个发送 HTTP 请求的工具
+const HttpTool = {
+  name: 'http_request',
+  description: 'Make an HTTP request to a URL',
+  parameters: z.object({
+    url: z.string().url().describe('The URL to request'),
+    method: z.enum(['GET', 'POST', 'PUT', 'DELETE']).default('GET'),
+    headers: z.record(z.string()).optional(),
+    body: z.string().optional(),
+  }),
+
+  async execute(params, context) {
+    const response = await fetch(params.url, {
+      method: params.method,
+      headers: params.headers,
+      body: params.body,
+    })
+    return {
+      success: true,
+      result: {
+        status: response.status,
+        body: await response.text(),
+      },
+    }
+  },
+}
+
+// 使用自定义工具创建 Agent
+const agent = new Agent({
+  provider: 'openai',
+  model: 'gpt-4o',
+  apiKey: process.env.OPENAI_API_KEY,
+  tools: [WebSearchTool, HttpTool],  // 使用自定义工具
+})
+
 for await (const step of agent.run([
-  { role: 'user', content: '读取当前目录的 package.json' }
+  { role: 'user', content: '搜索 "什么是 MCP 协议" 并获取第一个结果的详细内容' }
 ], 'loop')) {
   console.log(step)
 }
 ```
 
-### 6.2 连接 MCP 服务器
+### 7.6 事件监听与调试
 
 ```typescript
-await agent.connectMCP({
-  name: 'filesystem',
-  transport: 'stdio',
-  command: 'npx',
-  args: ['-y', '@modelcontextprotocol/server-filesystem', '/tmp'],
+import { Agent } from 'simple-agent'
+import { BashTool, ReadTool, WriteTool } from 'simple-agent/tools'
+
+const agent = new Agent({
+  provider: 'openai',
+  model: 'gpt-4o',
+  apiKey: process.env.OPENAI_API_KEY,
+  tools: [BashTool, ReadTool, WriteTool],
 })
-```
 
-### 6.3 订阅事件
+// 监听所有事件
+agent.on('start', (data) => {
+  console.log('[EVENT] Agent started')
+})
 
-```typescript
+agent.on('step_start', (data) => {
+  console.log(`[EVENT] Step ${data.iteration} started`)
+})
+
+agent.on('llm_request', (data) => {
+  console.log('[EVENT] LLM Request:', {
+    model: data.model,
+    messageCount: data.messages.length,
+  })
+})
+
+agent.on('llm_response', (data) => {
+  console.log('[EVENT] LLM Response:', {
+    content: data.content?.substring(0, 100) + '...',
+    toolCalls: data.toolCalls?.length || 0,
+  })
+})
+
 agent.on('tool_call', (data) => {
-  console.log(`Calling tool: ${data.toolName}`)
+  console.log(`[EVENT] Tool Call: ${data.toolName}`, data.arguments)
 })
 
 agent.on('tool_result', (data) => {
-  console.log(`Tool result:`, data.result)
+  console.log(`[EVENT] Tool Result: ${data.toolName}`, {
+    success: data.success,
+    resultLength: JSON.stringify(data.result)?.length,
+  })
 })
+
+agent.on('error', (data) => {
+  console.error('[EVENT] Error:', data.error)
+})
+
+agent.on('complete', (data) => {
+  console.log('[EVENT] Agent completed')
+})
+
+// 执行任务
+for await (const step of agent.run([
+  { role: 'user', content: '创建一个简单的 README.md 文件' }
+], 'loop')) {
+  // 业务逻辑处理
+}
+```
+
+### 7.7 完整的 CLI 脚本
+
+```typescript
+// examples/cli.ts
+import { Agent } from '../src/agent'
+import { JsonSessionStorage } from '../src/storage'
+import { ToolRegistry, BashTool, ReadTool, WriteTool } from '../src/tools'
+import { parseArgs } from 'util'
+
+async function main() {
+  const args = parseArgs({
+    args: process.argv.slice(2),
+    options: {
+      prompt: { type: 'string', short: 'p' },
+      model: { type: 'string', default: 'gpt-4o' },
+      provider: { type: 'string', default: 'openai' },
+      session: { type: 'string' },
+      mode: { type: 'string', default: 'loop' },
+    },
+  })
+
+  // 初始化存储
+  const storage = new JsonSessionStorage('./sessions')
+
+  // 加载或创建会话
+  let session = args.values.session
+    ? await storage.load(args.values.session)
+    : null
+
+  // 注册工具
+  const tools = new ToolRegistry()
+  tools.register(BashTool)
+  tools.register(ReadTool)
+  tools.register(WriteTool)
+
+  // 创建 Agent
+  const agent = new Agent({
+    provider: args.values.provider,
+    model: args.values.model,
+    apiKey: process.env.OPENAI_API_KEY,
+    tools: tools.list(),
+  })
+
+  // 设置日志输出
+  agent.on('*', (event) => {
+    const timestamp = new Date(event.timestamp).toISOString()
+    console.log(`[${timestamp}] ${event.event}`)
+  })
+
+  // 执行
+  const messages = session?.messages || []
+  if (args.values.prompt) {
+    messages.push({ role: 'user', content: args.values.prompt })
+  }
+
+  const mode = args.values.mode as 'step' | 'loop'
+
+  for await (const step of agent.run(messages, mode)) {
+    if (step.type === 'message') {
+      console.log('\n--- Agent Response ---\n', step.content)
+    }
+  }
+
+  // 保存会话
+  const sessionId = session?.id || crypto.randomUUID()
+  await storage.save({
+    id: sessionId,
+    createdAt: session?.createdAt || Date.now(),
+    updatedAt: Date.now(),
+    config: agent.config,
+    messages,
+    events: [],
+  })
+
+  console.log(`\nSession saved: ${sessionId}`)
+}
+
+// 运行
+main().catch(console.error)
+```
+
+### 7.8 会话恢复与历史查询
+
+```typescript
+import { JsonSessionStorage } from 'simple-agent/storage'
+
+async function sessionManagement() {
+  const storage = new JsonSessionStorage('./sessions')
+
+  // 列出所有会话
+  const sessions = await storage.list()
+  console.log('Available sessions:')
+  for (const meta of sessions) {
+    console.log(`  ${meta.id} - ${new Date(meta.updatedAt).toLocaleString()}`)
+  }
+
+  // 恢复特定会话
+  if (sessions.length > 0) {
+    const session = await storage.load(sessions[0].id)
+    console.log('Restored session with', session.messages.length, 'messages')
+
+    // 继续对话
+    const agent = new Agent({
+      provider: 'openai',
+      model: 'gpt-4o',
+      apiKey: process.env.OPENAI_API_KEY,
+      tools: [],
+    })
+
+    // 将历史消息 + 新消息传入
+    const newMessages = [
+      ...session.messages,
+      { role: 'user', content: '继续之前的任务' },
+    ]
+
+    for await (const step of agent.run(newMessages, 'loop')) {
+      console.log(step)
+    }
+  }
+}
 ```
 
 ---
 
 ## 8. 验收标准
 
-### 7.1 功能性
+### 8.1 功能性
 
 - [ ] Agent 能正确调用 LLM 并处理响应
 - [ ] 工具系统能正确注册和执行工具
@@ -618,14 +980,14 @@ agent.on('tool_result', (data) => {
 - [ ] MCP 客户端能连接并调用 MCP 工具
 - [ ] 会话能正确保存和恢复
 
-### 7.2 可观测性
+### 8.2 可观测性
 
 - [ ] 所有事件都能被订阅和日志输出
 - [ ] LLM 请求和响应能被追踪
 - [ ] 工具调用和结果能被追踪
 - [ ] 错误能被正确捕获和报告
 
-### 7.3 代码质量
+### 8.3 代码质量
 
 - [ ] 代码结构清晰，模块职责分明
 - [ ] 关键逻辑有注释说明
