@@ -3,10 +3,11 @@
   "version": "0.1.0",
   "type": "module",
   "dependencies": {
-    "ai": "5.0.124",
-    "@ai-sdk/openai": "2.0.89",
     "@ai-sdk/anthropic": "2.0.65",
-    "zod": "4.1.8"
+    "@ai-sdk/openai": "2.0.89",
+    "ai": "5.0.124",
+    "zod": "4.1.8",
+    "zod-to-json-schema": "^3.25.1"
   },
   "devDependencies": {
     "typescript": "^5.7.2",

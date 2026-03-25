@@ -2,6 +2,7 @@
  * Tool Registry for managing and accessing tools
  */
 
+import { zodToJsonSchema } from "zod-to-json-schema";
 import type { Tool, ToolDefinition } from "./types";
 
 /**
@@ -39,18 +40,10 @@ export class ToolRegistry {
    */
   getDefinitions(): ToolDefinition[] {
     return this.list().map((tool) => {
-      // Use safeParse to extract the shape without validation
-      const parsed = tool.parameters.safeParse({});
-      const parameters = parsed.success ? parsed.data : {};
-
       return {
         name: tool.name,
         description: tool.description,
-        parameters: {
-          type: "object",
-          properties: parameters,
-          required: [],
-        },
+        parameters: zodToJsonSchema(tool.parameters),
       };
     });
   }
