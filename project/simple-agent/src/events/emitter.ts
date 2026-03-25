@@ -1,14 +1,14 @@
-export interface EventRecord {
+export interface EventRecord<T = unknown> {
   timestamp: number;
   event: string;
-  data: any;
+  data: T;
 }
 
-export class EventEmitter {
-  private handlers: Map<string, Set<(data: any) => void>> = new Map();
-  private history: EventRecord[] = [];
+export class EventEmitter<T = unknown> {
+  private handlers: Map<string, Set<(data: T) => void>> = new Map();
+  private history: EventRecord<T>[] = [];
 
-  emit(event: string, data: any): void {
+  emit(event: string, data: T): void {
     this.history.push({
       timestamp: Date.now(),
       event,
@@ -17,18 +17,24 @@ export class EventEmitter {
 
     const handlers = this.handlers.get(event);
     if (handlers) {
-      handlers.forEach((handler) => handler(data));
+      handlers.forEach((handler) => {
+        try {
+          handler(data);
+        } catch (e) {
+          console.error(`Handler error for event ${event}:`, e);
+        }
+      });
     }
   }
 
-  on(event: string, handler: (data: any) => void): void {
+  on(event: string, handler: (data: T) => void): void {
     if (!this.handlers.has(event)) {
       this.handlers.set(event, new Set());
     }
     this.handlers.get(event)!.add(handler);
   }
 
-  off(event: string, handler: (data: any) => void): void {
+  off(event: string, handler: (data: T) => void): void {
     const handlers = this.handlers.get(event);
     if (handlers) {
       handlers.delete(handler);
