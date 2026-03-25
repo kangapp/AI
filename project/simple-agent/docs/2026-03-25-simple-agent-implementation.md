@@ -87,10 +87,10 @@ simple-agent/
     "start": "bun run src/index.ts"
   },
   "dependencies": {
-    "@ai-sdk/openai": "^1.0.0",
-    "@ai-sdk/anthropic": "^1.0.0",
-    "ai": "^3.0.0",
-    "zod": "^3.23.0"
+    "@ai-sdk/openai": "^2.0.89",
+    "@ai-sdk/anthropic": "^2.0.65",
+    "ai": "^5.0.124",
+    "zod": "^4.1.8"
   },
   "devDependencies": {
     "bun-types": "^1.0.0",
