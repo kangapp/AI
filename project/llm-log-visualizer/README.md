@@ -13,7 +13,8 @@
   - [2.5 工具调用](#25-工具调用)
   - [2.6 状态栏](#26-状态栏)
 - [第三部分：数据格式](#第三部分数据格式)
-- [第四部分：技术实现](#第四部分技术实现)
+- [第四部分：日志采集插件](#第四部分日志采集插件)
+- [第五部分：技术实现](#第五部分技术实现)
 
 ---
 
@@ -542,7 +543,139 @@ interface ToolCall {
 
 ---
 
-## 第四部分：技术实现
+## 第四部分：日志采集插件
+
+### 插件概述
+
+LLM Log Visualizer 的数据来源于 `.opencode/plugin/log-conversation.ts` 插件。该插件 Hook OpenCode 的各个生命周期节点，将每次对话的完整事件流写入 JSONL 文件。
+
+### 插件架构
+
+```mermaid
+flowchart TB
+    subgraph OpenCode["OpenCode 生命周期"]
+        System["experimental.chat.system.transform<br/>获取 System Prompt"]
+        Messages["experimental.chat.messages.transform<br/>处理消息"]
+        Params["chat.params<br/>LLM 参数"]
+        Text["experimental.text.complete<br/>文本输出"]
+        ToolBefore["tool.execute.before<br/>工具执行前"]
+        ToolAfter["tool.execute.after<br/>工具执行后"]
+        Event["event hook<br/>事件监听"]
+        Permission["permission.ask<br/>权限请求"]
+    end
+
+    subgraph State["状态管理"]
+        Turns["Map<turnKey, TurnState><br/>Turn 状态"]
+        Active["activeShortUUIDs<br/>活跃 shortUUID"]
+        Subtask["subtaskParentMap<br/>子任务映射"]
+    end
+
+    subgraph Output["输出"]
+        LogFile["{sessionID}_{shortUUID}.jsonl"]
+        Events["turn_start<br/>reasoning<br/>text<br/>tool_call_result<br/>turn_complete<br/>..."]
+    end
+
+    System --> State
+    Messages --> State
+    Params --> LogFile
+    Text --> LogFile
+    ToolBefore --> State
+    ToolAfter --> LogFile
+    Event --> LogFile
+    Permission --> LogFile
+    State --> LogFile
+
+    style OpenCode fill:#e3f2fd
+    style State fill:#fff3e0
+    style Output fill:#e8f5e9
+```
+
+### 核心数据结构
+
+```typescript
+interface TurnState {
+  turn: number
+  sessionID: string
+  shortUUID: string
+  parentShortUUID: string | null  // 子任务时使用
+  filePath: string
+  responseWritten: boolean        // 防止重复写入 turn_complete
+  request: {
+    messages: any[]               // 完整的消息
+    system: string[]              // system prompt
+    agent: string
+    model: { providerID: string; modelID: string }
+  } | null
+  response: {
+    texts: string[]               // 文本输出片段
+    reasoning: string[]          // 思考过程
+    toolCalls: {                  // 工具调用（占位，等 execute.after 填充）
+      id: string
+      tool: string
+      args: any
+      output: string | null
+      title: string | null
+    }[]
+    tools: {                      // 工具执行结果
+      tool: string
+      args: any
+      output: string
+      title: string
+    }[]
+  }
+}
+```
+
+### 事件写入时机
+
+| 事件类型 | 触发时机 | 说明 |
+|---------|---------|------|
+| `turn_start` | `system.transform` | System Prompt 获取后写入 |
+| `reasoning` | `messages.transform` | 从 assistant 消息中提取 |
+| `text` | `text.complete` | 每次文本片段完成时 |
+| `tool_call_result` | `tool.execute.after` | 工具执行完成后（含 output） |
+| `agent_switch` | `event(message.part.updated)` | Agent 切换时 |
+| `retry` | `event(message.part.updated)` | 重试时 |
+| `file_reference` | `event(message.part.updated)` | 文件引用时 |
+| `subtask_start` | `event(message.part.updated)` | 子任务开始时 |
+| `permission_request` | `permission.ask` | 权限请求时 |
+| `turn_complete` | `step-finish` 或 user message | Turn 结束时 |
+
+### Turn 递增规则
+
+```typescript
+// step-finish 事件中判断
+const isTurnEnd = reason === "stop" || reason === "length" || reason === "content-filter"
+if (isTurnEnd) {
+  // 写入 turn_complete，标记 responseWritten = true
+} else if (reason === "tool-calls") {
+  // reason = tool-calls 时，turn += 1，但不写入 turn_complete
+  // 因为可能还有后续消息
+  state.turn += 1
+}
+```
+
+### 文件命名规则
+
+```
+.opencode/logs/{sessionID}_{shortUUID}.jsonl
+```
+
+- `sessionID`: OpenCode 会话 ID
+- `shortUUID`: 12 位随机 UUID，每个 user message 生成一个新的
+
+### 安装插件
+
+```bash
+# 在 OpenCode 项目根目录
+cp .opencode/plugin/log-conversation.ts /path/to/opencode-project/.opencode/plugin/
+
+# 或编辑 opencode.json 指定插件路径
+```
+
+---
+
+## 第五部分：技术实现
 
 ### 项目结构
 
