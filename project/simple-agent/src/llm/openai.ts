@@ -43,7 +43,7 @@ export class OpenAIProvider extends LLMProvider {
 				toolCalls: result.toolCalls?.map((tc) => ({
 					id: tc.toolCallId,
 					name: tc.toolName,
-					arguments: (tc as { toolInput?: Record<string, unknown> }).toolInput as Record<string, unknown>,
+					arguments: tc.input as Record<string, unknown>,
 				})),
 				usage: {
 					promptTokens: result.usage?.inputTokens ?? 0,
