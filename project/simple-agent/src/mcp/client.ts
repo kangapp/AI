@@ -108,6 +108,13 @@ export class MCPClient {
 
     await connection.transport.disconnect();
     this.connections.delete(name);
+
+    // Clean up toolToServer entries belonging to this server
+    for (const [toolName, serverName] of this.toolToServer.entries()) {
+      if (serverName === name) {
+        this.toolToServer.delete(toolName);
+      }
+    }
   }
 
   /**
@@ -143,10 +150,7 @@ export class MCPClient {
     return tools.map((tool) => ({
       name: tool.name,
       description: tool.description,
-      parameters: {
-        type: "object" as const,
-        properties: {},
-      },
+      parameters: tool.parameters,
     }));
   }
 

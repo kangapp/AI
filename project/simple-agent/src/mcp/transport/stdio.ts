@@ -127,7 +127,8 @@ export class StdioTransport implements MCPTransport {
     }
 
     // Assign ID to request if not present (for notifications)
-    if ("id" in message && message.id === undefined) {
+    const isNotification = !("id" in message) || message.id === undefined;
+    if (isNotification) {
       message.id = ++this.idCounter;
     }
 
@@ -135,7 +136,7 @@ export class StdioTransport implements MCPTransport {
     this.process.stdin.write(json);
 
     // If this is a notification, don't wait for response
-    if (!("id" in message) || message.id === undefined) {
+    if (isNotification) {
       return undefined;
     }
 
