@@ -92,3 +92,5 @@ dist-ssr/
 *.tmp
 *.bak
 .cache/
+.worktrees/
+.worktrees
