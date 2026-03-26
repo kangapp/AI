@@ -73,14 +73,30 @@ export async function* loop(
       });
 
       // Add tool result messages
+      // For providers that don't support tool_result format (like MiniMax),
+      // use role: 'user' with text content instead
+      const llmWithBaseURL = llm as { baseURL?: string };
+      const useTextFormat = llmWithBaseURL?.baseURL?.includes('minimax');
+
       for (const result of toolResults) {
         const toolCall = toolCalls.find(tc => tc.id === result.toolCallId);
-        messages.push({
-          role: 'tool',
-          content: result.success ? result.result || '' : result.error || 'Tool execution failed',
-          toolCallId: result.toolCallId,
-          toolName: toolCall?.name,
-        });
+        const resultContent = result.success ? result.result || '' : result.error || 'Tool execution failed';
+
+        if (useTextFormat) {
+          // MiniMax: use text format instead of tool_result
+          messages.push({
+            role: 'user' as const,
+            content: `[${toolCall?.name || 'tool'} result] ${resultContent}`,
+          });
+        } else {
+          // Standard format for other providers
+          messages.push({
+            role: 'tool' as const,
+            content: resultContent,
+            toolCallId: result.toolCallId,
+            toolName: toolCall?.name,
+          });
+        }
       }
 
       // Continue looping - there might be more tool calls
