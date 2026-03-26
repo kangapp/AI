@@ -1,5 +1,4 @@
 import { create } from 'zustand';
-import type { WSEvent } from '../types';
 
 export interface Message {
   id: string;
