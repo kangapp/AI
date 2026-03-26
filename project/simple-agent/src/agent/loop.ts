@@ -51,7 +51,7 @@ export async function* loop(
     events.emit('iteration:start', { iteration, maxIterations });
 
     // Execute one step
-    const stepResult = await step(llm, tools, messages, context);
+    const stepResult = await step(llm, tools, messages, context, options.signal);
     yield stepResult;
 
     // Handle tool calls if present
