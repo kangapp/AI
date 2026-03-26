@@ -232,8 +232,10 @@ type WSEvent =
 
 ---
 
-## 待定事项
+## 技术选型（已确认）
 
-1. **样式方案**: CSS Modules vs Tailwind CSS
-2. **状态管理**: React Context vs Zustand vs Redux
-3. **HTTP 客户端**: fetch vs SWR vs React Query
+| 项目 | 选择 | 说明 |
+|------|------|------|
+| 样式 | Tailwind CSS | 原子化 CSS，开发效率高 |
+| 状态管理 | Zustand | 轻量、简洁，足够应对本项目复杂度 |
+| HTTP 客户端 | fetch | 原生支持，无需额外依赖 |
