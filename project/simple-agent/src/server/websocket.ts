@@ -11,7 +11,17 @@ export class WSManager {
     this.wss.on('connection', (ws, req) => {
       const sessionId = new URL(req.url, `http://${req.headers.host}`).searchParams.get('sessionId');
       if (sessionId) {
+        // Close existing client for this sessionId to prevent orphaned connections
+        const existingClient = this.clients.get(sessionId);
+        if (existingClient) {
+          existingClient.close();
+        }
         this.clients.set(sessionId, ws);
+
+        // Clean up when client disconnects
+        ws.on('close', () => {
+          this.clients.delete(sessionId);
+        });
       }
     });
   }
