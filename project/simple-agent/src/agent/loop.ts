@@ -13,6 +13,7 @@ import { step, executeToolCalls } from './step';
 export interface LoopOptions {
   maxIterations?: number;
   context?: ToolContext;
+  signal?: AbortSignal;
 }
 
 /**
@@ -39,6 +40,11 @@ export async function* loop(
   let hasToolCalls = true;
 
   while (iteration < maxIterations && hasToolCalls) {
+    // Check for abort signal
+    if (options.signal?.aborted) {
+      throw new Error('Agent execution aborted');
+    }
+
     iteration++;
 
     // Emit iteration start event

@@ -4,7 +4,7 @@
  * Coordinates LLM, tools, and events for agent execution.
  */
 
-import type { Message, AgentConfig, AgentMode, StepResult } from '../types';
+import type { Message, AgentConfig, AgentMode, StepResult, RunOptions } from '../types';
 import type { LLMProvider } from '../llm';
 import type { Tool, ToolContext } from '../tools/types';
 import { EventEmitter } from '../events/emitter';
@@ -84,8 +84,10 @@ export class Agent {
    */
   async *run(
     messages: Message[],
-    mode: AgentMode = 'loop'
+    mode: AgentMode = 'loop',
+    options: RunOptions = {}
   ): AsyncGenerator<StepResult> {
+    const { signal } = options;
     // Add system prompt if provided
     if (this.config.systemPrompt) {
       const hasSystem = messages.some(m => m.role === 'system');
@@ -102,10 +104,10 @@ export class Agent {
 
     if (mode === 'step') {
       // Step mode: single LLM call, handle tools if present
-      yield* this.runStepMode(messages);
+      yield* this.runStepMode(messages, signal);
     } else {
       // Loop mode: iterate until no more tool calls or max iterations
-      yield* this.runLoopMode(messages);
+      yield* this.runLoopMode(messages, signal);
     }
 
     // Emit complete event
@@ -115,7 +117,7 @@ export class Agent {
   /**
    * Run in step mode - single LLM call
    */
-  private async *runStepMode(messages: Message[]): AsyncGenerator<StepResult> {
+  private async *runStepMode(messages: Message[], signal?: AbortSignal): AsyncGenerator<StepResult> {
     const stepResult = await step(this.llm, this.tools, messages);
 
     yield stepResult;
@@ -146,11 +148,12 @@ export class Agent {
   /**
    * Run in loop mode - iterate until complete
    */
-  private async *runLoopMode(messages: Message[]): AsyncGenerator<StepResult> {
+  private async *runLoopMode(messages: Message[], signal?: AbortSignal): AsyncGenerator<StepResult> {
     const maxIterations = this.config.maxIterations ?? 10;
 
     yield* loop(this.llm, this.tools, messages, this.events, {
       maxIterations,
+      signal,
     });
   }
 

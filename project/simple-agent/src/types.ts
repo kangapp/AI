@@ -57,6 +57,11 @@ export interface MCPServerConfig {
 // Agent mode
 export type AgentMode = 'step' | 'loop';
 
+// Run options
+export interface RunOptions {
+  signal?: AbortSignal;
+}
+
 // Step result for agent execution
 export interface StepResult {
   type: 'message' | 'tool-call' | 'tool-result' | 'error' | 'done';

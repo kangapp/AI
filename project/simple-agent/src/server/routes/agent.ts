@@ -20,6 +20,11 @@ export function createAgentRouter(wsManager: WSManager) {
 
     agent.registerTools([new BashTool(), new ReadTool(), new WriteTool()]);
 
+    const abortController = new AbortController();
+    req.on('aborted', () => {
+      abortController.abort();
+    });
+
     const sid = sessionId || `session-${Date.now()}`;
 
     wsManager.send(sid, { type: 'agent:start', data: { sessionId: sid } });
@@ -44,7 +49,7 @@ export function createAgentRouter(wsManager: WSManager) {
     });
 
     try {
-      for await (const stepResult of agent.run(messages, mode)) {
+      for await (const stepResult of agent.run(messages, mode, { signal: abortController.signal })) {
         switch (stepResult.type) {
           case 'message':
             wsManager.send(sid, { type: 'message', data: { content: stepResult.content, role: 'assistant' } });
