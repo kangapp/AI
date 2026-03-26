@@ -1,15 +1,20 @@
 // src/server/routes/session.ts
 import { Router } from 'express';
-import { readdir, readFile, writeFile, rm, stat } from 'fs/promises';
+import { readdir, readFile, writeFile, rm, stat, mkdir } from 'fs/promises';
 import { join } from 'path';
 import type { Session } from '../../storage/json';
 import type { Session as SessionResponse } from '../types';
 
 const router = Router();
 
+async function ensureSessionDir(dir: string) {
+  await mkdir(dir, { recursive: true });
+}
+
 export function createSessionRouter(sessionDir: string) {
   router.get('/', async (_req, res) => {
     try {
+      await ensureSessionDir(sessionDir);
       const files = await readdir(sessionDir);
       const sessions: SessionResponse[] = await Promise.all(
         files
@@ -40,6 +45,7 @@ export function createSessionRouter(sessionDir: string) {
 
   router.post('/', async (_req, res) => {
     try {
+      await ensureSessionDir(sessionDir);
       const sessionId = `session-${Date.now()}`;
       const now = Date.now();
       const session: Session = {
@@ -62,6 +68,7 @@ export function createSessionRouter(sessionDir: string) {
 
   router.delete('/:id', async (req, res) => {
     try {
+      await ensureSessionDir(sessionDir);
       const filePath = join(sessionDir, `${req.params.id}.json`);
       try {
         await stat(filePath);
