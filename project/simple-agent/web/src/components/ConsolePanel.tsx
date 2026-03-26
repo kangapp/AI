@@ -1,7 +1,13 @@
+import { useRef, useEffect } from 'react';
 import { useStore } from '../store';
 
 export function ConsolePanel() {
   const { logs } = useStore();
+  const logsEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [logs]);
 
   return (
     <div className="w-[350px] bg-gray-900 text-gray-100 flex flex-col">
@@ -41,6 +47,8 @@ export function ConsolePanel() {
             </div>
           </div>
         ))}
+
+        <div ref={logsEndRef} />
       </div>
     </div>
   );
