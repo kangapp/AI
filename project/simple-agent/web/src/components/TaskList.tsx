@@ -1,26 +1,39 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useStore } from '../store';
 import { Button } from './common/Button';
 
 export function TaskList() {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { sessions, currentSessionId, setCurrentSession, setSessions } = useStore();
 
   useEffect(() => {
+    setLoading(true);
     fetch('/api/sessions')
       .then((res) => res.json())
-      .then((data) => setSessions(data.sessions || []));
+      .then((data) => setSessions(data.sessions || []))
+      .catch(() => setError('加载会话失败'))
+      .finally(() => setLoading(false));
   }, [setSessions]);
 
   const handleNewSession = async () => {
-    const res = await fetch('/api/sessions', { method: 'POST' });
-    const data = await res.json();
-    setCurrentSession(data.sessionId);
+    try {
+      const res = await fetch('/api/sessions', { method: 'POST' });
+      const data = await res.json();
+      setCurrentSession(data.sessionId);
+    } catch {
+      setError('创建会话失败');
+    }
   };
 
   const handleDeleteSession = async (id: string) => {
-    await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
-    if (currentSessionId === id) {
-      setCurrentSession(null);
+    try {
+      await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
+      if (currentSessionId === id) {
+        setCurrentSession(null);
+      }
+    } catch {
+      setError('删除会话失败');
     }
   };
 
@@ -33,7 +46,12 @@ export function TaskList() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {sessions.map((session) => (
+        {loading && <div className="p-4 text-sm text-gray-500 text-center">加载中...</div>}
+        {error && <div className="p-4 text-sm text-red-500 text-center">{error}</div>}
+        {!loading && !error && sessions.length === 0 && (
+          <div className="p-4 text-sm text-gray-500 text-center">暂无会话</div>
+        )}
+        {!loading && sessions.map((session) => (
           <div
             key={session.id}
             onClick={() => setCurrentSession(session.id)}
