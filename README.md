@@ -9,6 +9,7 @@
 - [001 - 数据库查询工具 (DB Query Tool)](#001---数据库查询工具-db-query-tool)
 - [002 - RaFlow (实时语音转录工具)](#002---raflow-实时语音转录工具)
 - [003 - LLM Log Visualizer (LLM 日志可视化工具)](#003---llm-log-visualizer-llm-日志可视化工具)
+- [004 - Simple Agent (模块化 Agent 框架)](#004---simple-agent-模块化-agent-框架)
 
 ---
 
@@ -121,3 +122,37 @@ npm run dev     # 启动开发服务器
 - **前端**：http://localhost:5173
 
 **详细文档**: [project/llm-log-visualizer/README.md](project/llm-log-visualizer/README.md)
+
+---
+
+### 004 - Simple Agent (模块化 Agent 框架)
+
+**路径**: `project/simple-agent/`
+
+**简介**: 一个基于 TypeScript 的模块化 Agent 框架，支持多种 LLM 提供者（OpenAI、Anthropic/MiniMax）、工具系统和 MCP 集成。
+
+**核心特性**:
+- **多 LLM 支持**：OpenAI、Anthropic 兼容 API，可通过 baseURL 配置 MiniMax 等第三方提供商
+- **工具系统**：支持自定义工具，Zod Schema 定义参数，内置 BashTool/ReadTool/WriteTool
+- **MCP 集成**：支持连接 MCP 服务器（stdio/streamable-http 传输），混合使用内置和 MCP 工具
+- **事件系统**：完整的事件监听机制（agent:start、tool:call、iteration 等）
+- **会话管理**：自动持久化会话到 JSON 文件，支持会话恢复
+- **双执行模式**：loop 模式（自动循环直到完成）、step 模式（单步执行）
+- **CLI 工具**：开箱即用的命令行工具，快速测试和部署
+
+**技术栈**:
+- **运行时**：Bun / TypeScript
+- **AI SDK**：Vercel AI SDK（支持 Anthropic、OpenAI）
+- **工具定义**：Zod
+- **MCP**：@modelcontextprotocol/sdk
+- **测试**：Bun Test
+
+**快速开始**:
+```bash
+cd project/simple-agent
+bun install
+cp .env.example .env  # 配置 API Key
+bun run examples/basic.ts
+```
+
+**详细文档**: [project/simple-agent/README.md](project/simple-agent/README.md)
