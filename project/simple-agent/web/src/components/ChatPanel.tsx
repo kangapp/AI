@@ -4,8 +4,15 @@ import { useAgent } from '../hooks/useAgent';
 import { Button } from './common/Button';
 import { Input } from './common/Input';
 
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 export function ChatPanel() {
   const [input, setInput] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const { messages, isRunning, currentSessionId } = useStore();
   const { runAgent } = useAgent();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -16,10 +23,15 @@ export function ChatPanel() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     if (!input.trim() || isRunning) return;
     const prompt = input;
     setInput('');
-    await runAgent(prompt);
+    try {
+      await runAgent(prompt);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    }
   };
 
   return (
@@ -31,6 +43,13 @@ export function ChatPanel() {
           {currentSessionId ? `会话: ${currentSessionId}` : '新会话'}
         </p>
       </div>
+
+      {/* Error */}
+      {error && (
+        <div className="p-4 bg-red-50 border-b border-red-200 text-red-700 text-sm">
+          {error}
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
@@ -51,9 +70,8 @@ export function ChatPanel() {
                   ? 'bg-primary-500 text-white'
                   : 'bg-gray-100 text-gray-900'
               }`}
-            >
-              {msg.content}
-            </div>
+              dangerouslySetInnerHTML={{ __html: escapeHtml(msg.content) }}
+            />
           </div>
         ))}
 
