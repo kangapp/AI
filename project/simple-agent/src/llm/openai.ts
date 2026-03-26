@@ -9,11 +9,13 @@ import { toAiMessage, toAiToolSet, toAiToolChoice } from './converters';
 export class OpenAIProvider extends LLMProvider {
 	readonly name = 'openai';
 	readonly model: string;
+	readonly baseURL?: string;
 	private readonly openai: ReturnType<typeof createOpenAI>;
 
 	constructor(model: string = 'gpt-4o', baseURL?: string) {
 		super();
 		this.model = model;
+		this.baseURL = baseURL;
 		this.openai = createOpenAI({
 			baseURL: baseURL || undefined,
 		});

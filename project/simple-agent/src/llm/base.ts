@@ -15,6 +15,11 @@ export abstract class LLMProvider {
 	abstract readonly model: string;
 
 	/**
+	 * The base URL for the API (optional).
+	 */
+	readonly baseURL?: string;
+
+	/**
 	 * Send a chat completion request.
 	 */
 	abstract chat(

@@ -12,11 +12,17 @@ import { Agent } from '../src/agent/agent';
 import { BashTool, ReadTool, WriteTool } from '../src/tools';
 
 async function main() {
-  // Create an agent with OpenAI provider
+  // Determine provider from environment
+  const provider = process.env.PROVIDER || 'openai';
+  const model = process.env.MODEL || 'gpt-4o';
+  const baseURL = process.env.ANTHROPIC_BASE_URL || process.env.OPENAI_BASE_URL;
+
+  // Create an agent
   const agent = new Agent({
-    provider: 'openai',
-    model: 'gpt-4o',
-    apiKey: process.env.OPENAI_API_KEY,
+    provider,
+    model,
+    apiKey: process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY,
+    baseURL,
   });
 
   // Register built-in tools
