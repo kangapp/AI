@@ -16,10 +16,14 @@
  *   --base-url: string (optional, for openai-compatible providers)
  */
 
+import { config } from 'dotenv';
 import { Agent } from './agent/agent';
 import { JsonSessionStorage } from './storage';
 import { BashTool, ReadTool, WriteTool } from './tools';
 import type { AgentMode, Message } from './types';
+
+// Load .env file
+config({ override: true });
 
 // Simple argument parser
 interface CLIArgs {
@@ -59,8 +63,8 @@ Options:
 
   const args: CLIArgs = {
     prompt: '',
-    model: 'gpt-4o',
-    provider: 'openai',
+    model: '',
+    provider: undefined,
     mode: 'loop',
   };
 
@@ -71,7 +75,7 @@ Options:
       args.prompt = getNextArg(argv, i, arg) || '';
       i++; // consume the value we just read
     } else if (arg === '--model' || arg === '-m') {
-      args.model = getNextArg(argv, i, arg) || 'gpt-4o';
+      args.model = getNextArg(argv, i, arg) || '';
       i++;
     } else if (arg === '--provider') {
       const provider = getNextArg(argv, i, arg) || 'openai';
@@ -147,10 +151,10 @@ async function main() {
 
   // Create agent
   const agentConfig = {
-    provider: args.provider,
-    model: args.model,
+    provider: (args.provider || process.env.PROVIDER || 'openai') as 'openai' | 'anthropic',
+    model: args.model || process.env.MODEL || 'gpt-4o',
     apiKey,
-    baseURL: args.baseURL,
+    baseURL: args.baseURL || process.env.ANTHROPIC_BASE_URL || process.env.OPENAI_BASE_URL,
   };
 
   const agent = new Agent(agentConfig);
