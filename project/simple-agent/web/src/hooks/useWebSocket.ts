@@ -6,7 +6,7 @@ const WS_URL = `ws://localhost:3002`;
 
 export function useWebSocket(sessionId: string | null) {
   const wsRef = useRef<WebSocket | null>(null);
-  const { addMessage, updateLastMessage, addLog, setIsRunning } = useStore();
+  const { addMessage, addLog, setIsRunning } = useStore();
 
   const connect = useCallback(() => {
     if (!sessionId) return;
