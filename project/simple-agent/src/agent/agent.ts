@@ -118,7 +118,7 @@ export class Agent {
    * Run in step mode - single LLM call
    */
   private async *runStepMode(messages: Message[], signal?: AbortSignal): AsyncGenerator<StepResult> {
-    const stepResult = await step(this.llm, this.tools, messages);
+    const stepResult = await step(this.llm, this.tools, messages, {}, signal);
 
     yield stepResult;
 

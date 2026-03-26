@@ -17,13 +17,15 @@ import { zodToJsonSchema } from 'zod-to-json-schema';
  * @param tools - Available tools
  * @param messages - Conversation messages
  * @param context - Tool execution context
+ * @param signal - Optional abort signal
  * @returns StepResult with the LLM response or tool calls
  */
 export async function step(
   llm: LLMProvider,
   tools: Tool[],
   messages: Message[],
-  context: ToolContext = {}
+  context: ToolContext = {},
+  signal?: AbortSignal
 ): Promise<StepResult> {
   // Call the LLM with current messages and tools
   const response = await llm.chat(messages, {
@@ -32,6 +34,7 @@ export async function step(
       description: t.description,
       parameters: zodToJsonSchema(t.parameters),
     })),
+    signal,
   });
 
   // Check if the response has tool calls

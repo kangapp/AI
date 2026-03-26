@@ -31,6 +31,7 @@ export interface ChatOptions {
 	toolChoice?: ToolChoice;
 	temperature?: number;
 	maxTokens?: number;
+	signal?: AbortSignal;
 }
 
 /**
