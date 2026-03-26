@@ -7,9 +7,13 @@
  * - Registering the custom tool with an Agent
  */
 
+import { config } from 'dotenv';
 import { z } from 'zod';
 import { Agent } from '../src/agent/agent';
 import type { Tool, ToolContext, ToolResult } from '../src/tools/types';
+
+// Load .env file
+config({ override: true });
 
 /**
  * WebSearchTool - A custom tool for web searching

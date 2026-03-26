@@ -8,8 +8,12 @@
  * - Handling agent events
  */
 
+import { config } from 'dotenv';
 import { Agent } from '../src/agent/agent';
 import { BashTool, ReadTool, WriteTool } from '../src/tools';
+
+// Load .env file
+config({ override: true });
 
 async function main() {
   // Determine provider from environment
