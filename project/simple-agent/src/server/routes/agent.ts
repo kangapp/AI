@@ -20,9 +20,8 @@ export function createAgentRouter(wsManager: WSManager) {
 
     if (agentType === 'code-review') {
       // Load system prompt from code-review-agent
-      const __filename = fileURLToPath(import.meta.url);
-      const __dirname = dirname(__filename);
-      const systemPromptPath = join(__dirname, '..', '..', '..', 'code-review-agent', 'prompts', 'system.md');
+      // Navigate from src/server/routes -> src/server -> src -> project root -> code-review-agent
+      const systemPromptPath = join(process.cwd(), '..', 'code-review-agent', 'prompts', 'system.md');
       try {
         const systemPrompt = await readFile(systemPromptPath, 'utf-8');
         messages.push({ role: 'system', content: systemPrompt });
