@@ -111,33 +111,50 @@ AI 应自行探索以获取准确路径，不依赖预设路径知识。
 #### 2.1 Loop 状态机
 
 ```
-                    ┌─────────────────┐
-                    │   COLLECTING     │
-                    └────────┬────────┘
-                             │
-              ┌──────────────┴──────────────┐
-              │                             │
-    工具调用成功                    工具调用失败
-              │                             │
-              ▼                             ▼
-    ┌─────────────────┐           ┌─────────────────┐
-    │ 等待工具结果     │           │  重试/跳过      │
-    │ 保持 ANALYZING  │           │  继续 COLLECTING│
-    └────────┬────────┘           └─────────────────┘
-             │
-             │ AI 输出 message (无 tool_calls)
-             │
-             ▼
+                         ┌─────────────────┐
+                         │ INITIAL         │
+                         │ (COLLECTING)   │
+                         └────────┬────────┘
+                                  │
+                    ┌─────────────┴─────────────┐
+                    │                           │
+          工具调用成功                  工具调用失败
+                    │                           │
+                    ▼                           ▼
+          ┌─────────────────┐       ┌─────────────────┐
+          │ 等待工具结果     │       │  executeToolCalls│
+          │ 保持当前阶段     │       │  返回错误结果    │
+          └────────┬────────┘       │  继续 COLLECTING│
+                   │                 └─────────────────┘
+                   │
+                   │ AI 输出 message (无 tool_calls)
+                   │ 检测阶段标记
+                   ▼
     ┌─────────────────────────────────────┐
-    │ 检测 message 内容中的阶段标记          │
     │                                       │
-    │ - **__PHASE: COMPLETE__** → 终止    │
-    │ - **__REVIEW_COMPLETE__** → 终止    │
-    │ - **__PHASE: ANALYZING__** → 继续   │
-    │ - **__PHASE: COLLECTING__** → 继续   │
-    │ - 无标记 + 有内容 → 检查是否像报告    │
+    │ - **__PHASE: COMPLETE__** → DONE    │
+    │ - **__REVIEW_COMPLETE__** → DONE    │
+    │                                       │
+    │ - **__PHASE: ANALYZING__**          │
+    │   → 更新状态为 ANALYZING，继续       │
+    │                                       │
+    │ - **__PHASE: COLLECTING__**          │
+    │   → 保持 COLLECTING 状态，继续       │
+    │                                       │
+    │ - 无标记 + 内容较长 + 有报告结构      │
+    │   → 视为完成                         │
+    │                                       │
+    │ - 无标记 + 短内容                     │
+    │   → 视为中间分析，继续               │
+    │                                       │
     └─────────────────────────────────────┘
 ```
+
+**阶段转换规则**：
+- 初始状态：COLLECTING
+- 检测到 ANALYZING → 状态变为 ANALYZING
+- 检测到 COLLECTING → 保持 COLLECTING
+- 检测到 COMPLETE 或报告结构 → 结束
 
 #### 2.2 阶段检测函数
 
@@ -229,8 +246,10 @@ events.emit('loop:waiting', { reason: 'intermediate' }); // 等待原因
 
 #### 3.1 报告文件命名
 
+报告保存在 code-review-agent 项目根目录下的 `reviews/` 目录：
+
 ```
-reviews/
+/Users/liufukang/workplace/AI/project/code-review-agent/reviews/
 ├── 2026-03-28-commit-6e17576.md
 ├── 2026-03-28-branch-feature.md
 └── 2026-03-28-pr-12.md
@@ -246,24 +265,29 @@ reviews/
 
 ### 任务 1：更新 System Prompt
 
-**文件**: `prompts/system.md`
+**文件**: `/Users/liufukang/workplace/AI/project/code-review-agent/prompts/system.md`
 
-- 添加阶段声明系统
-- 添加环境探索鼓励
-- 添加完成声明要求
-- 更新输出规范
+- 添加阶段声明系统（1.1）
+- 添加环境探索鼓励（1.2）
+- 添加完成声明要求（1.3）
+- 添加中间分析声明说明（1.4）
 
 ### 任务 2：修改 Loop 检测逻辑
 
-**文件**: `simple-agent/src/agent/loop.ts`
+**文件**: `/Users/liufukang/workplace/AI/project/simple-agent/src/agent/loop.ts`
 
 - 添加 `detectPhase()` 函数
 - 添加 `containsReportStructure()` 函数
 - 修改 message 处理逻辑，使用阶段检测
+- maxIterations 已存在（默认 10），无需修改
 
-### 任务 3：添加 Loop 事件
+**工具调用失败处理**：
+- 由现有的 `executeToolCalls()` 函数处理（返回 error 字段）
+- 无需额外重试逻辑，失败结果直接返回给 AI
 
-**文件**: `simple-agent/src/agent/loop.ts`
+### 任务 3：添加 Loop 事件（可选）
+
+**文件**: `/Users/liufukang/workplace/AI/project/simple-agent/src/agent/loop.ts`
 
 - 添加 `loop:phase` 事件
 - 添加 `loop:waiting` 事件
@@ -272,9 +296,22 @@ reviews/
 
 **测试场景**:
 
-1. `review commit 6e17576` - 应该能完整收集文件并输出报告
-2. `review 当前 branch 新代码` - 应该能正确探索环境
-3. `review PR 12` - 应该能获取 PR 信息并分析
+1. `review commit 6e17576`
+   - **预期**: AI 执行多次迭代（至少 3 次以上）
+   - **验证**: 检查输出包含 git show 结果 + read 文件内容 + 完整报告
+
+2. `review 当前 branch 新代码`
+   - **预期**: AI 使用 pwd/ls 探索路径，最终找到正确文件
+   - **验证**: 检查输出包含 pwd/ls 命令执行
+
+3. `review PR 12`（如果有可用 PR）
+   - **预期**: AI 调用 gh pr view + gh pr diff
+   - **验证**: 检查输出包含 PR 信息
+
+**成功标准验证**：
+- AI 输出包含 `**__REVIEW_COMPLETE__**` 标记
+- Loop 迭代次数 > 3（证明不是提前终止）
+- 报告内容包含具体的代码问题分析（而非仅工具输出）
 
 ---
 
@@ -293,4 +330,4 @@ reviews/
 1. AI 在真正读取文件后才输出分析
 2. Loop 不会在信息收集阶段提前终止
 3. 最终报告包含完整的代码审查内容
-4. 报告正确保存到 `reviews/` 目录
+4. 报告正确保存到 `/Users/liufukang/workplace/AI/project/code-review-agent/reviews/` 目录
