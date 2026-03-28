@@ -31,6 +31,10 @@ interface AgentStore {
   addLog: (log: LogEntry) => void;
   clearLogs: () => void;
 
+  // Agent type
+  agentType: 'simple' | 'code-review';
+  setAgentType: (type: 'simple' | 'code-review') => void;
+
   // Status
   isRunning: boolean;
   setIsRunning: (running: boolean) => void;
@@ -58,4 +62,7 @@ export const useStore = create<AgentStore>((set) => ({
 
   isRunning: false,
   setIsRunning: (running) => set({ isRunning: running }),
+
+  agentType: 'simple',
+  setAgentType: (type) => set({ agentType: type }),
 }));
