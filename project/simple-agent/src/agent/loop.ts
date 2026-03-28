@@ -10,6 +10,52 @@ import type { LLMProvider } from '../llm';
 import type { Tool, ToolContext } from '../tools/types';
 import { step, executeToolCalls } from './step';
 
+// ============================================================================
+// Phase Detection Constants (Magic Strings)
+// ============================================================================
+
+const PHASE_COMPLETE_MARKERS = ['**__PHASE: COMPLETE__**', '**__REVIEW_COMPLETE__**'];
+const PHASE_ANALYZING_MARKERS = ['**__PHASE: ANALYZING__**'];
+const PHASE_COLLECTING_MARKERS = ['**__PHASE: COLLECTING__**'];
+
+const REPORT_STRUCTURE_MARKERS = [
+  '## 总结',
+  '## Summary',
+  '### 严重问题',
+  '### 建议改进',
+  '# Code Review',
+  '# Code Review Report',
+];
+
+// ============================================================================
+// Types and Helper Functions
+// ============================================================================
+
+type Phase = 'collecting' | 'analyzing' | 'complete' | 'unknown';
+
+/**
+ * 从 AI 的 message content 中提取阶段信息
+ */
+function detectPhase(content: string): Phase {
+  if (PHASE_COMPLETE_MARKERS.some(marker => content.includes(marker))) {
+    return 'complete';
+  }
+  if (PHASE_ANALYZING_MARKERS.some(marker => content.includes(marker))) {
+    return 'analyzing';
+  }
+  if (PHASE_COLLECTING_MARKERS.some(marker => content.includes(marker))) {
+    return 'collecting';
+  }
+  return 'unknown';
+}
+
+/**
+ * 检查内容是否包含报告结构（作为备用完成判断）
+ */
+function containsReportStructure(content: string): boolean {
+  return REPORT_STRUCTURE_MARKERS.some(marker => content.includes(marker));
+}
+
 export interface LoopOptions {
   maxIterations?: number;
   context?: ToolContext;
@@ -116,15 +162,40 @@ export async function* loop(
       // Continue looping - there might be more tool calls
       hasToolCalls = true;
     } else {
-      // No tool calls - we're done
-      hasToolCalls = false;
-
-      // Add assistant message to conversation
+      // No tool calls - check phase to decide whether to continue or terminate
       if (stepResult.type === 'message') {
+        const content = stepResult.content || '';
+        const phase = detectPhase(content);
+
+        if (phase === 'complete') {
+          // AI 宣布完成，终止 loop
+          hasToolCalls = false;
+          events.emit('loop:phase', { phase: 'complete' });
+        } else if (phase === 'unknown') {
+          // 有内容但无明确阶段
+          if (content.length > 200 && containsReportStructure(content)) {
+            // 内容较长且包含报告结构，视为完成
+            hasToolCalls = false;
+            events.emit('loop:phase', { phase: 'complete', reason: 'report_structure' });
+          } else {
+            // 可能是中间分析或短响应，继续等待
+            hasToolCalls = true;
+            events.emit('loop:waiting', { reason: 'intermediate', contentLength: content.length });
+          }
+        } else {
+          // collecting 或 analyzing，继续循环
+          hasToolCalls = true;
+          events.emit('loop:phase', { phase });
+        }
+
+        // Add assistant message to conversation
         messages.push({
           role: 'assistant',
-          content: stepResult.content || '',
+          content: content,
         });
+      } else {
+        // 未知类型，终止 loop
+        hasToolCalls = false;
       }
     }
 
