@@ -112,12 +112,13 @@ console.log('[Code Review Agent] Starting...\n');
           }
           break;
         case 'tool-call':
-          console.log(`[Tool] ${result.metadata?.name || 'unknown'}`);
-          outputBuffer.push(`\n[Tool] ${result.metadata?.name || 'unknown'}`);
+          console.log(`[Tool] ${result.metadata?.toolName || 'unknown'}`);
+          outputBuffer.push(`\n[Tool] ${result.metadata?.toolName || 'unknown'}`);
           break;
         case 'tool-result':
           const content = result.content || '';
           console.log(`[Result] ${content.slice(0, 200)}${content.length > 200 ? '...' : ''}`);
+          outputBuffer.push(`[Result] ${content}`);
           break;
         case 'done':
           console.log('\n[Done] Review completed');
