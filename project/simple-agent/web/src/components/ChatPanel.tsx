@@ -1,14 +1,10 @@
 import { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useStore } from '../store';
 import { useAgent } from '../hooks/useAgent';
 import { Button } from './common/Button';
 import { Input } from './common/Input';
-
-function escapeHtml(text: string): string {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
 
 export function ChatPanel() {
   const [input, setInput] = useState('');
@@ -96,8 +92,15 @@ export function ChatPanel() {
                   ? 'bg-primary-500 text-white'
                   : 'bg-gray-100 text-gray-900'
               }`}
-              dangerouslySetInnerHTML={{ __html: escapeHtml(msg.content) }}
-            />
+            >
+              {msg.role === 'user' ? (
+                <span className="whitespace-pre-wrap">{msg.content}</span>
+              ) : (
+                <div className="prose prose-sm max-w-none">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                </div>
+              )}
+            </div>
           </div>
         ))}
 
