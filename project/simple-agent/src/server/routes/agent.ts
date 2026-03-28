@@ -86,7 +86,7 @@ export function createAgentRouter(wsManager: WSManager) {
             break;
           case 'tool-call':
             for (const tc of stepResult.metadata.toolCalls) {
-              wsManager.send(sid, { type: 'tool:call', data: { tool: tc.name, params: tc.input } });
+              wsManager.send(sid, { type: 'tool:call', data: { tool: tc.name, params: tc.arguments } });
             }
             break;
           case 'tool-result':
