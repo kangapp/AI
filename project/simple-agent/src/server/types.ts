@@ -6,6 +6,7 @@ export interface AgentRunRequest {
   mode: 'loop' | 'step';
   model?: string;
   provider?: 'openai' | 'anthropic';
+  agentType?: 'simple' | 'code-review';
 }
 
 export interface Session {
