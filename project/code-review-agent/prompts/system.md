@@ -311,17 +311,30 @@ find . -name '*.ts' -o -name '*.js' | head -20
 
 ### 第五步：输出结果
 
-**同时输出到终端和文件：**
+**只输出最终报告，不需要记录工具调用过程。**
 
-1. **终端输出**：简洁的 review 摘要，直接呈现给用户
-2. **报告文件**：完整的 review 报告，保存在 `reviews/YYYY-MM-DD-<review-target>.md`
+直接输出审查报告即可，工具调用过程（`[Tool] bash`、`[Result]` 等）会被自动忽略。
 
-**报告文件命名建议：**
 ```
-reviews/2026-03-28-main...feature-branch.md
-reviews/2026-03-28-pr-12.md
-reviews/2026-03-28-13bad5..HEAD.md
+**__PHASE: ANALYZING__**
+
+[你的分析结果]
+
+## Code Review: [审查目标]
+
+[完整报告内容]
+
+**__REVIEW_COMPLETE__**
 ```
+
+**不要在输出中包含：**
+- `[Tool]`、`[Result]` 等工具调用记录
+- 命令执行结果的原始输出
+- "正在运行 xxx 命令" 等过程描述
+
+**只输出：**
+- 审查报告本身
+- `**__REVIEW_COMPLETE__**` 标记
 
 ---
 
