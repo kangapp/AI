@@ -6,6 +6,7 @@ import { fileURLToPath } from 'url';
 import { Agent } from '../../agent/agent';
 import { BashTool, ReadTool, WriteTool } from '../../tools';
 import { WSManager } from '../websocket';
+import { getMCPClient } from '../index';
 import type { AgentRunRequest } from './types';
 
 const router = Router();
@@ -51,6 +52,16 @@ export function createAgentRouter(wsManager: WSManager) {
 
     agent.registerTools([new BashTool(), new ReadTool(), new WriteTool()]);
 
+    // 注册 MCP 工具 (如果可用)
+    const mcpClient = getMCPClient();
+    if (mcpClient) {
+      try {
+        await agent.registerMCPTools(mcpClient);
+      } catch (error) {
+        console.error('[Error] Failed to register MCP tools:', error);
+      }
+    }
+
     const abortController = new AbortController();
     req.on('aborted', () => {
       abortController.abort();
@@ -82,10 +93,16 @@ export function createAgentRouter(wsManager: WSManager) {
         switch (stepResult.type) {
           case 'message':
             wsManager.send(sid, { type: 'message', data: { content: stepResult.content, role: 'assistant' } });
+            if (stepResult.reasoning) {
+              wsManager.send(sid, { type: 'reasoning', data: { content: stepResult.reasoning } });
+            }
             break;
           case 'tool-call':
             for (const tc of stepResult.metadata.toolCalls) {
               wsManager.send(sid, { type: 'tool:call', data: { tool: tc.name, params: tc.arguments } });
+            }
+            if (stepResult.reasoning) {
+              wsManager.send(sid, { type: 'reasoning', data: { content: stepResult.reasoning } });
             }
             break;
           case 'tool-result':
