@@ -2,10 +2,10 @@ import { useCallback } from 'react';
 import { useStore } from '../store';
 
 export function useAgent() {
-  const { currentSessionId, addMessage, clearMessages, clearLogs, setIsRunning } = useStore();
+  const { currentSessionId, agentType, addMessage, clearMessages, clearLogs, setIsRunning } = useStore();
 
   const runAgent = useCallback(
-    async (prompt: string, mode: 'loop' | 'step' = 'loop', agentType: 'simple' | 'code-review' = 'simple') => {
+    async (prompt: string, mode: 'loop' | 'step' = 'loop') => {
       if (!prompt.trim()) return;
 
       clearMessages();
@@ -21,7 +21,7 @@ export function useAgent() {
           sessionId: currentSessionId,
           prompt,
           mode,
-          agentType: agentType !== 'simple' ? agentType : undefined, // Only send if not 'simple'
+          agentType: agentType !== 'simple' ? agentType : undefined,
         }),
       });
 

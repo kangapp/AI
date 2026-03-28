@@ -28,7 +28,7 @@ export function ChatPanel() {
     const prompt = input;
     setInput('');
     try {
-      await runAgent(prompt, 'loop', agentType);
+      await runAgent(prompt, 'loop');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
