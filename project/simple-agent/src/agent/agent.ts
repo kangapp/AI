@@ -6,6 +6,7 @@
 
 import type { Message, AgentConfig, AgentMode, StepResult, RunOptions } from '../types';
 import type { LLMProvider } from '../llm';
+import type { MCPClient } from '../mcp/client';
 import type { Tool, ToolContext } from '../tools/types';
 import { EventEmitter } from '../events/emitter';
 import { step, executeToolCalls } from './step';
@@ -73,6 +74,18 @@ export class Agent {
    */
   setMCPClient(client: unknown): void {
     this.mcpClient = client;
+  }
+
+  /**
+   * Register tools from MCP client
+   *
+   * @param mcpClient - MCP client instance
+   */
+  async registerMCPTools(mcpClient: MCPClient): Promise<void> {
+    const tools = await mcpClient.listTools();
+    for (const tool of tools) {
+      this.tools.push(tool);
+    }
   }
 
   /**
