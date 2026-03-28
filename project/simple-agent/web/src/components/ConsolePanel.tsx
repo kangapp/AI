@@ -1,6 +1,44 @@
 import { useRef, useEffect } from 'react';
 import { useStore } from '../store';
 
+function formatLogData(type: string, data: unknown): React.ReactNode {
+  if (type === 'tool:call' && typeof data === 'object' && data !== null) {
+    const { tool, params } = data as { tool: string; params: unknown };
+    return (
+      <div>
+        <span className="text-purple-400">Tool: </span>
+        <span className="text-yellow-300">{tool}</span>
+        {params && Object.keys(params).length > 0 && (
+          <>
+            <div className="text-purple-400 mt-1">Params:</div>
+            <pre className="text-gray-400 mt-1 ml-2 whitespace-pre-wrap">
+              {JSON.stringify(params, null, 2)}
+            </pre>
+          </>
+        )}
+      </div>
+    );
+  }
+
+  if (type === 'tool:result' && typeof data === 'object' && data !== null) {
+    const { tool, result } = data as { tool: string; result: string };
+    return (
+      <div>
+        <span className="text-purple-400">Result ({tool}):</span>
+        <pre className="text-gray-400 mt-1 whitespace-pre-wrap break-all max-h-32 overflow-y-auto">
+          {result.length > 500 ? result.substring(0, 500) + '...' : result}
+        </pre>
+      </div>
+    );
+  }
+
+  return (
+    <pre className="text-gray-300 whitespace-pre-wrap break-all">
+      {JSON.stringify(data, null, 2)}
+    </pre>
+  );
+}
+
 export function ConsolePanel() {
   const { logs } = useStore();
   const logsEndRef = useRef<HTMLDivElement>(null);
@@ -42,8 +80,8 @@ export function ConsolePanel() {
                 {log.type}
               </span>
             </div>
-            <div className="mt-1 text-gray-300 whitespace-pre-wrap break-all">
-              {JSON.stringify(log.data, null, 2)}
+            <div className="mt-1">
+              {formatLogData(log.type, log.data)}
             </div>
           </div>
         ))}
