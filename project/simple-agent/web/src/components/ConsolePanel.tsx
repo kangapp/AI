@@ -1,4 +1,4 @@
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useStore } from '../store';
 
 function formatLogData(type: string, data: unknown): React.ReactNode {
@@ -32,10 +32,58 @@ function formatLogData(type: string, data: unknown): React.ReactNode {
     );
   }
 
+  if (type === 'reasoning' && typeof data === 'object' && data !== null) {
+    const { content } = data as { content: string };
+    return (
+      <pre className="text-cyan-400 mt-1 whitespace-pre-wrap break-all max-h-64 overflow-y-auto">
+        {content}
+      </pre>
+    );
+  }
+
   return (
     <pre className="text-gray-300 whitespace-pre-wrap break-all">
       {JSON.stringify(data, null, 2)}
     </pre>
+  );
+}
+
+function CollapsibleReasoning({ content }: { content: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = content.length > 300;
+
+  if (!isLong) {
+    return (
+      <pre className="text-cyan-400 mt-1 whitespace-pre-wrap break-all">
+        {content}
+      </pre>
+    );
+  }
+
+  return (
+    <div className="mt-1">
+      {!expanded ? (
+        <div
+          className="text-cyan-400 cursor-pointer hover:text-cyan-300"
+          onClick={() => setExpanded(true)}
+        >
+          <span className="text-gray-500">[点击展开 reasoning...]</span>
+          <pre className="text-cyan-400 mt-1 whitespace-pre-wrap break-all max-h-32 overflow-hidden">
+            {content.substring(0, 300)}...
+          </pre>
+        </div>
+      ) : (
+        <div
+          className="text-cyan-400 cursor-pointer hover:text-cyan-300"
+          onClick={() => setExpanded(false)}
+        >
+          <span className="text-gray-500">[点击折叠 reasoning]</span>
+          <pre className="text-cyan-400 mt-1 whitespace-pre-wrap break-all max-h-96 overflow-y-auto">
+            {content}
+          </pre>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -72,6 +120,8 @@ export function ConsolePanel() {
                     ? 'bg-blue-900 text-blue-300'
                     : log.type.startsWith('tool')
                     ? 'bg-purple-900 text-purple-300'
+                    : log.type === 'reasoning'
+                    ? 'bg-cyan-900 text-cyan-300'
                     : log.type === 'error'
                     ? 'bg-red-900 text-red-300'
                     : 'bg-gray-700 text-gray-300'
@@ -81,7 +131,11 @@ export function ConsolePanel() {
               </span>
             </div>
             <div className="mt-1">
-              {formatLogData(log.type, log.data)}
+              {log.type === 'reasoning' && typeof log.data === 'object' && log.data !== null ? (
+                <CollapsibleReasoning content={(log.data as { content: string }).content} />
+              ) : (
+                formatLogData(log.type, log.data)
+              )}
             </div>
           </div>
         ))}

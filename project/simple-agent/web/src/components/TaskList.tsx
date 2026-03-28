@@ -29,6 +29,9 @@ export function TaskList() {
   const handleDeleteSession = async (id: string) => {
     try {
       await fetch(`/api/sessions/${id}`, { method: 'DELETE' });
+      // Update local sessions list by removing the deleted session
+      const { sessions: currentSessions } = useStore.getState();
+      setSessions(currentSessions.filter(s => s.id !== id));
       if (currentSessionId === id) {
         setCurrentSession(null);
       }

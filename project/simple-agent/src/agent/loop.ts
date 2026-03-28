@@ -177,10 +177,15 @@ export async function* loop(
             // 内容较长且包含报告结构，视为完成
             hasToolCalls = false;
             events.emit('loop:phase', { phase: 'complete', reason: 'report_structure' });
+          } else if (content.trim().length > 0) {
+            // 有实际内容（即使是短响应），视为最终回复
+            // 不再等待 tool calls，终止循环
+            hasToolCalls = false;
+            events.emit('loop:phase', { phase: 'complete', reason: 'short_response' });
           } else {
-            // 可能是中间分析或短响应，继续等待
+            // 空内容或纯 whitespace，继续等待
             hasToolCalls = true;
-            events.emit('loop:waiting', { reason: 'intermediate', contentLength: content.length });
+            events.emit('loop:waiting', { reason: 'empty_content' });
           }
         } else {
           // collecting 或 analyzing，继续循环

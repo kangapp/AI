@@ -207,7 +207,7 @@ export class MCPClient {
       name: fullName,
       description: mcpTool.description || `MCP tool: ${mcpTool.name}`,
       parameters: zodSchema,
-      execute: createMcpToolExecutor(mcpTool, (name, args) =>
+      execute: createMcpToolExecutor(fullName, (name, args) =>
         this.callTool(name, args)
       ),
     };

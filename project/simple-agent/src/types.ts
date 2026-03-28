@@ -67,5 +67,6 @@ export interface RunOptions {
 export interface StepResult {
   type: 'message' | 'tool-call' | 'tool-result' | 'error' | 'done';
   content?: string;
+  reasoning?: string;
   metadata?: Record<string, unknown>;
 }

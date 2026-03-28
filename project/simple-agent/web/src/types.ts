@@ -9,4 +9,5 @@ export type WSEvent =
   | { type: 'iteration:start'; data: { iteration: number } }
   | { type: 'iteration:end'; data: { iteration: number; promptTokens: number; completionTokens: number } }
   | { type: 'agent:complete'; data: { finalMessage: string } }
-  | { type: 'error'; data: { message: string } };
+  | { type: 'error'; data: { message: string } }
+  | { type: 'reasoning'; data: { content: string } };

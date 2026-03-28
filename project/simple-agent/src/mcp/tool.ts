@@ -91,14 +91,17 @@ export function convertMcpToolDefinition(mcpTool: MCPTool): ToolDefinition {
 /**
  * Create a wrapper function for calling MCP tools
  * Returns a function that can be used as a tool executor
+ *
+ * @param fullName - The full tool name including server prefix (e.g., "MiniMax:web_search")
+ * @param callToolFn - Function to call the MCP tool
  */
 export function createMcpToolExecutor(
-  mcpTool: MCPTool,
+  fullName: string,
   callToolFn: (name: string, args: unknown) => Promise<unknown>
 ): (params: unknown, context: ToolContext) => Promise<ToolResult> {
   return async (params: unknown, _context: ToolContext): Promise<ToolResult> => {
     try {
-      const result = await callToolFn(mcpTool.name, params);
+      const result = await callToolFn(fullName, params);
       return {
         success: true,
         result: JSON.stringify(result),
@@ -115,6 +118,8 @@ export function createMcpToolExecutor(
 /**
  * Convert an MCP tool to a Tool with execute function
  * The callToolFn should have signature: (name: string, args: any) => Promise<any>
+ *
+ * Note: This function doesn't add a server prefix. Use createTool in client.ts for prefixed tools.
  */
 export function convertMcpTool(
   mcpTool: MCPTool,
@@ -124,6 +129,6 @@ export function convertMcpTool(
     name: mcpTool.name,
     description: mcpTool.description || "",
     parameters: convertMcpInputSchema(mcpTool.inputSchema),
-    execute: createMcpToolExecutor(mcpTool, callToolFn),
+    execute: createMcpToolExecutor(mcpTool.name, callToolFn),
   };
 }

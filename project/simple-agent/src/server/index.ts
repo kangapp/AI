@@ -38,7 +38,12 @@ async function initializeMCP() {
     mcpClient = new MCPClient();
 
     const apiKey = process.env.MINIMAX_API_KEY || process.env.ANTHROPIC_API_KEY;
-    const apiHost = process.env.MINIMAX_API_HOST || process.env.ANTHROPIC_BASE_URL || 'https://api.minimaxi.com';
+    // MINIMAX_API_HOST should NOT include /v1 - the MCP server adds it
+    // If using ANTHROPIC_BASE_URL which includes /v1, strip it
+    let apiHost = process.env.MINIMAX_API_HOST || process.env.ANTHROPIC_BASE_URL || 'https://api.minimaxi.com';
+    if (apiHost.endsWith('/v1')) {
+      apiHost = apiHost.replace(/\/v1$/, '');
+    }
 
     await mcpClient.connect({
       name: 'MiniMax',

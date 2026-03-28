@@ -46,6 +46,7 @@ export async function step(
     return {
       type: 'tool-call',
       content: JSON.stringify(toolCall),
+      reasoning: response.reasoning,
       metadata: {
         toolCalls: response.toolCalls,
         toolName: toolCall.name,
@@ -62,6 +63,7 @@ export async function step(
     return {
       type: 'message',
       content: '',
+      reasoning: response.reasoning,
       metadata: {
         usage: response.usage,
       },
@@ -71,6 +73,7 @@ export async function step(
   return {
     type: 'message',
     content: content,
+    reasoning: response.reasoning,
     metadata: {
       usage: response.usage,
     },
