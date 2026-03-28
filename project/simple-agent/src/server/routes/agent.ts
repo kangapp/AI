@@ -1,5 +1,8 @@
 // src/server/routes/agent.ts
 import { Router } from 'express';
+import { readFile } from 'fs/promises';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { Agent } from '../../agent/agent';
 import { BashTool, ReadTool, WriteTool } from '../../tools';
 import { WSManager } from '../websocket';
@@ -10,6 +13,28 @@ const router = Router();
 export function createAgentRouter(wsManager: WSManager) {
   router.post('/run', async (req, res) => {
     const { sessionId, prompt, mode, model, provider } = req.body as AgentRunRequest;
+    const agentType = (req.body as AgentRunRequest).agentType || 'simple';
+
+    // Build messages array
+    const messages: { role: 'system' | 'user'; content: string }[] = [];
+
+    if (agentType === 'code-review') {
+      // Load system prompt from code-review-agent
+      const __filename = fileURLToPath(import.meta.url);
+      const __dirname = dirname(__filename);
+      const systemPromptPath = join(__dirname, '..', '..', '..', 'code-review-agent', 'prompts', 'system.md');
+      try {
+        const systemPrompt = await readFile(systemPromptPath, 'utf-8');
+        messages.push({ role: 'system', content: systemPrompt });
+      } catch (e) {
+        // If system prompt file is missing, fail fast - code-review mode requires it
+        console.error('[Error] Failed to load code-review system prompt:', e);
+        res.status(500).json({ error: 'Code review system prompt not found' });
+        return;
+      }
+    }
+
+    messages.push({ role: 'user', content: prompt });
 
     console.log('[DEBUG] Creating agent with config:', {
       provider: provider || process.env.PROVIDER || 'anthropic',
@@ -36,8 +61,6 @@ export function createAgentRouter(wsManager: WSManager) {
 
     wsManager.send(sid, { type: 'agent:start', data: { sessionId: sid } });
     wsManager.send(sid, { type: 'message', data: { content: prompt, role: 'user' } });
-
-    const messages = [{ role: 'user' as const, content: prompt }];
 
     // 订阅 Agent 事件
     agent.on('iteration:start', (data) => {
