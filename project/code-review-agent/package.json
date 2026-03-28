@@ -1,0 +1,17 @@
+{
+  "name": "code-review-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "bun src/index.ts",
+    "dev": "bun src/index.ts"
+  },
+  "dependencies": {
+    "simple-agent": "file:../simple-agent",
+    "dotenv": "^17.3.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "bun-types": "^1.1.0"
+  }
+}
