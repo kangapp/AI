@@ -232,8 +232,10 @@ async function main() {
   }
 }
 
+// Export classes and functions for use by other packages
+export { Agent } from './agent/agent';
+export { BashTool, ReadTool, WriteTool } from './tools';
+export type { AgentConfig, AgentMode, Message } from './types';
+
 // Export for testing
 export { parseArgs, main };
-
-// Run if executed directly
-main();

@@ -2,6 +2,7 @@
   "name": "simple-agent",
   "version": "0.1.0",
   "type": "module",
+  "main": "./src/index.ts",
   "workspaces": ["web"],
   "dependencies": {
     "@ai-sdk/anthropic": "2.0.65",
