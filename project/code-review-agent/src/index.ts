@@ -112,13 +112,10 @@ console.log('[Code Review Agent] Starting...\n');
           }
           break;
         case 'tool-call':
-          console.log(`[Tool] ${result.metadata?.toolName || 'unknown'}`);
-          outputBuffer.push(`\n[Tool] ${result.metadata?.toolName || 'unknown'}`);
+          // Tool calls are executed silently, no output needed
           break;
         case 'tool-result':
-          const content = result.content || '';
-          console.log(`[Result] ${content.slice(0, 200)}${content.length > 200 ? '...' : ''}`);
-          outputBuffer.push(`[Result] ${content}`);
+          // Tool results are processed internally, no console output
           break;
         case 'done':
           console.log('\n[Done] Review completed');
