@@ -80,7 +80,10 @@ if (agentType === 'code-review') {
     const systemPrompt = await readFile(systemPromptPath, 'utf-8');
     messages.push({ role: 'system', content: systemPrompt });
   } catch (e) {
+    // If system prompt file is missing, fail fast - code-review mode requires it
     console.error('[Error] Failed to load code-review system prompt:', e);
+    res.status(500).json({ error: 'Code review system prompt not found' });
+    return;
   }
 }
 
@@ -155,19 +158,15 @@ const runAgent = useCallback(
   async (prompt: string, mode: 'loop' | 'step' = 'loop', agentType: 'simple' | 'code-review' = 'simple') => {
 ```
 
-- [ ] **Step 2: Extract agentType from store**
+- [ ] **Step 2: Update useStore destructuring**
 
-Change:
 ```typescript
 const { currentSessionId, addMessage, clearMessages, clearLogs, setIsRunning } = useStore();
 ```
 
-To:
-```typescript
-const { currentSessionId, agentType: storeAgentType, addMessage, clearMessages, clearLogs, setIsRunning } = useStore();
-```
+No changes needed - we use the `agentType` parameter passed to the function.
 
-- [ ] **Step 3: Use agentType parameter (falls back to store value)**
+- [ ] **Step 3: Use agentType parameter**
 
 In the fetch body, change:
 ```typescript
@@ -328,12 +327,14 @@ Open http://localhost:3000 and verify:
 - Clicking "Review" highlights it
 - Clicking "Simple" highlights it
 
-- [ ] **Step 4: Test code-review agent flow**
+- [ ] **Step 4: Test code-review produces different output than simple**
 
-- Select "Review"
-- Enter a prompt like "review the recent commits"
-- Verify WebSocket events show agent:start, message events, agent:complete
-- Verify output appears in message list
+1. With "Simple" selected, enter a simple prompt (e.g., "hello") and note the output style
+2. With "Review" selected, enter the same prompt and note the output
+3. Verify the outputs are different - code-review mode should produce review-style content
+4. Verify server console shows "[Agent] Starting" with different context
+
+**Expected difference:** Simple mode outputs a direct response. Code-review mode outputs structured review content (headers, bullet points, etc.) per its system prompt instructions.
 
 ---
 
