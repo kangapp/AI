@@ -13,7 +13,7 @@ function escapeHtml(text: string): string {
 export function ChatPanel() {
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const { messages, isRunning, currentSessionId } = useStore();
+  const { messages, isRunning, currentSessionId, agentType, setAgentType } = useStore();
   const { runAgent } = useAgent();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -28,7 +28,7 @@ export function ChatPanel() {
     const prompt = input;
     setInput('');
     try {
-      await runAgent(prompt);
+      await runAgent(prompt, 'loop', agentType);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
@@ -38,10 +38,36 @@ export function ChatPanel() {
     <div className="flex-1 flex flex-col bg-white">
       {/* Header */}
       <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary-600 to-primary-500">
-        <h1 className="text-lg font-semibold text-white">Simple Agent</h1>
-        <p className="text-sm text-primary-100">
-          {currentSessionId ? `会话: ${currentSessionId}` : '新会话'}
-        </p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-semibold text-white">Simple Agent</h1>
+            <p className="text-sm text-primary-100">
+              {currentSessionId ? `会话: ${currentSessionId}` : '新会话'}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setAgentType('simple')}
+              className={`px-3 py-1 text-sm rounded ${
+                agentType === 'simple'
+                  ? 'bg-white text-primary-600'
+                  : 'bg-primary-700 text-white hover:bg-primary-600'
+              }`}
+            >
+              Simple
+            </button>
+            <button
+              onClick={() => setAgentType('code-review')}
+              className={`px-3 py-1 text-sm rounded ${
+                agentType === 'code-review'
+                  ? 'bg-white text-primary-600'
+                  : 'bg-primary-700 text-white hover:bg-primary-600'
+              }`}
+            >
+              Review
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* Error */}
