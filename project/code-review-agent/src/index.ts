@@ -5,6 +5,13 @@ import { config } from 'dotenv';
 
 config({ override: true });
 
+function escapeHtml(text: string): string {
+  const map: Record<string, string> = {
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, (m) => map[m]);
+}
+
 const apiKey = process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY;
 if (!apiKey) {
   console.error('Error: API key required. Set OPENAI_API_KEY or ANTHROPIC_API_KEY');
@@ -38,7 +45,9 @@ try {
 
 try {
   mkdirSync('./reviews', { recursive: true });
-} catch {}
+} catch (e) {
+  console.warn('[Warning] Could not create reviews directory:', e);
+}
 
 const envProvider = process.env.PROVIDER;
 const validProviders = ['openai', 'anthropic'];
@@ -68,7 +77,8 @@ const reportFileName = `reviews/${date}-review-report.md`;
 
 console.log('[Code Review Agent] Starting...\n');
 
-for await (const result of agent.run(messages, 'loop')) {
+try {
+  for await (const result of agent.run(messages, 'loop')) {
   switch (result.type) {
     case 'message':
       if (result.content) {
@@ -90,7 +100,7 @@ for await (const result of agent.run(messages, 'loop')) {
         const reportContent = `# Code Review Report
 
 **审查时间**: ${date}
-**用户输入**: ${userInput}
+**用户输入**: ${escapeHtml(userInput)}
 
 ---
 
@@ -110,5 +120,8 @@ ${outputBuffer.join('\n\n')}
     case 'error':
       console.error('[Error]', result.content);
       break;
-  }
+    }
+} catch (e) {
+  console.error('[Fatal]', e);
+  process.exit(1);
 }
