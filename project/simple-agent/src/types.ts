@@ -43,6 +43,7 @@ export interface AgentConfig {
   baseURL?: string;
   systemPrompt?: string;
   maxIterations?: number;
+  maxTokens?: number;
   tools?: ToolDefinition[];
   mcpServers?: MCPServerConfig[];
 }

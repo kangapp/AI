@@ -14,6 +14,7 @@ export interface LoopOptions {
   maxIterations?: number;
   context?: ToolContext;
   signal?: AbortSignal;
+  maxTokens?: number;
 }
 
 /**
@@ -51,7 +52,7 @@ export async function* loop(
     events.emit('iteration:start', { iteration, maxIterations });
 
     // Execute one step
-    const stepResult = await step(llm, tools, messages, context, options.signal);
+    const stepResult = await step(llm, tools, messages, context, options.signal, options.maxTokens);
     yield stepResult;
 
     // Handle tool calls if present
@@ -70,6 +71,13 @@ export async function* loop(
 
       // Emit tool result event
       events.emit('tool:result', { results: toolResults });
+
+      // Yield tool result to caller
+      yield {
+        type: 'tool-result' as const,
+        content: JSON.stringify(toolResults),
+        metadata: { results: toolResults },
+      };
 
       // Add assistant message with tool calls
       messages.push({

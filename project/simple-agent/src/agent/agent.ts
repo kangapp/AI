@@ -150,10 +150,12 @@ export class Agent {
    */
   private async *runLoopMode(messages: Message[], signal?: AbortSignal): AsyncGenerator<StepResult> {
     const maxIterations = this.config.maxIterations ?? 10;
+    const maxTokens = this.config.maxTokens ?? 8192;
 
     yield* loop(this.llm, this.tools, messages, this.events, {
       maxIterations,
       signal,
+      maxTokens,
     });
   }
 

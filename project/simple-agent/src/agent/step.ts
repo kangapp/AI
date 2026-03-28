@@ -25,7 +25,8 @@ export async function step(
   tools: Tool[],
   messages: Message[],
   context: ToolContext = {},
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  maxTokens?: number
 ): Promise<StepResult> {
   // Call the LLM with current messages and tools
   const response = await llm.chat(messages, {
@@ -35,6 +36,7 @@ export async function step(
       parameters: zodToJsonSchema(t.parameters),
     })),
     signal,
+    maxTokens,
   });
 
   // Check if the response has tool calls
@@ -46,15 +48,29 @@ export async function step(
       content: JSON.stringify(toolCall),
       metadata: {
         toolCalls: response.toolCalls,
+        toolName: toolCall.name,
         usage: response.usage,
       },
     };
   }
 
   // No tool calls - return the text response
+  // But if content is empty or looks like a tool call JSON, treat it as empty message
+  const content = response.content || '';
+  if (!content || content.startsWith('{')) {
+    // Empty response or malformed - this is unexpected
+    return {
+      type: 'message',
+      content: '',
+      metadata: {
+        usage: response.usage,
+      },
+    };
+  }
+
   return {
     type: 'message',
-    content: response.content,
+    content: content,
     metadata: {
       usage: response.usage,
     },
