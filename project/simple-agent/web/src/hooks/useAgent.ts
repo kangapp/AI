@@ -5,7 +5,7 @@ export function useAgent() {
   const { currentSessionId, addMessage, clearMessages, clearLogs, setIsRunning } = useStore();
 
   const runAgent = useCallback(
-    async (prompt: string, mode: 'loop' | 'step' = 'loop') => {
+    async (prompt: string, mode: 'loop' | 'step' = 'loop', agentType: 'simple' | 'code-review' = 'simple') => {
       if (!prompt.trim()) return;
 
       clearMessages();
@@ -21,6 +21,7 @@ export function useAgent() {
           sessionId: currentSessionId,
           prompt,
           mode,
+          agentType: agentType !== 'simple' ? agentType : undefined, // Only send if not 'simple'
         }),
       });
 
@@ -29,7 +30,7 @@ export function useAgent() {
         throw new Error('Failed to start agent');
       }
     },
-    [currentSessionId, addMessage, clearMessages, clearLogs, setIsRunning]
+    [currentSessionId, agentType, addMessage, clearMessages, clearLogs, setIsRunning]
   );
 
   return { runAgent };
