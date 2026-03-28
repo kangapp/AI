@@ -62,12 +62,22 @@ const provider = envProvider && validProviders.includes(envProvider)
   : 'openai';
 
 const model = process.env.MODEL || 'gpt-4o';
+const baseURL = process.env.ANTHROPIC_BASE_URL || process.env.OPENAI_BASE_URL;
 
-const agentConfig = {
+const agentConfig: {
+  provider: 'openai' | 'anthropic';
+  model: string;
+  apiKey: string;
+  baseURL?: string;
+} = {
   provider,
   model,
   apiKey,
 };
+
+if (baseURL) {
+  agentConfig.baseURL = baseURL;
+}
 
 const agent = new Agent(agentConfig);
 agent.registerTools([new BashTool(), new ReadTool(), new WriteTool()]);

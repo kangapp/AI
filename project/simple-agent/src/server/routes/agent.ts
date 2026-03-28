@@ -1,7 +1,7 @@
 // src/server/routes/agent.ts
 import { Router } from 'express';
-import { Agent } from '../agent/agent';
-import { BashTool, ReadTool, WriteTool } from '../tools';
+import { Agent } from '../../agent/agent';
+import { BashTool, ReadTool, WriteTool } from '../../tools';
 import { WSManager } from '../websocket';
 import type { AgentRunRequest } from './types';
 
@@ -10,6 +10,13 @@ const router = Router();
 export function createAgentRouter(wsManager: WSManager) {
   router.post('/run', async (req, res) => {
     const { sessionId, prompt, mode, model, provider } = req.body as AgentRunRequest;
+
+    console.log('[DEBUG] Creating agent with config:', {
+      provider: provider || process.env.PROVIDER || 'anthropic',
+      model: model || process.env.MODEL || 'MiniMax-M2.7',
+      hasApiKey: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
+      baseURL: process.env.ANTHROPIC_BASE_URL,
+    });
 
     const agent = new Agent({
       provider: (provider || process.env.PROVIDER || 'anthropic') as 'openai' | 'anthropic',

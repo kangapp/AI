@@ -1,0 +1,294 @@
+# Code Review Agent Implementation Plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+
+**Goal:** 创建一个 CLI 工具 code-review-agent，使用户可以用自然语言指定要 review 的内容
+
+**Architecture:** 使用 simple-agent 作为核心引擎，通过 BashTool/ReadTool/WriteTool 完成 code review 工作流。CLI 接收自然语言输入，拼接 system prompt 后调用 simple-agent 执行。
+
+**Tech Stack:** TypeScript, Bun, simple-agent (dependency)
+
+---
+
+## 文件结构
+
+```
+project/code-review-agent/
+├── package.json          # 依赖 simple-agent, dotenv
+├── tsconfig.json
+├── src/
+│   └── index.ts          # CLI 入口
+└── prompts/
+    └── system.md        # code review system prompt
+```
+
+---
+
+### Task 1: 创建项目基础文件
+
+**Files:**
+- Create: `project/code-review-agent/package.json`
+- Create: `project/code-review-agent/tsconfig.json`
+
+- [ ] **Step 1: 创建 package.json**
+
+```json
+{
+  "name": "code-review-agent",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "start": "bun src/index.ts",
+    "dev": "bun src/index.ts"
+  },
+  "dependencies": {
+    "simple-agent": "file:../simple-agent",
+    "dotenv": "^17.3.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "bun-types": "^1.1.0"
+  }
+}
+```
+
+- [ ] **Step 2: 创建 tsconfig.json**
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["bun-types"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "allowJs": true,
+    "noEmit": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["node_modules"]
+}
+```
+
+- [ ] **Step 3: 提交**
+
+```bash
+git add package.json tsconfig.json
+git commit -m "chore: add project基础配置文件"
+```
+
+---
+
+### Task 2: 创建 CLI 入口
+
+**Files:**
+- Create: `project/code-review-agent/src/index.ts`
+
+- [ ] **Step 1: 创建 src 目录并编写 index.ts**
+
+```typescript
+import { Agent } from 'simple-agent';
+import { BashTool, ReadTool, WriteTool } from 'simple-agent';
+import { readFileSync, mkdirSync, writeFileSync } from 'fs';
+import { config } from 'dotenv';
+
+config({ override: true });
+
+const apiKey = process.env.OPENAI_API_KEY || process.env.ANTHROPIC_API_KEY;
+if (!apiKey) {
+  console.error('Error: API key required. Set OPENAI_API_KEY or ANTHROPIC_API_KEY');
+  process.exit(1);
+}
+
+const args = process.argv.slice(2);
+
+if (args.includes('--help') || args.includes('-h')) {
+  console.log(`Usage: code-review-agent "<自然语言描述要 review 的内容>"
+Example: code-review-agent "review PR 12"
+         code-review-agent "review 当前 branch 新代码"
+         code-review-agent "review commit 13bad5 之后的代码"`);
+  process.exit(0);
+}
+
+const userInput = args.join(' ');
+if (!userInput) {
+  console.error('Usage: code-review-agent "<自然语言描述要 review 的内容>"');
+  console.error('Example: code-review-agent "review PR 12"');
+  process.exit(1);
+}
+
+let systemPrompt = '';
+try {
+  systemPrompt = readFileSync('./prompts/system.md', 'utf-8');
+} catch {
+  console.error('Error: prompts/system.md not found');
+  process.exit(1);
+}
+
+try {
+  mkdirSync('./reviews', { recursive: true });
+} catch {}
+
+const envProvider = process.env.PROVIDER;
+const validProviders = ['openai', 'anthropic'];
+const provider = envProvider && validProviders.includes(envProvider)
+  ? envProvider as 'openai' | 'anthropic'
+  : 'openai';
+
+const model = process.env.MODEL || 'gpt-4o';
+
+const agentConfig = {
+  provider,
+  model,
+  apiKey,
+};
+
+const agent = new Agent(agentConfig);
+agent.registerTools([new BashTool(), new ReadTool(), new WriteTool()]);
+
+const messages = [
+  { role: 'system' as const, content: systemPrompt },
+  { role: 'user' as const, content: userInput },
+];
+
+const outputBuffer: string[] = [];
+const date = new Date().toISOString().split('T')[0];
+const reportFileName = `reviews/${date}-review-report.md`;
+
+console.log('[Code Review Agent] Starting...\n');
+
+for await (const result of agent.run(messages, 'loop')) {
+  switch (result.type) {
+    case 'message':
+      if (result.content) {
+        console.log(result.content);
+        outputBuffer.push(result.content);
+      }
+      break;
+    case 'tool-call':
+      console.log(`[Tool] ${result.metadata?.name || 'unknown'}`);
+      outputBuffer.push(`\n[Tool] ${result.metadata?.name || 'unknown'}`);
+      break;
+    case 'tool-result':
+      const content = result.content || '';
+      console.log(`[Result] ${content.slice(0, 200)}${content.length > 200 ? '...' : ''}`);
+      break;
+    case 'done':
+      console.log('\n[Done] Review completed');
+      if (outputBuffer.length > 0) {
+        const reportContent = `# Code Review Report
+
+**审查时间**: ${date}
+**用户输入**: ${userInput}
+
+---
+
+${outputBuffer.join('\n\n')}
+
+---
+*Generated by Code Review Agent*
+`;
+        try {
+          writeFileSync(reportFileName, reportContent, 'utf-8');
+          console.log(`\n[Report] Saved to ${reportFileName}`);
+        } catch (e) {
+          console.warn('[Warning] Could not save report file');
+        }
+      }
+      break;
+    case 'error':
+      console.error('[Error]', result.content);
+      break;
+  }
+}
+```
+
+- [ ] **Step 2: 提交**
+
+```bash
+git add src/index.ts
+git commit -m "feat: 实现 CLI 入口"
+```
+
+---
+
+### Task 3: 验证 system.md 内容完整性
+
+**Files:**
+- None (验证 existing file)
+
+- [ ] **Step 1: 读取现有 system.md 内容**
+
+```bash
+cat project/code-review-agent/prompts/system.md
+```
+
+- [ ] **Step 2: 验证内容是否符合设计要求**
+
+检查以下内容是否完整：
+- 决策逻辑（PR号/分支名/commit hash/无指定范围）
+- Git 命令对照表（至少包含 git diff main...HEAD, git diff --cached, git show, git stash list 等）
+- Gh 命令对照表（至少包含 gh pr view, gh pr diff, gh pr list）
+- 五步审查流程
+- 输出规范（终端 + 报告文件）
+- 审查维度（Bug/代码质量/架构契合度/性能/行为变更）
+
+**注意**：如果内容已完整，则跳过此 Task，直接进入 Task 4。
+
+- [ ] **Step 3: 如果内容不完整，更新 system.md**
+
+根据设计文档补充缺失内容后提交：
+
+```bash
+git add prompts/system.md
+git commit -m "docs: 补充 system.md 缺失内容"
+```
+
+---
+
+### Task 4: 安装依赖并验证
+
+**Files:**
+- None (操作 existing files)
+
+- [ ] **Step 1: 安装依赖**
+
+```bash
+cd project/code-review-agent && bun install
+```
+
+Expected: 安装 simple-agent 和 dotenv 依赖
+
+- [ ] **Step 2: 验证 CLI 可以执行帮助命令**
+
+```bash
+cd project/code-review-agent && bun src/index.ts --help
+```
+
+Expected: 显示 usage 信息
+
+- [ ] **Step 3: 提交**
+
+```bash
+git add -A
+git commit -m "chore: 安装依赖并验证 CLI"
+```
+
+---
+
+## 验收标准
+
+- [ ] `bun src/index.ts --help` 显示 usage
+- [ ] 无 API key 时显示友好错误
+- [ ] 无用户输入时显示 usage
+- [ ] `reviews/` 目录自动创建
+- [ ] `bun src/index.ts "review PR 12"` 可执行（会调用 simple-agent）
+- [ ] system.md 包含完整的 git/gh 使用场景对照表
+- [ ] review 结果同时输出到终端
+- [ ] review 完成后生成报告文件到 reviews/ 目录
+- [ ] agent 具备探索项目上下文的能力（system.md 中包含相关指导）
