@@ -36,10 +36,12 @@ export function createAgentRouter(wsManager: WSManager) {
 
     messages.push({ role: 'user', content: prompt });
 
+    const apiKey = process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || '';
     console.log('[DEBUG] Creating agent with config:', {
       provider: provider || process.env.PROVIDER || 'anthropic',
       model: model || process.env.MODEL || 'MiniMax-M2.7',
-      hasApiKey: !!(process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY),
+      hasApiKey: !!apiKey,
+      apiKeyPrefix: apiKey.substring(0, 10),
       baseURL: process.env.ANTHROPIC_BASE_URL,
     });
 
@@ -89,7 +91,9 @@ export function createAgentRouter(wsManager: WSManager) {
     });
 
     try {
+      console.log('[DEBUG] Starting agent.run()...');
       for await (const stepResult of agent.run(messages, mode, { signal: abortController.signal })) {
+        console.log('[DEBUG] Got stepResult:', stepResult.type);
         switch (stepResult.type) {
           case 'message':
             wsManager.send(sid, { type: 'message', data: { content: stepResult.content, role: 'assistant' } });

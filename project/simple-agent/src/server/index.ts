@@ -38,10 +38,12 @@ async function initializeMCP() {
     mcpClient = new MCPClient();
 
     const apiKey = process.env.MINIMAX_API_KEY || process.env.ANTHROPIC_API_KEY;
-    // MINIMAX_API_HOST should NOT include /v1 - the MCP server adds it
-    // If using ANTHROPIC_BASE_URL which includes /v1, strip it
+    // MINIMAX_API_HOST should NOT include /anthropic/v1 - the MCP server constructs the full path
+    // Strip /anthropic/v1 or /v1 suffix from ANTHROPIC_BASE_URL
     let apiHost = process.env.MINIMAX_API_HOST || process.env.ANTHROPIC_BASE_URL || 'https://api.minimaxi.com';
-    if (apiHost.endsWith('/v1')) {
+    if (apiHost.endsWith('/anthropic/v1')) {
+      apiHost = apiHost.replace(/\/anthropic\/v1$/, '');
+    } else if (apiHost.endsWith('/v1')) {
       apiHost = apiHost.replace(/\/v1$/, '');
     }
 
