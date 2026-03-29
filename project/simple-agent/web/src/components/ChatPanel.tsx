@@ -34,7 +34,10 @@ export function ChatPanel() {
     let prompt = input;
     if (images.length > 0) {
       const imageUrls = images.map(img => img.url).join('\n');
-      prompt = `${prompt}\n\n[图片链接]\n${imageUrls}`;
+      // For local /uploads/ paths, convert to full URL so MiniMax API can access
+      const fullImageUrls = imageUrls.replace(/\/uploads\//g, 'http://localhost:3001/uploads/');
+      // Instruct AI to use MiniMax:understand_image tool for local uploads
+      prompt = `${prompt}\n\n[图片] 请使用 MiniMax:understand_image 工具分析以下图片：\n${fullImageUrls}`;
     }
 
     setInput('');
@@ -46,22 +49,35 @@ export function ChatPanel() {
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
 
-    Array.from(files).forEach(file => {
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const url = event.target?.result as string;
+    for (const file of Array.from(files)) {
+      try {
+        const formData = new FormData();
+        formData.append('image', file);
+
+        const response = await fetch('/api/upload', {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!response.ok) {
+          throw new Error('Upload failed');
+        }
+
+        const data = await response.json();
         setImages(prev => [...prev, {
           id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          url,
+          url: data.url, // This will be something like /uploads/xxx.png
           name: file.name
         }]);
-      };
-      reader.readAsDataURL(file);
-    });
+      } catch (err) {
+        console.error('Image upload failed:', err);
+        setError('图片上传失败');
+      }
+    }
 
     // Reset input
     if (fileInputRef.current) {
@@ -140,7 +156,7 @@ export function ChatPanel() {
                 <>
                   {msg.content.includes('[图片链接]') && (
                     <div className="mb-2">
-                      {msg.content.split('\n').filter(line => line.startsWith('data:') || line.startsWith('http')).map((url, i) => (
+                      {msg.content.split('\n').filter(line => line.startsWith('data:') || line.startsWith('http') || line.startsWith('/uploads')).map((url, i) => (
                         <img key={i} src={url} alt="用户上传" className="max-w-full rounded mb-1" style={{maxHeight: '200px'}} />
                       ))}
                     </div>
@@ -148,9 +164,60 @@ export function ChatPanel() {
                   <span className="whitespace-pre-wrap">{msg.content.replace(/\[图片链接\]\s*\n*/g, '')}</span>
                 </>
               ) : (
-                <div className="prose prose-sm max-w-none">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                </div>
+                <>
+                  {/* 提取并显示 AI 消息中的图片 */}
+                  {(() => {
+                    const imageUrls: string[] = [];
+                    // 提取 Markdown 图片语法 ![alt](url)
+                    const mdImageRegex = /!\[([^\]]*)\]\(([^)]+)\)/g;
+                    let match;
+                    while ((match = mdImageRegex.exec(msg.content)) !== null) {
+                      imageUrls.push(match[2]);
+                    }
+                    // 提取纯 URL（http/https 开头，不在 Markdown 图片中）
+                    const urlRegex = /(?:^|[^!])\[(?:[^\]]*)\]\(([^)]+)\)/g;
+                    while ((match = urlRegex.exec(msg.content)) !== null) {
+                      const url = match[1];
+                      if ((url.startsWith('http://') || url.startsWith('https://')) && !imageUrls.includes(url)) {
+                        imageUrls.push(url);
+                      }
+                    }
+                    // 直接提取以 http/https 开头的图片 URL
+                    const directUrlRegex = /(?:^|\n)(https?:\/\/[^\s<>"{}|\\^`[\]]+\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s<>"{}|\\^`[\]]*)?)/gi;
+                    while ((match = directUrlRegex.exec(msg.content)) !== null) {
+                      if (!imageUrls.includes(match[1])) {
+                        imageUrls.push(match[1]);
+                      }
+                    }
+                    // 直接提取 /uploads/ 路径的图片 URL
+                    const uploadsUrlRegex = /(?:^|\n)(\/uploads\/[^\s<>"{}|\\^`[\]]+\.(?:jpg|jpeg|png|gif|webp)(?:\?[^\s<>"{}|\\^`[\]]*)?)/gi;
+                    while ((match = uploadsUrlRegex.exec(msg.content)) !== null) {
+                      if (!imageUrls.includes(match[1])) {
+                        imageUrls.push(match[1]);
+                      }
+                    }
+                    if (imageUrls.length > 0) {
+                      return (
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          {imageUrls.map((url, i) => (
+                            <img
+                              key={i}
+                              src={url}
+                              alt={`图片 ${i + 1}`}
+                              className="max-w-full rounded border border-gray-200 cursor-pointer hover:opacity-90"
+                              style={{ maxHeight: '200px', maxWidth: '300px', objectFit: 'cover' }}
+                              onClick={() => window.open(url, '_blank')}
+                            />
+                          ))}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                  <div className="prose prose-sm max-w-none">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                  </div>
+                </>
               )}
             </div>
           </div>

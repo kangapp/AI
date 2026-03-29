@@ -3,6 +3,8 @@ import { config } from 'dotenv';
 config({ override: true });
 import express from 'express';
 import cors from 'cors';
+import multer from 'multer';
+import path from 'path';
 import { createAgentRouter } from './routes/agent';
 import { createSessionRouter } from './routes/session';
 import { WSManager } from './websocket';
@@ -72,6 +74,47 @@ async function initializeMCP() {
 // Routes
 app.use('/api/agent', createAgentRouter(wsManager));
 app.use('/api/sessions', createSessionRouter(SESSION_DIR));
+
+// Image upload configuration
+const UPLOAD_DIR = process.env.UPLOAD_DIR || '.uploads';
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (_req, _file, cb) => {
+      cb(null, UPLOAD_DIR);
+    },
+    filename: (_req, file, cb) => {
+      const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
+      cb(null, `${uniqueSuffix}${path.extname(file.originalname)}`);
+    },
+  }),
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB max
+  },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  },
+});
+
+// Ensure upload directory exists
+import { mkdir } from 'fs/promises';
+mkdir(UPLOAD_DIR, { recursive: true }).catch(console.error);
+
+// Image upload endpoint
+app.post('/api/upload', upload.single('image'), (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ error: 'No image file provided' });
+    return;
+  }
+  const imageUrl = `/uploads/${req.file.filename}`;
+  res.json({ url: imageUrl, filename: req.file.originalname });
+});
+
+// Serve uploaded images
+app.use('/uploads', express.static(UPLOAD_DIR));
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
