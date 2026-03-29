@@ -6,9 +6,17 @@ import { useAgent } from '../hooks/useAgent';
 import { Button } from './common/Button';
 import { Input } from './common/Input';
 
+interface ImageAttachment {
+  id: string;
+  url: string;
+  name: string;
+}
+
 export function ChatPanel() {
   const [input, setInput] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [images, setImages] = useState<ImageAttachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { messages, isRunning, currentSessionId, agentType, setAgentType } = useStore();
   const { runAgent } = useAgent();
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -20,14 +28,49 @@ export function ChatPanel() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    if (!input.trim() || isRunning) return;
-    const prompt = input;
+    if (!input.trim() && images.length === 0 || isRunning) return;
+
+    // Build prompt with image references
+    let prompt = input;
+    if (images.length > 0) {
+      const imageUrls = images.map(img => img.url).join('\n');
+      prompt = `${prompt}\n\n[图片链接]\n${imageUrls}`;
+    }
+
     setInput('');
+    setImages([]);
     try {
       await runAgent(prompt, 'loop');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     }
+  };
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach(file => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const url = event.target?.result as string;
+        setImages(prev => [...prev, {
+          id: `img-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          url,
+          name: file.name
+        }]);
+      };
+      reader.readAsDataURL(file);
+    });
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = (id: string) => {
+    setImages(prev => prev.filter(img => img.id !== id));
   };
 
   return (
@@ -94,7 +137,16 @@ export function ChatPanel() {
               }`}
             >
               {msg.role === 'user' ? (
-                <span className="whitespace-pre-wrap">{msg.content}</span>
+                <>
+                  {msg.content.includes('[图片链接]') && (
+                    <div className="mb-2">
+                      {msg.content.split('\n').filter(line => line.startsWith('data:') || line.startsWith('http')).map((url, i) => (
+                        <img key={i} src={url} alt="用户上传" className="max-w-full rounded mb-1" style={{maxHeight: '200px'}} />
+                      ))}
+                    </div>
+                  )}
+                  <span className="whitespace-pre-wrap">{msg.content.replace(/\[图片链接\]\s*\n*/g, '')}</span>
+                </>
               ) : (
                 <div className="prose prose-sm max-w-none">
                   <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
@@ -121,7 +173,40 @@ export function ChatPanel() {
 
       {/* Input */}
       <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200">
+        {/* Image attachments preview */}
+        {images.length > 0 && (
+          <div className="flex gap-2 mb-2 flex-wrap">
+            {images.map(img => (
+              <div key={img.id} className="relative group">
+                <img src={img.url} alt={img.name} className="h-16 w-16 object-cover rounded border" />
+                <button
+                  type="button"
+                  onClick={() => removeImage(img.id)}
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="flex gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleImageUpload}
+            className="hidden"
+          />
+          <Button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={isRunning || !currentSessionId}
+            className="bg-gray-100 hover:bg-gray-200 text-gray-700"
+          >
+            📷
+          </Button>
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
@@ -129,7 +214,7 @@ export function ChatPanel() {
             disabled={isRunning || !currentSessionId}
             className="flex-1"
           />
-          <Button type="submit" disabled={isRunning || !input.trim() || !currentSessionId}>
+          <Button type="submit" disabled={isRunning || (!input.trim() && images.length === 0) || !currentSessionId}>
             发送
           </Button>
         </div>
