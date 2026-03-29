@@ -5,3 +5,16 @@
 body {
   @apply bg-gray-50 text-gray-900;
 }
+
+/* 修复 markdown 表格溢出问题 */
+.prose table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+.prose table td,
+.prose table th {
+  max-width: 300px;
+  word-break: break-word;
+}
