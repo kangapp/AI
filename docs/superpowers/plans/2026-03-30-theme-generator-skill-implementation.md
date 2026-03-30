@@ -250,7 +250,7 @@ module.exports = {
 **Files:**
 - Create: `skills/theme-generator/prompts/extract-from-url.md`
 
-**参考设计文档内容**: `docs/superpowers/specs/2026-03-30-theme-generator-skill-design.md` 第 162-218 行
+**参考设计文档**: `prompts/extract-from-url.md 草案内容`
 
 - [ ] **Step 1: 创建 extract-from-url.md**
 
@@ -360,7 +360,7 @@ module.exports = {
 **Files:**
 - Create: `skills/theme-generator/prompts/extract-from-image.md`
 
-**参考设计文档内容**: `docs/superpowers/specs/2026-03-30-theme-generator-skill-design.md` 第 222-288 行
+**参考设计文档**: `prompts/extract-from-image.md 草案内容`
 
 - [ ] **Step 1: 创建 extract-from-image.md**
 
@@ -475,7 +475,7 @@ module.exports = {
 **Files:**
 - Create: `skills/theme-generator/prompts/extract-from-description.md`
 
-**参考设计文档内容**: `docs/superpowers/specs/2026-03-30-theme-generator-skill-design.md` 第 292-353 行
+**参考设计文档**: `prompts/extract-from-description.md 草案内容`
 
 - [ ] **Step 1: 创建 extract-from-description.md**
 
@@ -597,7 +597,7 @@ module.exports = {
 **Files:**
 - Create: `skills/theme-generator/examples/sample-output.md`
 
-**参考设计文档内容**: `docs/superpowers/specs/2026-03-30-theme-generator-skill-design.md` 第 357-453 行
+**参考设计文档**: `examples/sample-output.md 草案内容`
 
 - [ ] **Step 1: 创建 sample-output.md**
 
