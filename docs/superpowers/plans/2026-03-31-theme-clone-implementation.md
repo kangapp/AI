@@ -313,11 +313,34 @@ sys.path.insert(0, str(Path(__file__).parent))
 from scorer import score_theme
 
 
-def test_scorer_output_format():
-    """Test that scorer returns expected JSON structure."""
-    # This test requires actual images, so we'll just verify structure
-    # In real scenario, use fixture images
-    pass
+def test_scorer_output_format(tmp_path):
+    """Test that scorer returns expected JSON structure with required fields."""
+    # Create minimal test images (1x1 pixel PNG)
+    from PIL import Image
+    import numpy as np
+
+    img1 = Image.new('RGB', (10, 10), color='red')
+    img2 = Image.new('RGB', (10, 10), color='red')
+
+    ref_path = tmp_path / "ref.png"
+    test_path = tmp_path / "test.png"
+    img1.save(ref_path)
+    img2.save(test_path)
+
+    # Run scoring
+    result = score_theme(str(ref_path), str(test_path))
+
+    # Verify structure
+    assert 'ssim' in result
+    assert 'lpips' in result
+    assert 'passed' in result
+    assert 'details' in result
+    assert isinstance(result['ssim'], float)
+    assert isinstance(result['passed'], bool)
+
+    # Identical images should pass
+    assert result['passed'] == True
+    assert result['ssim'] == 1.0
 
 
 def test_config_loading():
@@ -420,6 +443,19 @@ const EXTRACTION_SCRIPT = `
     const margin = style.margin;
     const padding = style.padding;
     const gap = style.gap;
+
+    if (margin && margin !== '0px' && !seenStyles.has('margin:' + margin)) {
+      seenStyles.add('margin:' + margin);
+      results.spacing.push({ type: 'margin', value: margin });
+    }
+    if (padding && padding !== '0px' && !seenStyles.has('padding:' + padding)) {
+      seenStyles.add('padding:' + padding);
+      results.spacing.push({ type: 'padding', value: padding });
+    }
+    if (gap && gap !== 'normal' && gap !== '0px' && !seenStyles.has('gap:' + gap)) {
+      seenStyles.add('gap:' + gap);
+      results.spacing.push({ type: 'gap', value: gap });
+    }
 
     // Border Radius
     const borderRadius = style.borderRadius;
@@ -853,6 +889,8 @@ browser_navigate
 - **圆角标度**：归纳所有唯一的 border-radius 值
 - **阴影标度**：提取所有 box-shadow 值
 
+> **注意**: 如果使用 `tools/extractor.js`，分析函数名为 `analyzeExtractedData`（驼峰命名）。
+
 ### 5. 输出格式
 
 生成结构化的设计 Token：
@@ -1232,8 +1270,11 @@ Synthesis Agent 完成文件修改后自动调用。
 ## Responsibilities
 
 1. **启动预览**
-   - 在本地启动目标项目的开发服务器
-   - 或打开修改后的 HTML/CSS 文件
+   - 检查项目的 `package.json` 中的 dev 脚本
+   - 如果有 `dev`/`start`/`preview` 脚本，使用 `npm run <script>` 启动
+   - 常见的启动命令：`npm run dev`、`pnpm dev`、`npm start`
+   - 如果是纯静态项目（无 package.json 或无 dev 脚本），直接使用 `file://` 协议打开修改后的 HTML/CSS
+   - 等待 2-5 秒让服务器完全启动
 
 2. **截图对比**
    - 使用 browser_take_screenshot 捕获应用后的界面
