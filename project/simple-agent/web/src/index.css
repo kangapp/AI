@@ -2,8 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+/* MotherDuck 风格 CSS 变量 - 从 motherduck.com 提取 */
+:root {
+  /* 色彩系统 */
+  --color-primary: #FFDE00;
+  --color-secondary: #6FC2FF;
+  --color-accent: #FFDE00;
+  --color-background: #F4EFEA;
+  --color-surface: #F8F8F7;
+  --color-text-primary: #383838;
+  --color-text-secondary: #818181;
+  --color-border: #84A6BC;
+
+  /* 排版系统 */
+  --font-family-sans: 'Inter', system-ui, sans-serif;
+  --font-family-mono: 'Aeonik Mono', 'SF Mono', Consolas, monospace;
+  --font-family-display: 'Aeonik', 'Inter', sans-serif;
+  --font-size-base: 16px;
+  --line-height-normal: 1.5;
+  --line-height-tight: 1.2;
+
+  /* 间距系统 */
+  --spacing-unit: 4px;
+
+  /* 装饰要素 - 从 motherduck.com 提取 */
+  --radius-sm: 2px;
+  --radius-md: 10px;
+  --radius-lg: 50%;
+  --shadow-hard: -6px 6px 0px 0px #383838;
+  --shadow-soft: 0 4px 8px 0px rgba(0,0,0,0.25);
+}
+
+/* Dark Theme */
+.theme-dark {
+  --color-background: #1A1A1A;
+  --color-surface: #2D2D2D;
+  --color-text-primary: #F4EFEA;
+  --color-text-secondary: #A0A0A0;
+}
+
 body {
-  @apply bg-gray-50 text-gray-900;
+  @apply bg-background text-text-primary;
+  font-family: var(--font-family-sans);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  body:not(.theme-light) {
+    @apply bg-[#1A1A1A] text-[#F4EFEA];
+  }
 }
 
 /* 修复 markdown 表格溢出问题 */
