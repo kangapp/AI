@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 export enum ProjectStyle {
+  CUSTOM = 'custom',
   PHOTOREALISTIC = 'photorealistic',
   ANIME = 'anime',
   INK_WASH = 'ink-wash',

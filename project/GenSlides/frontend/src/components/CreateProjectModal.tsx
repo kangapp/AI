@@ -7,6 +7,7 @@ interface CreateProjectModalProps {
 }
 
 const STYLE_OPTIONS = [
+  { value: ProjectStyle.CUSTOM, label: '自定义', desc: '完全自定义风格描述' },
   { value: ProjectStyle.PHOTOREALISTIC, label: '写实摄影', desc: '照片级真实感' },
   { value: ProjectStyle.ANIME, label: '动漫/二次元', desc: '日系动漫画风' },
   { value: ProjectStyle.INK_WASH, label: '水墨/国风', desc: '中国传统水墨画风格' },
@@ -19,8 +20,10 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
   const navigate = useNavigate();
   const { createProject, isCreating } = useProjectsStore();
   const [name, setName] = useState('');
-  const [style, setStyle] = useState<ProjectStyle>(ProjectStyle.PHOTOREALISTIC);
+  const [style, setStyle] = useState<ProjectStyle>(ProjectStyle.CUSTOM);
   const [stylePrompt, setStylePrompt] = useState('');
+
+  const isCustomStyle = style === ProjectStyle.CUSTOM;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -72,12 +75,12 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
           {/* Style Prompt */}
           <div className="mb-6">
             <label className="block text-sm text-gray-400 mb-2">
-              自定义描述 <span className="text-gray-600">(可选)</span>
+              {isCustomStyle ? '风格描述' : '补充描述'} <span className="text-gray-600">(可选)</span>
             </label>
             <textarea
               value={stylePrompt}
               onChange={(e) => setStylePrompt(e.target.value)}
-              placeholder="对所选风格的补充说明..."
+              placeholder={isCustomStyle ? '描述你想要的图片风格...' : '对所选风格的补充说明...'}
               rows={3}
               className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none resize-none"
             />

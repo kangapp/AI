@@ -81,6 +81,7 @@ class ProjectStyle(str, Enum):
     CYBERPUNK = "cyberpunk"
     MINIMALIST = "minimalist"
     OIL_PAINTING = "oil-painting"
+    CUSTOM = "custom"  # 完全自定义
 
 
 # 预设风格默认描述
@@ -91,6 +92,7 @@ PROJECT_STYLE_DEFAULTS = {
     ProjectStyle.CYBERPUNK: "未来科技感，霓虹灯光",
     ProjectStyle.MINIMALIST: "简洁留白设计",
     ProjectStyle.OIL_PAINTING: "艺术绘画质感",
+    ProjectStyle.CUSTOM: "",  # 自定义风格无默认描述
 }
 
 
@@ -102,10 +104,14 @@ class Project(BaseModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def get_full_style(self) -> str:
-        """获取完整风格描述 = 预设描述 + 用户自定义"""
+        """获取完整风格描述"""
+        # 自定义风格：只返回用户输入的描述
+        if self.style == ProjectStyle.CUSTOM:
+            return self.style_prompt or ""
+        # 预设风格：预设描述 + 用户自定义
         base = PROJECT_STYLE_DEFAULTS.get(self.style, "")
         if self.style_prompt:
-            return f"{base}, {self.style_prompt}"
+            return f"{base}, {self.style_prompt}" if base else self.style_prompt
         return base
 
 
@@ -117,5 +123,5 @@ class ProjectCreate(BaseModel):
 
 class ProjectListResponse(BaseModel):
     projects: List[Project]
-    slide_counts: dict = {}  # slug -> count
-    thumbnails: dict = {}  # slug -> thumbnail_url
+    slide_counts: Dict[str, int] = {}  # slug -> count
+    thumbnails: Dict[str, Optional[str]] = {}  # slug -> thumbnail_url
