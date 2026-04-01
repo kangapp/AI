@@ -1,29 +1,57 @@
+import { useNavigate } from 'react-router-dom';
 import { useSlidesStore } from '../stores/slidesStore';
+import { useProjectsStore } from '../stores/projectsStore';
 
 interface HeaderProps {
   projectSlug?: string;
 }
 
-export default function Header(_props: HeaderProps) {
-  const { title, startPlayback, isPlaying } = useSlidesStore();
+export default function Header({ projectSlug }: HeaderProps) {
+  const navigate = useNavigate();
+  const { projects } = useProjectsStore();
+  const { startPlayback, isPlaying } = useSlidesStore();
+
+  const project = projects.find(p => p.slug === projectSlug);
+  const projectName = project?.name || projectSlug;
+
+  const handleBack = () => {
+    navigate('/');
+  };
+
+  const handlePlay = () => {
+    startPlayback();
+  };
 
   return (
-    <header className="flex items-center justify-between px-6 py-4 bg-gray-900 border-b border-gray-700">
+    <header className="h-16 px-6 flex items-center justify-between border-b border-gray-700 bg-gray-900">
+      {/* Left: Back button + Project name */}
       <div className="flex items-center gap-4">
-        <div className="text-xl font-bold text-white">GenSlides</div>
-        <div className="text-sm text-gray-400">slides/{title.toLowerCase().replace(/\s+/g, '-')}</div>
+        {projectSlug && (
+          <button
+            onClick={handleBack}
+            className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
+          >
+            <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        )}
+        <h2 className="text-white font-medium truncate max-w-md">
+          {projectName || 'GenSlides'}
+        </h2>
       </div>
 
-      <div className="flex items-center gap-4">
-        <span className="text-xs text-gray-500">全屏从当前选中 slide 开始播放</span>
-        <button
-          onClick={startPlayback}
-          disabled={isPlaying}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors"
-        >
-          播放
-        </button>
-      </div>
+      {/* Right: Play button */}
+      <button
+        onClick={handlePlay}
+        disabled={isPlaying}
+        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+        </svg>
+        播放
+      </button>
     </header>
   );
 }
