@@ -94,3 +94,4 @@ dist-ssr/
 .cache/
 .worktrees/
 .worktrees
+backend/.env

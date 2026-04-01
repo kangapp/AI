@@ -1,6 +1,10 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
+
+# 加载 .env 文件
+load_dotenv(Path(__file__).parent / ".env")
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
