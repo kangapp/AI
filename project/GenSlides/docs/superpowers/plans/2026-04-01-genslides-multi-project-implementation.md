@@ -352,10 +352,29 @@ git commit -m "feat: add Projects CRUD API endpoints"
 ### Task 3: 后端 - 修改 Slides API 支持 project slug
 
 **Files:**
-- Modify: `backend/main.py:45-70` (修改现有 slides endpoints 添加 slug 参数)
-- Modify: `backend/slides_manager.py:25-96` (确认已支持 slug)
+- Modify: `backend/main.py` (修改现有 slides endpoints 添加 slug 参数)
+- Modify: `backend/slides_manager.py` (修改 get_slide_images_dir 支持 slug)
 
-- [ ] **Step 1: 修改现有 slides endpoints**
+- [ ] **Step 1: 修改 get_slide_images_dir 方法**
+
+在 `slides_manager.py` 中修改 `get_slide_images_dir` 方法:
+
+```python
+# 原方法:
+# def get_slide_images_dir(self, sid: str) -> Path:
+#     path = self.images_dir / sid
+#     path.mkdir(parents=True, exist_ok=True)
+#     return path
+
+# 新方法:
+def get_slide_images_dir(self, sid: str, slug: str = "default") -> Path:
+    """获取 slide 图片目录，支持 project slug"""
+    path = self.images_dir / slug / sid
+    path.mkdir(parents=True, exist_ok=True)
+    return path
+```
+
+- [ ] **Step 2: 修改现有 slides endpoints**
 
 将现有 slides endpoints 路径从 `/api/slides` 改为 `/api/projects/{slug}/slides`:
 
@@ -830,9 +849,14 @@ export default function DeleteConfirmModal({ project, onClose, onConfirm }: Dele
           确定要删除项目 <span className="text-white font-medium">"{project.name}"</span> 吗？
         </p>
 
-        <p className="text-gray-500 text-sm mb-6">
+        <p className="text-gray-500 text-sm mb-4">
           此操作将删除该项目下的所有内容：
         </p>
+
+        <ul className="text-gray-400 text-sm mb-6 space-y-1">
+          <li>- {project.slide_count || 0} 个 slides</li>
+          <li>- {project.image_count || 0} 张已生成的图片</li>
+        </ul>
 
         <div className="flex justify-end gap-3">
           <button
@@ -1231,9 +1255,31 @@ git commit -m "feat: update Header with back button and project name"
 - Modify: `backend/image_generator.py` (注入 projects_manager)
 - Modify: `backend/main.py` (传入 projects_manager 到 ImageGenerator)
 
-- [ ] **Step 1: 在 image_generator 中使用 projects_manager 获取风格**
+- [ ] **Step 1: 修改 ImageGenerator 注入 projects_manager**
 
-Task 3 已经修改了 ImageGenerator 接受 `projects_manager` 参数。现在只需验证 `generate_image` 方法使用它:
+修改 `backend/image_generator.py` 中的 `__init__` 方法:
+
+```python
+# 原 __init__:
+# def __init__(self, slides_manager, cost_tracker, ...):
+
+# 新 __init__:
+def __init__(
+    self,
+    slides_manager: SlidesManager,
+    cost_tracker: CostTracker,
+    projects_manager: ProjectsManager,  # 新增
+    minimax_api_key: Optional[str] = None,
+    apiiyi_api_key: Optional[str] = None
+):
+    self.slides_manager = slides_manager
+    self.cost_tracker = cost_tracker
+    self.projects_manager = projects_manager  # 新增
+    self.minimax_api_key = minimax_api_key or os.getenv("MINIMAX_API_KEY", "")
+    self.apiyi_api_key = apiiyi_api_key or os.getenv("APIIYI_API_KEY", "")
+```
+
+- [ ] **Step 2: 修改 generate_image 方法使用项目风格**
 
 ```python
 async def generate_image(
@@ -1246,7 +1292,7 @@ async def generate_image(
 ) -> GenerateResponse:
     # ... 现有缓存检查代码 ...
 
-    # 获取项目风格 (projects_manager 在 Task 3 已注入)
+    # 获取项目风格
     project = self.projects_manager.get_project(project_slug)
     style_prompt = project.get_full_style() if project else ""
 
@@ -1260,7 +1306,20 @@ async def generate_image(
         await self._generate_minimax(full_text, image_path)
 ```
 
-- [ ] **Step 2: 提交**
+- [ ] **Step 3: 更新 main.py 中的 ImageGenerator 实例化**
+
+```python
+# 在 main.py 中，ImageGenerator 初始化时传入 projects_manager:
+image_generator = ImageGenerator(
+    slides_manager=slides_manager,
+    cost_tracker=cost_tracker,
+    projects_manager=projects_manager,  # 新增
+    minimax_api_key=os.getenv("MINIMAX_API_KEY", ""),
+    apiiyi_api_key=os.getenv("APIIYI_API_KEY", "")
+)
+```
+
+- [ ] **Step 4: 提交**
 
 ```bash
 git add backend/image_generator.py backend/main.py
@@ -1328,14 +1387,14 @@ git commit -m "feat: update Sidebar and MainPreview to support project slug"
 
 ## 任务清单
 
-- [x] Task 1: 后端 - Projects Manager (含数据模型)
-- [x] Task 2: 后端 - Projects API 端点
-- [x] Task 3: 后端 - 修改 Slides API 支持 project slug
-- [x] Task 4: 前端 - LauncherPage 和项目卡片组件
-- [x] Task 5: 前端 - 路由和 App 重构
-- [x] Task 6: 前端 - Header 组件改造
-- [x] Task 7: 后端 - 图片生成集成风格
-- [x] Task 8: 前端 - Sidebar 和 MainPreview 支持 project_slug
+- [ ] Task 1: 后端 - Projects Manager (含数据模型)
+- [ ] Task 2: 后端 - Projects API 端点
+- [ ] Task 3: 后端 - 修改 Slides API 支持 project slug
+- [ ] Task 4: 前端 - LauncherPage 和项目卡片组件
+- [ ] Task 5: 前端 - 路由和 App 重构
+- [ ] Task 6: 前端 - Header 组件改造
+- [ ] Task 7: 后端 - 图片生成集成风格
+- [ ] Task 8: 前端 - Sidebar 和 MainPreview 支持 project_slug
 
 ---
 
