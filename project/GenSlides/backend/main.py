@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
 from starlette.responses import FileResponse
@@ -48,7 +49,7 @@ image_generator = ImageGenerator(
 
 # === Projects CRUD ===
 
-def _get_project_thumbnail_path(slug: str) -> Path | None:
+def _get_project_thumbnail_path(slug: str) -> Optional[Path]:
     """获取项目缩略图路径（第一个 slide 的图片）"""
     slides_data = slides_manager.get_all_slides(slug)
     if not slides_data.slides:
@@ -158,9 +159,9 @@ async def delete_slide(slug: str, sid: str):
 
 @app.post("/api/projects/{slug}/slides/{sid}/generate", response_model=GenerateResponse)
 async def generate_image(
+    slug: str,
     sid: str,
-    request: GenerateRequest = GenerateRequest(),
-    slug: str
+    request: GenerateRequest = GenerateRequest()
 ):
     slide = slides_manager.get_slide_by_sid(sid, slug)
     if slide is None:
