@@ -6,6 +6,7 @@ from typing import Optional
 from models import ImageProvider, GenerateResponse
 from cost_tracker import CostTracker
 from slides_manager import SlidesManager
+from projects_manager import ProjectsManager
 
 
 class ImageGenerator:
@@ -13,11 +14,13 @@ class ImageGenerator:
         self,
         slides_manager: SlidesManager,
         cost_tracker: CostTracker,
+        projects_manager: Optional[ProjectsManager] = None,
         minimax_api_key: Optional[str] = None,
         apiiyi_api_key: Optional[str] = None
     ):
         self.slides_manager = slides_manager
         self.cost_tracker = cost_tracker
+        self.projects_manager = projects_manager
         self.minimax_api_key = minimax_api_key or os.getenv("MINIMAX_API_KEY", "")
         self.apiyi_api_key = apiiyi_api_key or os.getenv("APIIYI_API_KEY", "")
 
@@ -42,11 +45,21 @@ class ImageGenerator:
                 cached=True
             )
 
+        # 获取项目风格并注入到 prompt
+        style_prompt = ""
+        if self.projects_manager:
+            project = self.projects_manager.get_project(project_slug)
+            if project:
+                style_prompt = project.get_full_style()
+
+        # 构建完整 prompt
+        full_text = f"{style_prompt}, {text}" if style_prompt else text
+
         # 调用 API 生成图片
         if provider == ImageProvider.GEMINI:
-            await self._generate_gemini(text, image_path)
+            await self._generate_gemini(full_text, image_path)
         else:
-            await self._generate_minimax(text, image_path)
+            await self._generate_minimax(full_text, image_path)
 
         # 记录成本
         self.cost_tracker.record_call(provider)
@@ -129,8 +142,8 @@ class ImageGenerator:
 
             try:
                 data = response.json()
-            except Exception as e:
-                raise ValueError(f"Failed to parse JSON response: {response.text}, error: {e}")
+            except (ValueError, Exception) as e:
+                raise ValueError(f"Failed to parse JSON response: {response.text}, error: {e}") from e
 
             if data is None:
                 raise ValueError(f"Empty JSON response from MiniMax API: {response.text}")

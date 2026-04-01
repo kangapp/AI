@@ -40,6 +40,7 @@ cost_tracker = CostTracker()
 image_generator = ImageGenerator(
     slides_manager=slides_manager,
     cost_tracker=cost_tracker,
+    projects_manager=projects_manager,
     minimax_api_key=os.getenv("MINIMAX_API_KEY", ""),
     apiiyi_api_key=os.getenv("APIIYI_API_KEY", "")
 )
@@ -159,12 +160,9 @@ async def delete_slide(slug: str, sid: str):
 async def generate_image(
     sid: str,
     request: GenerateRequest = GenerateRequest(),
-    slug: str = "default"
+    slug: str
 ):
-    # 确保 slug 不为 None
-    effective_slug = slug or "default"
-
-    slide = slides_manager.get_slide_by_sid(sid, effective_slug)
+    slide = slides_manager.get_slide_by_sid(sid, slug)
     if slide is None:
         raise HTTPException(status_code=404, detail="Slide not found")
 
@@ -173,7 +171,7 @@ async def generate_image(
         text=slide.text,
         provider=request.provider,
         force=request.force,
-        project_slug=effective_slug
+        project_slug=slug
     )
 
 
