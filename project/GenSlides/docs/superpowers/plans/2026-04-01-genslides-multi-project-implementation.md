@@ -353,26 +353,37 @@ git commit -m "feat: add Projects CRUD API endpoints"
 
 **Files:**
 - Modify: `backend/main.py` (修改现有 slides endpoints 添加 slug 参数)
-- Modify: `backend/slides_manager.py` (修改 get_slide_images_dir 支持 slug)
+- Modify: `backend/slides_manager.py` (修改目录结构支持 projects/{slug})
 
-- [ ] **Step 1: 修改 get_slide_images_dir 方法**
+- [ ] **Step 1: 修改 slides_manager.py 目录结构**
 
-在 `slides_manager.py` 中修改 `get_slide_images_dir` 方法:
+现有 `slides_manager.py` 中的目录定义需要修改:
 
 ```python
-# 原方法:
-# def get_slide_images_dir(self, sid: str) -> Path:
-#     path = self.images_dir / sid
-#     path.mkdir(parents=True, exist_ok=True)
-#     return path
+# 原定义:
+# SLIDES_DIR = Path("slides")
+# IMAGES_DIR = Path("slides/images")
 
-# 新方法:
+# 新定义 (支持 projects 结构):
+SLIDES_DIR = Path("projects")
+IMAGES_DIR = Path("projects")
+
+# 修改 _get_project_dir 方法:
+def _get_project_dir(self, slug: str = "default") -> Path:
+    return self.slides_dir / slug / "slides"
+
+def _get_outline_path(self, slug: str = "default") -> Path:
+    return self._get_project_dir(slug) / "outline.yml"
+
+# 修改 get_slide_images_dir 方法:
 def get_slide_images_dir(self, sid: str, slug: str = "default") -> Path:
-    """获取 slide 图片目录，支持 project slug"""
-    path = self.images_dir / slug / sid
+    """获取 slide 图片目录: projects/{slug}/slides/images/{sid}"""
+    path = self.images_dir / slug / "slides" / "images" / sid
     path.mkdir(parents=True, exist_ok=True)
     return path
 ```
+
+**注意:** 所有 slides_manager 方法的 `slug` 参数默认为 `"default"`，确保向后兼容。
 
 - [ ] **Step 2: 修改现有 slides endpoints**
 
