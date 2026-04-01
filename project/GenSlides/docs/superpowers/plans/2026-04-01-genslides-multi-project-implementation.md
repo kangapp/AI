@@ -179,6 +179,12 @@ class ProjectsManager:
 
     def ensure_default_project(self) -> Project:
         """确保 default 项目存在（用于向后兼容）"""
+        # 先检查旧数据是否存在
+        old_slides_dir = Path("slides")
+        old_images_dir = Path("slides/images")
+        has_old_data = old_slides_dir.exists() and (old_slides_dir / "outline.yml").exists()
+
+        # 检查 default 项目是否已存在
         default_project = self._load_project("default")
         if default_project:
             return default_project
@@ -194,10 +200,7 @@ class ProjectsManager:
         self._save_project(default_project)
 
         # 迁移旧数据（如果存在）
-        old_slides_dir = Path("slides")
-        old_images_dir = Path("slides/images")
-        if old_slides_dir.exists() and not (self.base_dir / "default" / "slides" / "outline.yml").exists():
-            # 迁移 slides
+        if has_old_data:
             default_slides_dir = self.base_dir / "default" / "slides"
             default_slides_dir.mkdir(parents=True, exist_ok=True)
             shutil.copy(old_slides_dir / "outline.yml", default_slides_dir / "outline.yml")
@@ -206,7 +209,10 @@ class ProjectsManager:
                 default_images_dir = default_slides_dir / "images"
                 default_images_dir.mkdir(parents=True, exist_ok=True)
                 for item in old_images_dir.iterdir():
-                    shutil.copytree(item, default_images_dir / item.name, dirs_exist_ok=True)
+                    if item.is_dir():
+                        shutil.copytree(item, default_images_dir / item.name, dirs_exist_ok=True)
+                    else:
+                        shutil.copy(item, default_images_dir / item.name)
 
         return default_project
 ```
@@ -266,15 +272,6 @@ async def get_projects():
             image_path = slides_manager.get_slide_images_dir(first_slide.sid, project.slug) / f"{text_hash}.jpg"
             if image_path.exists():
                 thumbnails[project.slug] = f"/api/projects/{project.slug}/thumbnail"
-
-        # 获取第一个 slide 的缩略图
-        if slides:
-            first_sid = slides[0].get("sid")
-            if first_sid:
-                text_hash = slides_manager.compute_text_hash(slides[0].get("text", ""))
-                image_path = slides_manager.get_slide_images_dir(first_sid, project.slug) / f"{text_hash}.jpg"
-                if image_path.exists():
-                    thumbnails[project.slug] = f"/api/projects/{project.slug}/thumbnail"
 
     return ProjectListResponse(
         projects=projects,
@@ -395,9 +392,12 @@ async def delete_slide(sid: str, slug: str):
 async def generate_image(
     sid: str,
     request: GenerateRequest = GenerateRequest(),
-    slug: str = None
+    slug: str = "default"  # 向后兼容默认值
 ):
-    slide = slides_manager.get_slide_by_sid(sid, slug)
+    # 确保 slug 不为 None
+    effective_slug = slug or "default"
+
+    slide = slides_manager.get_slide_by_sid(sid, effective_slug)
     if slide is None:
         raise HTTPException(status_code=404, detail="Slide not found")
 
@@ -406,7 +406,7 @@ async def generate_image(
         text=slide.text,
         provider=request.provider,
         force=request.force,
-        project_slug=slug
+        project_slug=effective_slug
     )
 
 @app.get("/api/projects/{slug}/slides/{sid}/images")
