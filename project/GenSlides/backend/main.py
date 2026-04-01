@@ -5,14 +5,15 @@ from fastapi import FastAPI, HTTPException, Query
 
 # 加载 .env 文件
 load_dotenv(Path(__file__).parent / ".env")
-from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 
 from models import (
     SlideCreate, SlideUpdate, GenerateRequest, GenerateResponse,
-    SlideListResponse, ImageInfo, CostInfo, PlaybackResponse, PlaybackSlide
+    SlideListResponse, ImageInfo, CostInfo, PlaybackResponse, PlaybackSlide,
+    ProjectCreate, ProjectListResponse
 )
 from slides_manager import SlidesManager
+from projects_manager import ProjectsManager
 from cost_tracker import CostTracker
 from image_generator import ImageGenerator
 
@@ -32,6 +33,8 @@ app.add_middleware(
 
 # 服务初始化
 slides_manager = SlidesManager(base_path=BASE_PATH)
+projects_manager = ProjectsManager(base_path=BASE_PATH / "projects")
+projects_manager.ensure_default_project()
 cost_tracker = CostTracker()
 image_generator = ImageGenerator(
     slides_manager=slides_manager,
@@ -39,6 +42,86 @@ image_generator = ImageGenerator(
     minimax_api_key=os.getenv("MINIMAX_API_KEY", ""),
     apiiyi_api_key=os.getenv("APIIYI_API_KEY", "")
 )
+
+
+# === Projects CRUD ===
+
+@app.get("/api/projects", response_model=ProjectListResponse)
+async def get_projects():
+    """获取所有项目列表"""
+    projects = projects_manager.list_projects()
+
+    # 获取每个项目的 slide 数量和缩略图
+    slide_counts = {}
+    thumbnails = {}
+    for project in projects:
+        # 使用 public 方法 get_all_slides 获取 slide 数量
+        slides_data = slides_manager.get_all_slides(project.slug)
+        slide_counts[project.slug] = len(slides_data.slides)
+
+        # 获取第一个 slide 的缩略图
+        if slides_data.slides:
+            first_slide = slides_data.slides[0]
+            text_hash = slides_manager.compute_text_hash(first_slide.text)
+            image_path = slides_manager.get_slide_images_dir(first_slide.sid, project.slug) / f"{text_hash}.jpg"
+            if image_path.exists():
+                thumbnails[project.slug] = f"/api/projects/{project.slug}/thumbnail"
+
+    return ProjectListResponse(
+        projects=projects,
+        slide_counts=slide_counts,
+        thumbnails=thumbnails
+    )
+
+
+@app.post("/api/projects", response_model=dict)
+async def create_project(project_data: ProjectCreate):
+    """创建新项目"""
+    if len(project_data.name) > 50:
+        raise HTTPException(status_code=422, detail="Project name must be 50 characters or less")
+
+    project = projects_manager.create_project(project_data)
+    return project.model_dump(mode="json")
+
+
+@app.get("/api/projects/{slug}", response_model=dict)
+async def get_project(slug: str):
+    """获取项目详情"""
+    project = projects_manager.get_project(slug)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project.model_dump(mode="json")
+
+
+@app.delete("/api/projects/{slug}")
+async def delete_project(slug: str):
+    """删除项目"""
+    success = projects_manager.delete_project(slug)
+    if not success:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return {"success": True}
+
+
+@app.get("/api/projects/{slug}/thumbnail")
+async def get_project_thumbnail(slug: str):
+    """获取项目缩略图（第一个 slide 的图片）"""
+    project = projects_manager.get_project(slug)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    slides_data = slides_manager.get_all_slides(slug)
+    if not slides_data.slides:
+        raise HTTPException(status_code=404, detail="No slides in project")
+
+    first_slide = slides_data.slides[0]
+    text_hash = slides_manager.compute_text_hash(first_slide.text)
+    image_path = slides_manager.get_slide_images_dir(first_slide.sid, slug) / f"{text_hash}.jpg"
+
+    if not image_path.exists():
+        raise HTTPException(status_code=404, detail="Thumbnail not found")
+
+    from starlette.responses import FileResponse
+    return FileResponse(str(image_path), media_type="image/jpeg")
 
 
 # === Slides CRUD ===
@@ -115,7 +198,8 @@ async def get_image(sid: str, hash: str):
     image_path = slides_manager.get_slide_images_dir(sid) / f"{hash}.jpg"
     if not image_path.exists():
         raise HTTPException(status_code=404, detail="Image not found")
-    return StaticFiles(directory=str(image_path.parent))(f"{hash}.jpg")
+    from starlette.responses import FileResponse
+    return FileResponse(str(image_path), media_type="image/jpeg")
 
 
 # === Cost ===
