@@ -90,33 +90,33 @@ export function ChatPanel() {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-white">
+    <div className="flex-1 flex flex-col bg-background">
       {/* Header */}
-      <div className="p-4 border-b border-gray-200 bg-gradient-to-r from-primary-600 to-primary-500">
+      <div className="p-4 border-b border-gray-200 bg-primary">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold text-white">Simple Agent</h1>
-            <p className="text-sm text-primary-100">
+            <h1 className="text-lg font-semibold text-[#383838]">Simple Agent</h1>
+            <p className="text-sm text-[#818181]">
               {currentSessionId ? `会话: ${currentSessionId}` : '新会话'}
             </p>
           </div>
           <div className="flex gap-2">
             <button
               onClick={() => setAgentType('simple')}
-              className={`px-3 py-1 text-sm rounded ${
+              className={`px-3 py-1 text-sm rounded-none ${
                 agentType === 'simple'
-                  ? 'bg-white text-primary-600'
-                  : 'bg-primary-700 text-white hover:bg-primary-600'
+                  ? 'bg-[#383838] text-primary'
+                  : 'bg-primary-700 text-[#383838] hover:bg-primary-600'
               }`}
             >
               Simple
             </button>
             <button
               onClick={() => setAgentType('code-review')}
-              className={`px-3 py-1 text-sm rounded ${
+              className={`px-3 py-1 text-sm rounded-none ${
                 agentType === 'code-review'
-                  ? 'bg-white text-primary-600'
-                  : 'bg-primary-700 text-white hover:bg-primary-600'
+                  ? 'bg-[#383838] text-primary'
+                  : 'bg-primary-700 text-[#383838] hover:bg-primary-600'
               }`}
             >
               Review
@@ -135,7 +135,7 @@ export function ChatPanel() {
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 && (
-          <div className="text-center text-gray-400 mt-20">
+          <div className="text-center text-[#818181] mt-20">
             <p>开始对话吧</p>
           </div>
         )}
@@ -146,12 +146,13 @@ export function ChatPanel() {
             className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[70%] rounded-lg px-4 py-2 ${
+              className={`max-w-[70%] rounded-none px-4 py-2 overflow-hidden break-words ${
                 msg.role === 'user'
-                  ? 'bg-primary-500 text-white'
-                  : 'bg-gray-100 text-gray-900'
+                  ? 'bg-primary text-[#383838]'
+                  : 'bg-surface text-[#383838]'
               }`}
             >
+
               {msg.role === 'user' ? (
                 <>
                   {msg.content.includes('[图片链接]') && (
@@ -204,7 +205,7 @@ export function ChatPanel() {
                               key={i}
                               src={url}
                               alt={`图片 ${i + 1}`}
-                              className="max-w-full rounded border border-gray-200 cursor-pointer hover:opacity-90"
+                              className="max-w-full rounded-none border border-gray-200 cursor-pointer hover:opacity-90"
                               style={{ maxHeight: '200px', maxWidth: '300px', objectFit: 'cover' }}
                               onClick={() => window.open(url, '_blank')}
                             />
@@ -214,7 +215,7 @@ export function ChatPanel() {
                     }
                     return null;
                   })()}
-                  <div className="prose prose-sm max-w-none">
+                  <div className="prose prose-sm max-w-none overflow-hidden">
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                   </div>
                 </>
@@ -225,11 +226,11 @@ export function ChatPanel() {
 
         {isRunning && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg px-4 py-2">
+            <div className="bg-surface rounded-none px-4 py-2">
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-75" />
-                <span className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-150" />
+                <span className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+                <span className="w-2 h-2 bg-primary rounded-full animate-bounce delay-75" />
+                <span className="w-2 h-2 bg-primary rounded-full animate-bounce delay-150" />
               </div>
             </div>
           </div>
@@ -239,17 +240,17 @@ export function ChatPanel() {
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200">
+      <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200 bg-surface">
         {/* Image attachments preview */}
         {images.length > 0 && (
           <div className="flex gap-2 mb-2 flex-wrap">
             {images.map(img => (
               <div key={img.id} className="relative group">
-                <img src={img.url} alt={img.name} className="h-16 w-16 object-cover rounded border" />
+                <img src={img.url} alt={img.name} className="h-16 w-16 object-cover rounded-none border" />
                 <button
                   type="button"
                   onClick={() => removeImage(img.id)}
-                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-none w-5 h-5 text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                 >
                   ×
                 </button>
@@ -270,7 +271,7 @@ export function ChatPanel() {
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={isRunning || !currentSessionId}
-            className="bg-gray-100 hover:bg-gray-200 text-gray-700"
+            className="bg-background hover:bg-primary-100 text-[#383838]"
           >
             📷
           </Button>
@@ -279,9 +280,11 @@ export function ChatPanel() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="输入你的问题..."
             disabled={isRunning || !currentSessionId}
-            className="flex-1"
+            className="flex-1 bg-background border-gray-200 text-[#383838]"
           />
-          <Button type="submit" disabled={isRunning || (!input.trim() && images.length === 0) || !currentSessionId}>
+          <Button type="submit" disabled={isRunning || (!input.trim() && images.length === 0) || !currentSessionId}
+            className="bg-primary text-[#383838] hover:bg-primary-600"
+          >
             发送
           </Button>
         </div>

@@ -41,7 +41,7 @@ export function TaskList() {
   };
 
   return (
-    <div className="w-[200px] bg-white border-r border-gray-200 flex flex-col">
+    <div className="w-[200px] bg-background border-r border-gray-200 flex flex-col">
       <div className="p-4 border-b border-gray-200">
         <Button onClick={handleNewSession} className="w-full">
           + 新建会话
@@ -49,21 +49,21 @@ export function TaskList() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {loading && <div className="p-4 text-sm text-gray-500 text-center">加载中...</div>}
+        {loading && <div className="p-4 text-sm text-[#818181] text-center">加载中...</div>}
         {error && <div className="p-4 text-sm text-red-500 text-center">{error}</div>}
         {!loading && !error && sessions.length === 0 && (
-          <div className="p-4 text-sm text-gray-500 text-center">暂无会话</div>
+          <div className="p-4 text-sm text-[#818181] text-center">暂无会话</div>
         )}
         {!loading && sessions.map((session) => (
           <div
             key={session.id}
             onClick={() => setCurrentSession(session.id)}
-            className={`p-3 cursor-pointer border-b border-gray-100 hover:bg-gray-50 ${
-              currentSessionId === session.id ? 'bg-primary-50 border-l-2 border-l-primary-500' : ''
+            className={`p-3 cursor-pointer border-b border-gray-100 hover:bg-surface ${
+              currentSessionId === session.id ? 'bg-primary-100 border-l-2 border-l-primary' : ''
             }`}
           >
-            <div className="text-sm font-medium text-gray-900 truncate">{session.id}</div>
-            <div className="text-xs text-gray-500">{session.createdAt || '新会话'}</div>
+            <div className="text-sm font-medium text-[#383838] truncate">{session.id}</div>
+            <div className="text-xs text-[#818181]">{session.createdAt || '新会话'}</div>
             <button
               onClick={(e) => {
                 e.stopPropagation();

@@ -77,6 +77,11 @@ function convertToCSSVariables(tokens, framework) {
 function convertToTailwindV4(tokens) {
   const colors = convertToCSSVariables(tokens, 'tailwind_v4');
 
+  // Find primary button style if available
+  const primaryBtn = tokens.buttonStyles?.find(b =>
+    b.default.backgroundColor && !b.default.backgroundColor.includes('0, 0, 0, 0')
+  );
+
   // Generate OKLCH color scales
   const themeBlock = `
 @theme {
@@ -97,6 +102,48 @@ function convertToTailwindV4(tokens) {
 `;
 
   return themeBlock;
+}
+
+function generateButtonStyles(tokens) {
+  const primaryBtn = tokens.buttonStyles?.find(b => {
+    const bg = b.default.backgroundColor;
+    return bg && bg.includes('rgb') && !bg.includes('0, 0, 0, 0)');
+  });
+
+  if (!primaryBtn) {
+    return null;
+  }
+
+  const hover = primaryBtn.hover;
+  const hasHoverShadow = hover.boxShadow && hover.boxShadow !== 'none';
+  const hasHoverTransform = hover.transform && hover.transform !== 'none' && hover.transform !== '';
+
+  // Generate Tailwind button styles
+  const buttonStyles = {
+    base: 'inline-flex items-center justify-center font-medium rounded-none transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-primary',
+    primary: {
+      default: 'bg-primary text-[#383838]',
+      hover: 'hover:bg-primary-600',
+      shadow: hasHoverShadow ? 'shadow-hard' : '',
+      hoverEffect: hasHoverTransform ? 'hover:shadow-none hover:translate-x-[-3px] hover:translate-y-[3px]' : ''
+    },
+    secondary: {
+      default: 'bg-surface text-[#383838] border border-border',
+      hover: 'hover:bg-primary-50 hover:shadow-soft'
+    }
+  };
+
+  return {
+    tailwind: {
+      base: buttonStyles.base,
+      variants: {
+        primary: `${buttonStyles.primary.default} ${buttonStyles.primary.shadow} ${buttonStyles.primary.hoverEffect} ${buttonStyles.primary.hover}`.trim(),
+        secondary: `${buttonStyles.secondary.default} ${buttonStyles.secondary.hover}`.trim(),
+        ghost: 'text-[#818181] hover:bg-surface hover:text-[#383838]'
+      }
+    },
+    raw: primaryBtn
+  };
 }
 
 function convertToShadcnUI(tokens) {
@@ -171,4 +218,4 @@ if (require.main === module) {
   console.log(result);
 }
 
-module.exports = { detectFramework, adapt, convertToTailwindV4, convertToShadcnUI };
+module.exports = { detectFramework, adapt, convertToTailwindV4, convertToShadcnUI, generateButtonStyles };

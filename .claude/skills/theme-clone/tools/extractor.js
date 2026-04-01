@@ -16,6 +16,7 @@ const EXTRACTION_SCRIPT = `
     spacing: [],
     borderRadius: [],
     shadows: [],
+    buttonStyles: [],
     metadata: {}
   };
 
@@ -88,6 +89,39 @@ const EXTRACTION_SCRIPT = `
       seenStyles.add('shadow:' + boxShadow);
       results.shadows.push(boxShadow);
     }
+
+    // Button styles (extract hover/active states for buttons and links)
+    const tagName = el.tagName.toLowerCase();
+    if ((tagName === 'button' || tagName === 'a' || el.getAttribute('role') === 'button') && !seenStyles.has('btn:' + el.outerHTML.slice(0, 100))) {
+      seenStyles.add('btn:' + el.outerHTML.slice(0, 100));
+      const hoverStyle = window.getComputedStyle(el, ':hover');
+      const activeStyle = window.getComputedStyle(el, ':active');
+      results.buttonStyles.push({
+        tagName,
+        className: el.className,
+        text: el.textContent?.trim().slice(0, 50),
+        default: {
+          backgroundColor: style.backgroundColor,
+          color: style.color,
+          boxShadow: style.boxShadow,
+          transform: style.transform,
+          borderRadius: style.borderRadius,
+          padding: style.padding
+        },
+        hover: {
+          backgroundColor: hoverStyle.backgroundColor,
+          color: hoverStyle.color,
+          boxShadow: hoverStyle.boxShadow,
+          transform: hoverStyle.transform
+        },
+        active: {
+          backgroundColor: activeStyle.backgroundColor,
+          color: activeStyle.color,
+          boxShadow: activeStyle.boxShadow,
+          transform: activeStyle.transform
+        }
+      });
+    }
   });
 
   // Get viewport info
@@ -147,7 +181,8 @@ function analyzeExtractedData(data) {
     typography: deduplicateTypography(data.typography),
     spacingSystem: deriveSpacingSystem(data.spacing),
     borderRadiusScale: [...new Set(data.borderRadius)].sort(),
-    shadowScale: [...new Set(data.shadows)]
+    shadowScale: [...new Set(data.shadows)],
+    buttonStyles: data.buttonStyles
   };
 }
 

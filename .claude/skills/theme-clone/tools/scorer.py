@@ -26,12 +26,25 @@ except ImportError:
     HAS_PIL = False
 
 
-def load_image(path: str) -> torch.Tensor:
+def load_image(path: str, target_size: tuple = None) -> torch.Tensor:
     """Load image and convert to tensor format for scoring."""
     img = Image.open(path).convert('RGB')
+    if target_size:
+        img = img.resize(target_size, Image.LANCZOS)
     img = np.array(img).astype(np.float32) / 255.0
     img = torch.from_numpy(img).permute(2, 0, 1).unsqueeze(0)
     return img
+
+
+def resize_images_to_match(img1: torch.Tensor, img2: torch.Tensor) -> tuple:
+    """Resize images to the same size (use minimum dimensions)."""
+    _, _, h1, w1 = img1.shape
+    _, _, h2, w2 = img2.shape
+    target_h = min(h1, h2)
+    target_w = min(w1, w2)
+    img1_resized = torch.nn.functional.interpolate(img1, size=(target_h, target_w))
+    img2_resized = torch.nn.functional.interpolate(img2, size=(target_h, target_w))
+    return img1_resized, img2_resized
 
 
 def compute_ssim(img1: torch.Tensor, img2: torch.Tensor) -> float:
@@ -40,11 +53,24 @@ def compute_ssim(img1: torch.Tensor, img2: torch.Tensor) -> float:
     return float(ssim(img1, img2).item())
 
 
+_lpips_model = None
+
+def get_lpips_model():
+    """Get or initialize LPIPS model with lazy loading."""
+    global _lpips_model
+    if _lpips_model is None:
+        _lpips_model = LPIPS()
+    return _lpips_model
+
+
 def compute_lpips(img1: torch.Tensor, img2: torch.Tensor) -> float:
     """Compute LPIPS perceptual distance. Returns value between 0 and 1."""
     if not HAS_LPIPS:
         raise ImportError("LPIPS not installed. Run: pip install lpips torchmetrics")
-    lpips_model = LPIPS()
+    try:
+        lpips_model = get_lpips_model()
+    except Exception as e:
+        raise RuntimeError(f"LPIPS model failed to load: {e}")
     # LPIPS expects input in range [-1, 1]
     img1_scaled = img1 * 2 - 1
     img2_scaled = img2 * 2 - 1
@@ -73,6 +99,7 @@ def score_theme(ref_image: str, test_image: str) -> dict:
 
     ref_tensor = load_image(ref_image)
     test_tensor = load_image(test_image)
+    ref_tensor, test_tensor = resize_images_to_match(ref_tensor, test_tensor)
 
     ssim_score = compute_ssim(ref_tensor, test_tensor)
 
@@ -84,15 +111,26 @@ def score_theme(ref_image: str, test_image: str) -> dict:
     }
 
     if HAS_LPIPS:
-        lpips_score = compute_lpips(ref_tensor, test_tensor)
-        result["lpips"] = round(lpips_score, 4)
-        result["passed"] = ssim_score >= ssim_threshold and lpips_score <= lpips_threshold
-        result["details"] = {
-            "ssim_threshold": ssim_threshold,
-            "lpips_threshold": lpips_threshold,
-            "ssim_pass": ssim_score >= ssim_threshold,
-            "lpips_pass": lpips_score <= lpips_threshold
-        }
+        try:
+            lpips_score = compute_lpips(ref_tensor, test_tensor)
+            result["lpips"] = round(lpips_score, 4)
+            result["passed"] = ssim_score >= ssim_threshold and lpips_score <= lpips_threshold
+            result["details"] = {
+                "ssim_threshold": ssim_threshold,
+                "lpips_threshold": lpips_threshold,
+                "ssim_pass": ssim_score >= ssim_threshold,
+                "lpips_pass": lpips_score <= lpips_threshold
+            }
+        except RuntimeError as e:
+            # LPIPS model weights failed to download, fall back to SSIM only
+            result["passed"] = ssim_score >= ssim_threshold
+            result["details"] = {
+                "ssim_threshold": ssim_threshold,
+                "lpips_threshold": lpips_threshold,
+                "ssim_pass": ssim_score >= ssim_threshold,
+                "lpips_pass": None,
+                "warning": f"LPIPS unavailable ({str(e)}), only SSIM validation"
+            }
     else:
         result["passed"] = ssim_score >= ssim_threshold
         result["details"] = {
