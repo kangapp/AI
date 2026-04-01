@@ -1,4 +1,5 @@
 import os
+import base64
 import httpx
 from pathlib import Path
 from typing import Optional
@@ -62,45 +63,40 @@ class ImageGenerator:
         if not self.apiyi_api_key:
             raise ValueError("APIIYI_API_KEY must be set")
 
-        url = "https://api.apiyi.com/v1/images/generations"
+        url = "https://api.apiyi.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
 
         headers = {
-            "Authorization": f"Bearer {self.apiyi_api_key}",
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.apiyi_api_key}"
         }
 
         payload = {
-            "model": "gemini-nano-banana-pro",
-            "prompt": text,
-            "image_size": "16:9"
+            "contents": [{"parts": [{"text": text}]}],
+            "generationConfig": {
+                "responseModalities": ["IMAGE"],
+                "imageConfig": {
+                    "aspectRatio": "16:9",
+                    "imageSize": "2K"
+                }
+            }
         }
 
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        async with httpx.AsyncClient(timeout=360.0) as client:
             response = await client.post(url, headers=headers, json=payload)
 
             print(f"Gemini API response status: {response.status_code}")
-            print(f"Gemini API response body: {response.text}")
+            print(f"Gemini API response body: {response.text[:500]}...")
 
             response.raise_for_status()
             data = response.json()
 
-            # 解析响应 - APIYI 可能返回不同的格式
-            image_url = None
-            if "data" in data and isinstance(data["data"], dict):
-                image_url = data["data"].get("url") or data["data"].get("image_url")
-            elif "image_url" in data:
-                image_url = data["image_url"]
-            elif "images" in data and len(data["images"]) > 0:
-                image_url = data["images"][0].get("url") if isinstance(data["images"][0], dict) else data["images"][0]
+            # 解析响应 - base64 图片数据
+            image_base64 = data["candidates"][0]["content"]["parts"][0]["inlineData"]["data"]
 
-            if not image_url:
-                raise ValueError(f"Failed to get image URL from response: {data}")
-
-            img_response = await client.get(image_url)
-            img_response.raise_for_status()
-
+            # 解码并保存图片
+            image_bytes = base64.b64decode(image_base64)
             with open(output_path, "wb") as f:
-                f.write(img_response.content)
+                f.write(image_bytes)
 
     async def _generate_minimax(self, text: str, output_path: Path) -> None:
         # MiniMax Image API
