@@ -5,15 +5,16 @@ interface SidebarProps {
   projectSlug?: string;
 }
 
-export default function Sidebar(_props: SidebarProps) {
+export default function Sidebar({ projectSlug }: SidebarProps) {
   const { slides, selectedSid, selectSlide, deleteSlide, createSlide, generateImage } = useSlidesStore();
+  const slug = projectSlug || 'default';
 
   const handleCreate = async () => {
-    await createSlide('新幻灯片');
+    await createSlide('新幻灯片', slug);
     // Generate image for new slide automatically
     const newSid = useSlidesStore.getState().selectedSid;
     if (newSid) {
-      generateImage(newSid);
+      generateImage(newSid, 'minimax', slug);
     }
   };
 

@@ -6,9 +6,10 @@ interface MainPreviewProps {
   projectSlug?: string;
 }
 
-export default function MainPreview(_props: MainPreviewProps) {
+export default function MainPreview({ projectSlug }: MainPreviewProps) {
   const { selectedSid, slides, images, generateImage, isLoading } = useSlidesStore();
   const [provider, setProvider] = useState<'minimax' | 'gemini'>('minimax');
+  const slug = projectSlug || 'default';
 
   const selectedSlide = slides.find(s => s.sid === selectedSid);
   const slideImages = selectedSid ? images[selectedSid] || [] : [];
@@ -18,7 +19,7 @@ export default function MainPreview(_props: MainPreviewProps) {
 
   const handleGenerate = () => {
     if (selectedSid) {
-      generateImage(selectedSid, provider);
+      generateImage(selectedSid, provider, slug);
     }
   };
 

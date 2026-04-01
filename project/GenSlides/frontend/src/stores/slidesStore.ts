@@ -68,9 +68,8 @@ export const useSlidesStore = create<SlidesState>((set, get) => ({
     }
   },
 
-  createSlide: async (text = '新幻灯片') => {
-    const { selectedProjectSlug } = get();
-    const slug = selectedProjectSlug || 'default';
+  createSlide: async (text = '新幻灯片', projectSlug?: string) => {
+    const slug = projectSlug || get().selectedProjectSlug || 'default';
     set({ isLoading: true, error: null });
     try {
       const slide = await slidesApi.create(slug, text);
@@ -122,9 +121,8 @@ export const useSlidesStore = create<SlidesState>((set, get) => ({
     }
   },
 
-  generateImage: async (sid: string, provider = 'minimax') => {
-    const { selectedProjectSlug } = get();
-    const slug = selectedProjectSlug || 'default';
+  generateImage: async (sid: string, provider = 'minimax', projectSlug?: string) => {
+    const slug = projectSlug || get().selectedProjectSlug || 'default';
     set({ isLoading: true, error: null });
     try {
       const result = await slidesApi.generate(slug, sid, provider);
