@@ -24,7 +24,12 @@
 ```
 project/GenSlides/
 ├── projects/                      # 所有项目根目录
-│   ├── <slug>/                    # 项目文件夹 (URL-safe slug)
+│   ├── default/                   # 默认项目 (向后兼容)
+│   │   ├── project.yml           # 默认项目配置
+│   │   └── slides/
+│   │       ├── outline.yml       # slides 数据 (从旧位置迁移)
+│   │       └── images/           # 生成的图片
+│   ├── <slug>/                    # 用户创建的项目
 │   │   ├── project.yml           # 项目信息
 │   │   └── slides/
 │   │       ├── outline.yml       # slides 数据
@@ -33,6 +38,11 @@ project/GenSlides/
 │       └── ...
 └── backend/                       # 后端代码 (无需大改)
 ```
+
+**默认项目初始化:**
+- 首次启动时，系统自动创建 `default` 项目
+- `default` 项目的风格为 `photorealistic`，无自定义描述
+- 现有单项目用户的数据（`slides/` 和 `slides/images/`）自动迁移到 `default` 项目
 
 ### 3.2 project.yml 结构
 
@@ -83,7 +93,7 @@ created_at: "2026-04-01T10:00:00Z"
 - 下方: 项目卡片网格 (如果有项目)
 
 **项目卡片:**
-- 显示项目名称
+- 显示项目名称 (最多显示 50 字符，超出截断)
 - 显示创建时间
 - 显示第一个 slide 的缩略图 (如果有)
 - 点击进入项目编辑页
@@ -195,6 +205,19 @@ created_at: "2026-04-01T10:00:00Z"
 - `POST /api/projects/{slug}/slides/{sid}/generate`
 
 **向后兼容:** 不带 `slug` 参数时使用 `default` 项目
+
+### 5.4 错误处理
+
+| 场景 | HTTP 状态码 | 响应 |
+|------|-------------|------|
+| 项目不存在 | 404 | `{"detail": "Project not found"}` |
+| Slug 冲突 (同名项目) | 409 | `{"detail": "Project with this name already exists"}` |
+| 项目名称超长 | 422 | `{"detail": "Project name must be 50 characters or less"}` |
+| Slug 生成失败 | 400 | `{"detail": "Invalid project name"}` |
+
+**Slug 冲突处理:**
+- 创建项目时，如果 slug 已存在，后端自动在末尾添加数字后缀
+- 例如: `my-project` 已存在 → `my-project-2`
 
 ### 5.4 图片生成逻辑变化
 
@@ -329,3 +352,6 @@ GET /api/projects/<slug> 获取项目风格
 2. **风格传递**: 验证生成图片时风格被正确注入
 3. **向后兼容**: 不带 slug 的 API 调用仍能正常工作
 4. **目录隔离**: 不同项目的 slides 和图片完全隔离
+5. **Slug 冲突**: 同名项目创建时 slug 自动添加数字后缀
+6. **默认项目**: 首次启动时 default 项目被正确初始化
+7. **数据迁移**: 现有单项目数据正确迁移到 default 项目
