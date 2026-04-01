@@ -33,7 +33,7 @@ interface ProjectsState {
 
 const API_BASE = '/api';
 
-export const useProjectsStore = create<ProjectsState>((set, get) => ({
+export const useProjectsStore = create<ProjectsState>((set) => ({
   projects: [],
   loading: false,
   isCreating: false,

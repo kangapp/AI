@@ -1,6 +1,10 @@
 import { useSlidesStore } from '../stores/slidesStore';
 
-export default function Header() {
+interface HeaderProps {
+  projectSlug?: string;
+}
+
+export default function Header(_props: HeaderProps) {
   const { title, startPlayback, isPlaying } = useSlidesStore();
 
   return (

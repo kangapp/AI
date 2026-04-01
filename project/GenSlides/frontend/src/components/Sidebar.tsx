@@ -1,7 +1,11 @@
 import { useSlidesStore } from '../stores/slidesStore';
 import SlideItem from './SlideItem';
 
-export default function Sidebar() {
+interface SidebarProps {
+  projectSlug?: string;
+}
+
+export default function Sidebar(_props: SidebarProps) {
   const { slides, selectedSid, selectSlide, deleteSlide, createSlide, generateImage } = useSlidesStore();
 
   const handleCreate = async () => {

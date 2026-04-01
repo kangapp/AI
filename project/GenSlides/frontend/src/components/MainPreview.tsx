@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { useSlidesStore } from '../stores/slidesStore';
 import ThumbnailStrip from './ThumbnailStrip';
 
-export default function MainPreview() {
+interface MainPreviewProps {
+  projectSlug?: string;
+}
+
+export default function MainPreview(_props: MainPreviewProps) {
   const { selectedSid, slides, images, generateImage, isLoading } = useSlidesStore();
   const [provider, setProvider] = useState<'minimax' | 'gemini'>('minimax');
 
