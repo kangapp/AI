@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, computed_field
 from enum import Enum
 
 
@@ -23,7 +23,7 @@ class SlideUpdate(BaseModel):
 
 class Slide(SlideBase):
     sid: str = Field(..., description="唯一标识符")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -56,7 +56,11 @@ class CostInfo(BaseModel):
     minimax_calls: int = 0
     gemini_cost: float = 0.0
     minimax_cost: float = 0.0
-    total_cost: float = 0.0
+
+    @computed_field
+    @property
+    def total_cost(self) -> float:
+        return round(self.gemini_cost + self.minimax_cost, 6)
 
 
 class PlaybackSlide(BaseModel):
