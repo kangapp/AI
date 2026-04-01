@@ -10,17 +10,13 @@ from models import Slide, SlideCreate, SlideUpdate, SlideListResponse
 
 class SlidesManager:
     SLIDES_DIR = Path("projects")
-    IMAGES_DIR = Path("projects")
 
     def __init__(self, base_path: Optional[Path] = None):
         if base_path:
             self.slides_dir = base_path / self.SLIDES_DIR
-            self.images_dir = base_path / self.IMAGES_DIR
         else:
             self.slides_dir = self.SLIDES_DIR
-            self.images_dir = self.IMAGES_DIR
         self.slides_dir.mkdir(parents=True, exist_ok=True)
-        self.images_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_project_dir(self, slug: str = "default") -> Path:
         return self.slides_dir / slug / "slides"
@@ -85,7 +81,7 @@ class SlidesManager:
 
     def get_slide_images_dir(self, sid: str, slug: str = "default") -> Path:
         """获取 slide 图片目录: projects/{slug}/slides/images/{sid}"""
-        path = self.images_dir / slug / "slides" / "images" / sid
+        path = self.slides_dir / slug / "slides" / "images" / sid
         path.mkdir(parents=True, exist_ok=True)
         return path
 

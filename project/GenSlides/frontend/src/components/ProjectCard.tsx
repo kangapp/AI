@@ -15,6 +15,15 @@ const STYLE_LABELS: Record<string, string> = {
   'oil-painting': '油画/艺术',
 };
 
+function formatDate(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleDateString('zh-CN', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
 export default function ProjectCard({ project, onClick, onDelete }: ProjectCardProps) {
   return (
     <div
@@ -55,6 +64,11 @@ export default function ProjectCard({ project, onClick, onDelete }: ProjectCardP
           </span>
           <span className="text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded">
             {STYLE_LABELS[project.style] || project.style}
+          </span>
+        </div>
+        <div className="mt-1">
+          <span className="text-xs text-gray-600">
+            创建于 {formatDate(project.created_at)}
           </span>
         </div>
       </div>

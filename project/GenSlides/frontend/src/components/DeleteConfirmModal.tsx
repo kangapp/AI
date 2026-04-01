@@ -22,7 +22,7 @@ export default function DeleteConfirmModal({ project, onClose, onConfirm }: Dele
 
         <ul className="text-gray-400 text-sm mb-6 space-y-1">
           <li>- {project.slide_count || 0} 个 slides</li>
-          <li>- {project.image_count || 0} 张已生成的图片</li>
+          <li>- 若干张已生成的图片</li>
         </ul>
 
         <div className="flex justify-end gap-3">
