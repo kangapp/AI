@@ -163,7 +163,7 @@ export const useSlidesStore = create<SlidesState>((set, get) => ({
 
   startPlayback: async () => {
     const { selectedSid, slides } = get();
-    const startIndex = slides.findIndex(s => s.sid === selectedSid) || 0;
+    const startIndex = slides.findIndex(s => s.sid === selectedSid) ?? 0;
 
     try {
       const data = await playbackApi.getSlides(startIndex);
