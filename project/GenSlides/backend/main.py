@@ -1,4 +1,5 @@
 import os
+import base64
 from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
@@ -12,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from models import (
     SlideCreate, SlideUpdate, GenerateRequest, GenerateResponse,
     SlideListResponse, ImageInfo, CostInfo, PlaybackResponse, PlaybackSlide,
-    ProjectCreate, ProjectListResponse
+    ProjectCreate, ProjectListResponse, StylePreviewRequest
 )
 from slides_manager import SlidesManager
 from projects_manager import ProjectsManager
@@ -110,6 +111,53 @@ async def delete_project(slug: str):
     if not success:
         raise HTTPException(status_code=404, detail="Project not found")
     return {"success": True}
+
+
+@app.post("/api/projects/preview-style")
+async def generate_style_preview(request: StylePreviewRequest):
+    """生成风格预览图，并行调用 MiniMax 和 Gemini"""
+    import asyncio
+
+    async def generate_minimax():
+        try:
+            image_bytes = await image_generator.generate_preview_image(
+                request.style_prompt,
+                ImageProvider.MINIMAX
+            )
+            if image_bytes:
+                return f"data:image/jpeg;base64,{base64.b64encode(image_bytes).decode()}"
+            return None
+        except Exception as e:
+            print(f"MiniMax preview failed: {e}")
+            return None
+
+    async def generate_gemini():
+        try:
+            image_bytes = await image_generator.generate_preview_image(
+                request.style_prompt,
+                ImageProvider.GEMINI
+            )
+            if image_bytes:
+                return f"data:image/jpeg;base64,{base64.b64encode(image_bytes).decode()}"
+            return None
+        except Exception as e:
+            print(f"Gemini preview failed: {e}")
+            return None
+
+    minimax_task = asyncio.create_task(generate_minimax())
+    gemini_task = asyncio.create_task(generate_gemini())
+
+    # 使用 return_exceptions=True 确保一个 API 失败不影响另一个
+    results = await asyncio.gather(minimax_task, gemini_task, return_exceptions=True)
+
+    # 检查结果，处理可能的异常
+    minimax_result = results[0] if not isinstance(results[0], Exception) else None
+    gemini_result = results[1] if not isinstance(results[1], Exception) else None
+
+    return {
+        "minimax_image": minimax_result,
+        "gemini_image": gemini_result
+    }
 
 
 @app.get("/api/projects/{slug}/thumbnail")
