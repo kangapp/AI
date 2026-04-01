@@ -1,4 +1,5 @@
 import re
+import base64
 import yaml
 import shutil
 from datetime import datetime, timezone
@@ -6,6 +7,26 @@ from pathlib import Path
 from typing import Optional, List
 from pypinyin import lazy_pinyin
 from models import Project, ProjectCreate, ProjectStyle
+
+
+class ProjectsManagerError(Exception):
+    """ProjectsManager 相关错误基类"""
+    pass
+
+
+class ProjectCreateError(ProjectsManagerError):
+    """创建项目失败"""
+    pass
+
+
+class ProjectLoadError(ProjectsManagerError):
+    """加载项目失败"""
+    pass
+
+
+class ProjectSaveError(ProjectsManagerError):
+    """保存项目失败"""
+    pass
 
 
 def slugify(name: str) -> str:
@@ -42,9 +63,12 @@ class ProjectsManager:
 
     def _save_project(self, project: Project) -> None:
         path = self._get_project_yml_path(project.slug)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            yaml.dump(project.model_dump(mode="json"), f, allow_unicode=True, sort_keys=False)
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with open(path, "w", encoding="utf-8") as f:
+                yaml.dump(project.model_dump(mode="json"), f, allow_unicode=True, sort_keys=False)
+        except OSError as e:
+            raise ProjectSaveError(f"保存项目 {project.slug} 失败: {e}") from e
 
     def _generate_unique_slug(self, base_slug: str) -> str:
         """如果 slug 已存在，添加数字后缀"""
@@ -69,29 +93,44 @@ class ProjectsManager:
 
     def create_project(self, data: ProjectCreate) -> Project:
         """创建新项目"""
-        base_slug = slugify(data.name)
-        slug = self._generate_unique_slug(base_slug)
+        try:
+            base_slug = slugify(data.name)
+            slug = self._generate_unique_slug(base_slug)
 
-        project = Project(
-            slug=slug,
-            name=data.name,
-            style=data.style,
-            style_prompt=data.style_prompt,
-            created_at=datetime.now(timezone.utc)
-        )
+            # 保存参考图到项目目录
+            style_reference_image_path = None
+            if data.style_reference_image:
+                ref_data = data.style_reference_image.replace("data:image/jpeg;base64,", "")
+                style_reference_image_path = f"style_reference.jpg"
+                project_dir = self._get_project_dir(slug)
+                ref_image_path = project_dir / style_reference_image_path
+                with open(ref_image_path, "wb") as f:
+                    f.write(base64.b64decode(ref_data))
 
-        # 创建目录结构
-        project_dir = self._get_project_dir(slug)
-        (project_dir / "slides").mkdir(parents=True, exist_ok=True)
-        (project_dir / "slides" / "images").mkdir(parents=True, exist_ok=True)
+            project = Project(
+                slug=slug,
+                name=data.name,
+                style=data.style,
+                style_prompt=data.style_prompt,
+                style_reference_image=style_reference_image_path,
+                created_at=datetime.now(timezone.utc)
+            )
 
-        # 创建空的 outline.yml
-        outline_path = project_dir / "slides" / "outline.yml"
-        with open(outline_path, "w", encoding="utf-8") as f:
-            yaml.dump({"title": data.name, "slides": []}, f, allow_unicode=True, sort_keys=False)
+            # 创建目录结构
+            project_dir = self._get_project_dir(slug)
+            project_dir.mkdir(parents=True, exist_ok=True)
+            (project_dir / "slides").mkdir(parents=True, exist_ok=True)
+            (project_dir / "slides" / "images").mkdir(parents=True, exist_ok=True)
 
-        self._save_project(project)
-        return project
+            # 创建空的 outline.yml
+            outline_path = project_dir / "slides" / "outline.yml"
+            with open(outline_path, "w", encoding="utf-8") as f:
+                yaml.dump({"title": data.name, "slides": []}, f, allow_unicode=True, sort_keys=False)
+
+            self._save_project(project)
+            return project
+        except OSError as e:
+            raise ProjectCreateError(f"创建项目 {data.name} 失败: {e}") from e
 
     def get_project(self, slug: str) -> Optional[Project]:
         """获取项目详情"""
@@ -131,15 +170,21 @@ class ProjectsManager:
         if has_old_data:
             default_slides_dir = self.base_dir / "default" / "slides"
             default_slides_dir.mkdir(parents=True, exist_ok=True)
-            shutil.copy(old_slides_dir / "outline.yml", default_slides_dir / "outline.yml")
+            try:
+                shutil.copy(old_slides_dir / "outline.yml", default_slides_dir / "outline.yml")
+            except OSError as e:
+                raise ProjectCreateError(f"迁移 outline.yml 失败: {e}") from e
             # 迁移 images
             if old_images_dir.exists():
                 default_images_dir = default_slides_dir / "images"
                 default_images_dir.mkdir(parents=True, exist_ok=True)
-                for item in old_images_dir.iterdir():
-                    if item.is_dir():
-                        shutil.copytree(item, default_images_dir / item.name, dirs_exist_ok=True)
-                    else:
-                        shutil.copy(item, default_images_dir / item.name)
+                try:
+                    for item in old_images_dir.iterdir():
+                        if item.is_dir():
+                            shutil.copytree(item, default_images_dir / item.name, dirs_exist_ok=True)
+                        else:
+                            shutil.copy(item, default_images_dir / item.name)
+                except OSError as e:
+                    raise ProjectCreateError(f"迁移 images 目录失败: {e}") from e
 
         return default_project

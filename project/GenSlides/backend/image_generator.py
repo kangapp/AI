@@ -50,16 +50,21 @@ class ImageGenerator:
 
         # 获取项目风格并注入到 prompt
         style_prompt = ""
+        style_reference_image = None
         if self.projects_manager:
             project = self.projects_manager.get_project(project_slug)
             if project:
                 style_prompt = project.get_full_style()
+                style_reference_image = project.style_reference_image
 
         # 构建完整 prompt
         full_text = f"{style_prompt}, {text}" if style_prompt else text
 
         # 调用 API 生成图片
-        if provider == ImageProvider.GEMINI:
+        # 如果有参考图且使用 Gemini，优先使用参考图功能
+        if provider == ImageProvider.GEMINI and style_reference_image:
+            await self._generate_gemini_with_reference(full_text, style_reference_image, image_path)
+        elif provider == ImageProvider.GEMINI:
             await self._generate_gemini(full_text, image_path)
         else:
             await self._generate_minimax(full_text, image_path)
@@ -112,6 +117,53 @@ class ImageGenerator:
 
             # 解码并保存图片
             image_bytes = base64.b64decode(image_base64)
+            with open(output_path, "wb") as f:
+                f.write(image_bytes)
+
+    async def _generate_gemini_with_reference(
+        self,
+        text: str,
+        reference_image_base64: str,
+        output_path: Path
+    ) -> None:
+        """使用参考图生成 (Gemini 原生支持)"""
+        if not self.apiyi_api_key:
+            raise ValueError("APIIYI_API_KEY must be set")
+
+        url = "https://api.apiyi.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
+
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {self.apiyi_api_key}"
+        }
+
+        # 解析参考图 base64 (去掉 data:image/jpeg;base64, 前缀)
+        ref_data = reference_image_base64.replace("data:image/jpeg;base64,", "")
+
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": text},
+                    {"inlineData": {"mimeType": "image/jpeg", "data": ref_data}}
+                ]
+            }],
+            "generationConfig": {
+                "responseModalities": ["IMAGE"],
+                "imageConfig": {
+                    "aspectRatio": "16:9",
+                    "imageSize": "2K"
+                }
+            }
+        }
+
+        async with httpx.AsyncClient(timeout=360.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+            response.raise_for_status()
+            data = response.json()
+
+            image_base64 = data["candidates"][0]["content"]["parts"][0]["inlineData"]["data"]
+            image_bytes = base64.b64decode(image_base64)
+
             with open(output_path, "wb") as f:
                 f.write(image_bytes)
 
