@@ -29,6 +29,35 @@ def test_update_slide(manager):
     assert updated is not None
     assert updated.text == "新文字"
 
+    # Verify persistence
+    persisted = manager.get_slide_by_sid(sid)
+    assert persisted is not None
+    assert persisted.text == "新文字"
+
+
+def test_get_slide_by_sid(manager):
+    slide = manager.create_slide(SlideCreate(text="测试文字"))
+    sid = slide.sid
+
+    found = manager.get_slide_by_sid(sid)
+    assert found is not None
+    assert found.sid == sid
+    assert found.text == "测试文字"
+
+    # Non-existent
+    not_found = manager.get_slide_by_sid("nonexistent")
+    assert not_found is None
+
+
+def test_update_nonexistent_slide(manager):
+    result = manager.update_slide("nonexistent", SlideUpdate(text="新文字"))
+    assert result is None
+
+
+def test_delete_nonexistent_slide(manager):
+    result = manager.delete_slide("nonexistent")
+    assert result is False
+
 
 def test_delete_slide(manager):
     slide = manager.create_slide(SlideCreate(text="要删除"))
