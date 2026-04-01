@@ -255,9 +255,17 @@ async def get_projects():
     slide_counts = {}
     thumbnails = {}
     for project in projects:
-        outline = slides_manager._load_outline(project.slug)
-        slides = outline.get("slides", [])
-        slide_counts[project.slug] = len(slides)
+        # 使用 public 方法 get_all_slides 获取 slide 数量
+        slides_data = slides_manager.get_all_slides(project.slug)
+        slide_counts[project.slug] = len(slides_data.slides)
+
+        # 获取第一个 slide 的缩略图
+        if slides_data.slides:
+            first_slide = slides_data.slides[0]
+            text_hash = slides_manager.compute_text_hash(first_slide.text)
+            image_path = slides_manager.get_slide_images_dir(first_slide.sid, project.slug) / f"{text_hash}.jpg"
+            if image_path.exists():
+                thumbnails[project.slug] = f"/api/projects/{project.slug}/thumbnail"
 
         # 获取第一个 slide 的缩略图
         if slides:
@@ -306,14 +314,13 @@ async def get_project_thumbnail(slug: str):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    outline = slides_manager._load_outline(slug)
-    slides = outline.get("slides", [])
-    if not slides:
+    slides_data = slides_manager.get_all_slides(slug)
+    if not slides_data.slides:
         raise HTTPException(status_code=404, detail="No slides in project")
 
-    first_slide = slides[0]
-    text_hash = slides_manager.compute_text_hash(first_slide.get("text", ""))
-    image_path = slides_manager.get_slide_images_dir(first_slide.get("sid"), slug) / f"{text_hash}.jpg"
+    first_slide = slides_data.slides[0]
+    text_hash = slides_manager.compute_text_hash(first_slide.text)
+    image_path = slides_manager.get_slide_images_dir(first_slide.sid, slug) / f"{text_hash}.jpg"
 
     if not image_path.exists():
         raise HTTPException(status_code=404, detail="Thumbnail not found")
@@ -428,7 +435,27 @@ async def get_image(slug: str, sid: str, hash: str):
     return FileResponse(str(image_path), media_type="image/jpeg")
 ```
 
-- [ ] **Step 2: 修改 image_generator.generate_image 支持 project_slug**
+- [ ] **Step 2: 修改 image_generator 接受 projects_manager 参数**
+
+修改 `ImageGenerator.__init__`:
+
+```python
+class ImageGenerator:
+    def __init__(
+        self,
+        slides_manager: SlidesManager,
+        cost_tracker: CostTracker,
+        projects_manager: ProjectsManager,  # 新增
+        minimax_api_key: Optional[str] = None,
+        apiiyi_api_key: Optional[str] = None
+    ):
+        self.slides_manager = slides_manager
+        self.cost_tracker = cost_tracker
+        self.projects_manager = projects_manager  # 新增
+        # ...
+```
+
+修改 `generate_image` 方法:
 
 ```python
 async def generate_image(
@@ -439,17 +466,29 @@ async def generate_image(
     force: bool = False,
     project_slug: str = "default"
 ) -> GenerateResponse:
-    # ... 现有代码 ...
+    # ... 现有缓存检查代码 ...
 
     # 获取项目风格
-    project = self.slides_manager.get_project(project_slug)
+    project = self.projects_manager.get_project(project_slug)
     style_prompt = project.get_full_style() if project else ""
 
     # 构建完整 prompt
     full_text = f"{style_prompt}, {text}" if style_prompt else text
+
+    # ... 后续生成代码 ...
 ```
 
-注意: 需要在 SlidesManager 或新建 ProjectsManager 中添加 get_project 方法。
+同时更新 `main.py` 中的 ImageGenerator 实例化:
+
+```python
+image_generator = ImageGenerator(
+    slides_manager=slides_manager,
+    cost_tracker=cost_tracker,
+    projects_manager=projects_manager,  # 新增
+    minimax_api_key=os.getenv("MINIMAX_API_KEY", ""),
+    apiiyi_api_key=os.getenv("APIIYI_API_KEY", "")
+)
+```
 
 - [ ] **Step 3: 提交**
 
@@ -1160,10 +1199,12 @@ git commit -m "feat: update Header with back button and project name"
 ### Task 7: 后端 - 图片生成集成风格
 
 **Files:**
-- Modify: `backend/image_generator.py`
-- Modify: `backend/projects_manager.py` (暴露 get_project 方法)
+- Modify: `backend/image_generator.py` (注入 projects_manager)
+- Modify: `backend/main.py` (传入 projects_manager 到 ImageGenerator)
 
-- [ ] **Step 1: 在 image_generator 中使用 project_slug 获取风格**
+- [ ] **Step 1: 在 image_generator 中使用 projects_manager 获取风格**
+
+Task 3 已经修改了 ImageGenerator 接受 `projects_manager` 参数。现在只需验证 `generate_image` 方法使用它:
 
 ```python
 async def generate_image(
@@ -1176,8 +1217,8 @@ async def generate_image(
 ) -> GenerateResponse:
     # ... 现有缓存检查代码 ...
 
-    # 获取项目风格
-    project = self.slides_manager.get_project(project_slug)
+    # 获取项目风格 (projects_manager 在 Task 3 已注入)
+    project = self.projects_manager.get_project(project_slug)
     style_prompt = project.get_full_style() if project else ""
 
     # 构建完整 prompt
@@ -1193,7 +1234,7 @@ async def generate_image(
 - [ ] **Step 2: 提交**
 
 ```bash
-git add backend/image_generator.py backend/projects_manager.py
+git add backend/image_generator.py backend/main.py
 git commit -m "feat: integrate project style into image generation"
 ```
 
@@ -1208,6 +1249,60 @@ git commit -m "feat: integrate project style into image generation"
 - [x] Task 5: 前端 - 路由和 App 重构
 - [x] Task 6: 前端 - Header 组件改造
 - [x] Task 7: 后端 - 图片生成集成风格
+
+---
+
+## 测试验证
+
+每个任务完成后进行以下验证:
+
+### 后端 API 测试 (Task 2 完成后)
+
+```bash
+# 启动后端
+cd backend && python -m uvicorn main:app --reload --port 8000
+
+# 测试 Projects API
+curl http://localhost:8000/api/projects
+# Expected: {"projects": [], "slide_counts": {}, "thumbnails": {}}
+
+# 测试创建项目
+curl -X POST http://localhost:8000/api/projects \
+  -H "Content-Type: application/json" \
+  -d '{"name": "测试项目", "style": "anime", "style_prompt": ""}'
+# Expected: 返回项目对象，包含 slug
+
+# 测试获取项目详情
+curl http://localhost:8000/api/projects/ce-shi-xiang-mu
+# Expected: 返回项目对象
+
+# 测试向后兼容 (default slug)
+curl http://localhost:8000/api/projects/default/slides
+# Expected: 返回 slides 列表
+```
+
+### 前端功能测试 (Task 5 完成后)
+
+```bash
+# 启动前端
+cd frontend && npm run dev
+
+# 测试流程:
+# 1. 访问 http://localhost:3003 应显示启动器页面
+# 2. 点击"创建项目"，填写表单，确认后跳转至 /project/{slug}
+# 3. 在项目页面可以添加 slide
+# 4. 点击返回按钮回到启动器页面
+# 5. 项目列表应显示新建的项目卡片
+```
+
+### 完整流程测试 (Task 7 完成后)
+
+```bash
+# 1. 创建新项目，选择"动漫/二次元"风格
+# 2. 添加 slide，输入文字如"可爱的猫"
+# 3. 点击生成图片
+# 4. 验证生成的图片使用了动漫风格
+```
 
 ---
 
