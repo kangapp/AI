@@ -1,6 +1,6 @@
 import type {
   Slide, SlideListResponse,
-  ImageInfo, GenerateRequest, GenerateResponse,
+  ImageInfo, GenerateResponse,
   CostInfo, PlaybackResponse
 } from './types';
 
