@@ -105,22 +105,46 @@ class ProjectCreate(BaseModel):
 ### 3.4 预览生成逻辑
 
 ```python
-async def generate_preview_image(style_prompt: str, provider: str) -> str:
-    """生成预览图，返回 base64 字符串"""
-    # 使用风格描述生成一张无内容的纯风格图
-    # 使用默认占位内容（如"抽象纹理"）
-    prompt = f"{style_prompt}, abstract texture, no specific content"
-    image_bytes = await image_generator.generate_raw(prompt, provider)
-    return base64.b64encode(image_bytes).decode()
+async def generate_preview_image(style_prompt: str, provider: str) -> Optional[str]:
+    """生成预览图，返回带 mimeType 的 base64 字符串，失败返回 None"""
+    try:
+        # 使用风格描述生成一张纯风格参考图
+        prompt = f"{style_prompt}, abstract texture only, no specific content"
+        image_bytes = await image_generator.generate_raw(prompt, provider)
+        # 返回带 mimeType 前缀的 base64
+        return f"data:image/jpeg;base64,{base64.b64encode(image_bytes).decode()}"
+    except Exception as e:
+        print(f"Preview generation failed for {provider}: {e}")
+        return None
 ```
 
-### 3.5 超时处理
+### 3.5 并行生成与异常隔离
+
+```python
+@app.post("/api/projects/preview-style")
+async def generate_style_preview(request: StylePreviewRequest):
+    minimax_task = generate_preview_image(request.style_prompt, "minimax")
+    gemini_task = generate_preview_image(request.style_prompt, "gemini")
+
+    # 使用 return_exceptions=True 隔离异常，确保一个失败不影响另一个
+    results = await asyncio.gather(minimax_task, gemini_task, return_exceptions=True)
+
+    minimax_result = results[0] if not isinstance(results[0], Exception) else None
+    gemini_result = results[1] if not isinstance(results[1], Exception) else None
+
+    return {
+        "minimax_image": minimax_result,
+        "gemini_image": gemini_result
+    }
+```
+
+### 3.6 超时和限流处理
 
 | 场景 | 处理 |
 |------|------|
-| 单 API 超时 (60s) | 返回另一张图片，失败的位置灰 |
-| 两者都超时 | 显示错误，允许跳过 |
-| 限流 (429) | 等待后重试，最多 2 次 |
+| 单 API 超时/失败 | 返回另一张图片，失败的位置灰 |
+| 两者都失败 | 显示错误，允许跳过 |
+| 限流 (429) | 在 generate_preview_image 内部重试 2 次 |
 
 ---
 
