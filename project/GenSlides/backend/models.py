@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from typing import Optional, List
+from typing import Optional, List, Dict
 from pydantic import BaseModel, Field, ConfigDict, computed_field
 from enum import Enum
 
@@ -72,3 +72,50 @@ class PlaybackSlide(BaseModel):
 class PlaybackResponse(BaseModel):
     slides: List[PlaybackSlide]
     start_index: int = 0
+
+
+class ProjectStyle(str, Enum):
+    PHOTOREALISTIC = "photorealistic"
+    ANIME = "anime"
+    INK_WASH = "ink-wash"
+    CYBERPUNK = "cyberpunk"
+    MINIMALIST = "minimalist"
+    OIL_PAINTING = "oil-painting"
+
+
+# 预设风格默认描述
+PROJECT_STYLE_DEFAULTS = {
+    ProjectStyle.PHOTOREALISTIC: "照片级真实感，高画质",
+    ProjectStyle.ANIME: "日系动漫画风，清晰线条",
+    ProjectStyle.INK_WASH: "中国传统水墨画风格",
+    ProjectStyle.CYBERPUNK: "未来科技感，霓虹灯光",
+    ProjectStyle.MINIMALIST: "简洁留白设计",
+    ProjectStyle.OIL_PAINTING: "艺术绘画质感",
+}
+
+
+class Project(BaseModel):
+    slug: str
+    name: str
+    style: ProjectStyle
+    style_prompt: str = ""  # 用户自定义补充
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    def get_full_style(self) -> str:
+        """获取完整风格描述 = 预设描述 + 用户自定义"""
+        base = PROJECT_STYLE_DEFAULTS.get(self.style, "")
+        if self.style_prompt:
+            return f"{base}, {self.style_prompt}"
+        return base
+
+
+class ProjectCreate(BaseModel):
+    name: str = Field(..., max_length=50)
+    style: ProjectStyle
+    style_prompt: str = ""
+
+
+class ProjectListResponse(BaseModel):
+    projects: List[Project]
+    slide_counts: dict = {}  # slug -> count
+    thumbnails: dict = {}  # slug -> thumbnail_url
