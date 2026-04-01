@@ -101,6 +101,7 @@ class Project(BaseModel):
     name: str
     style: ProjectStyle
     style_prompt: str = ""  # 用户自定义补充
+    style_reference_image: Optional[str] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def get_full_style(self) -> str:
@@ -119,9 +120,14 @@ class ProjectCreate(BaseModel):
     name: str = Field(..., max_length=50)
     style: ProjectStyle
     style_prompt: str = ""
+    style_reference_image: Optional[str] = None
 
 
 class ProjectListResponse(BaseModel):
     projects: List[Project]
     slide_counts: Dict[str, int] = {}  # slug -> count
     thumbnails: Dict[str, Optional[str]] = {}  # slug -> thumbnail_url
+
+
+class StylePreviewRequest(BaseModel):
+    style_prompt: str
