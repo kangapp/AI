@@ -143,15 +143,43 @@ async def generate_style_preview(request: StylePreviewRequest):
     minimax_task = asyncio.create_task(generate_minimax())
     gemini_task = asyncio.create_task(generate_gemini())
 
-    results = await asyncio.gather(minimax_task, gemini_task)
+    # 使用 return_exceptions=True 确保一个 API 失败不影响另一个
+    results = await asyncio.gather(minimax_task, gemini_task, return_exceptions=True)
+
+    # 检查结果，处理可能的异常
+    minimax_result = results[0] if not isinstance(results[0], Exception) else None
+    gemini_result = results[1] if not isinstance(results[1], Exception) else None
 
     return {
-        "minimax_image": results[0],
-        "gemini_image": results[1]
+        "minimax_image": minimax_result,
+        "gemini_image": gemini_result
     }
 ```
 
-- [ ] **Step 4: 测试端点**
+- [ ] **Step 4: 添加限流重试到 generate_preview_image**
+
+在 `generate_preview_image` 方法中添加重试逻辑:
+
+```python
+async def generate_preview_image(
+    self,
+    style_prompt: str,
+    provider: ImageProvider = ImageProvider.MINIMAX,
+    max_retries: int = 2
+) -> Optional[bytes]:
+    """生成预览图，失败时自动重试 (最多 max_retries 次)"""
+    for attempt in range(max_retries):
+        try:
+            # ... 现有生成逻辑 ...
+        except httpx.HTTPStatusError as e:
+            if e.response.status_code == 429 and attempt < max_retries - 1:
+                await asyncio.sleep(2 ** attempt)  # 指数退避
+                continue
+            return None
+    return None
+```
+
+- [ ] **Step 5: 测试端点**
 
 Run: `cd backend && python3 -c "from main import app; print('API loads OK')"`
 Expected: 无错误
