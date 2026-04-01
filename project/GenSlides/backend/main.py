@@ -36,8 +36,7 @@ cost_tracker = CostTracker()
 image_generator = ImageGenerator(
     slides_manager=slides_manager,
     cost_tracker=cost_tracker,
-    minimax_api_key=os.getenv("MINIMAX_API_KEY", ""),
-    minimax_group_id=os.getenv("MINIMAX_GROUP_ID", "")
+    minimax_api_key=os.getenv("MINIMAX_API_KEY", "")
 )
 
 

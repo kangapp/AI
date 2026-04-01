@@ -67,8 +67,8 @@ class ImageGenerator:
     async def _generate_minimax(self, text: str, output_path: Path) -> None:
         # MiniMax Image API
         # 参考: https://platform.minimaxi.com/docs/guides/image-generation
-        if not self.minimax_api_key or not self.minimax_group_id:
-            raise ValueError("MINIMAX_API_KEY and MINIMAX_GROUP_ID must be set")
+        if not self.minimax_api_key:
+            raise ValueError("MINIMAX_API_KEY must be set")
 
         url = "https://api.minimax.chat/v1/image_generation"
 
@@ -78,19 +78,24 @@ class ImageGenerator:
         }
 
         payload = {
-            "model": "minimax-image-01",
+            "model": "image-01",
             "prompt": text,
-            "image_size": "16:9",
-            "group_id": self.minimax_group_id
+            "image_size": "16:9"
         }
 
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(url, headers=headers, json=payload)
+
+            # 打印响应状态和内容用于调试
+            print(f"MiniMax API response status: {response.status_code}")
+            print(f"MiniMax API response body: {response.text}")
+
             response.raise_for_status()
             data = response.json()
 
             # 下载图片
-            image_url = data.get("data", {}).get("image_url")
+            image_urls = data.get("data", {}).get("image_urls", [])
+            image_url = image_urls[0] if image_urls else None
             if not image_url:
                 raise ValueError(f"Failed to get image URL from response: {data}")
 
