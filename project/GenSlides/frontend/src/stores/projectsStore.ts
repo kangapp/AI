@@ -28,7 +28,7 @@ interface ProjectsState {
   error: string | null;
 
   loadProjects: () => Promise<void>;
-  createProject: (data: { name: string; style: ProjectStyle; style_prompt: string }) => Promise<Project | null>;
+  createProject: (data: { name: string; style: ProjectStyle; style_prompt: string; style_reference_image?: string }) => Promise<Project | null>;
   deleteProject: (slug: string) => Promise<void>;
 }
 
