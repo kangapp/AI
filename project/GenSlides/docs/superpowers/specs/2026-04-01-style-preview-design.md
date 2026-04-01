@@ -75,6 +75,14 @@
 
 ### 3.3 数据模型
 
+#### 请求模型
+
+```python
+# models.py
+class StylePreviewRequest(BaseModel):
+    style_prompt: str
+```
+
 #### project.yml 新增字段
 
 ```yaml
@@ -86,7 +94,33 @@ style_reference_image: "base64字符串或空"
 class Project(BaseModel):
     # ... 现有字段
     style_reference_image: Optional[str] = None
+
+class ProjectCreate(BaseModel):
+    name: str = Field(..., max_length=50)
+    style: ProjectStyle
+    style_prompt: str = ""
+    style_reference_image: Optional[str] = None  # 新增
 ```
+
+### 3.4 预览生成逻辑
+
+```python
+async def generate_preview_image(style_prompt: str, provider: str) -> str:
+    """生成预览图，返回 base64 字符串"""
+    # 使用风格描述生成一张无内容的纯风格图
+    # 使用默认占位内容（如"抽象纹理"）
+    prompt = f"{style_prompt}, abstract texture, no specific content"
+    image_bytes = await image_generator.generate_raw(prompt, provider)
+    return base64.b64encode(image_bytes).decode()
+```
+
+### 3.5 超时处理
+
+| 场景 | 处理 |
+|------|------|
+| 单 API 超时 (60s) | 返回另一张图片，失败的位置灰 |
+| 两者都超时 | 显示错误，允许跳过 |
+| 限流 (429) | 等待后重试，最多 2 次 |
 
 ---
 
@@ -172,28 +206,48 @@ async def generate_style_preview(request: StylePreviewRequest):
 
 ## 6. 图片参考功能
 
-### 6.1 MiniMax 图片参考
+### 6.1 实现策略
 
-MiniMax 图像生成 API 可能支持 reference_image 参数。需验证 API 文档确认。
+由于 MiniMax API 的 reference_image 参数支持情况需验证，优先使用 **Gemini 的图片参考功能**。
 
 ### 6.2 Gemini 图片参考
 
-Gemini 原生支持图片作为输入，可直接传入参考图。
+Gemini 原生支持图片作为输入，可直接传入参考图：
+
+```python
+payload = {
+    "contents": [{
+        "parts": [
+            {"text": text},
+            {"inlineData": {"mimeType": "image/jpeg", "data": base64_image}}
+        ]
+    }]
+}
+```
 
 ### 6.3 后端注入逻辑
 
 ```python
 async def generate_with_reference(
     text: str,
-    style_reference_image: str = None
+    style_reference_image: str = None,
+    provider: str = "gemini"
 ) -> str:
-    if style_reference_image:
-        # 调用支持图片参考的 API
-        return await generate_with_image_reference(text, style_reference_image)
+    if style_reference_image and provider == "gemini":
+        # Gemini 原生支持图片参考
+        return await self._generate_gemini_with_reference(text, style_reference_image, image_path)
     else:
         # 普通生成
-        return await generate_text_only(text)
+        return await self._generate_gemini(text, image_path)
 ```
+
+### 6.4 回退策略
+
+如果参考图生成失败，自动回退到纯文字生成，不阻塞用户。
+
+---
+
+**注意**: MiniMax 的 reference_image 支持待后续 API 文档更新后验证。
 
 ---
 
@@ -201,10 +255,13 @@ async def generate_with_reference(
 
 | 场景 | 处理 |
 |------|------|
-| MiniMax 生成失败 | 显示 Gemini 图片，另一位置灰 |
-| Gemini 生成失败 | 显示 MiniMax 图片，另一位置灰 |
+| MiniMax 生成失败 | 显示 Gemini 图片，MiniMax 位置灰 |
+| Gemini 生成失败 | 显示 MiniMax 图片，Gemini 位置灰 |
 | 两者都失败 | 显示错误提示，允许跳过 |
+| API 限流 (429) | 等待 2 秒重试，最多 2 次 |
+| 网络超时 (60s) | 超时后标记失败，显示另一张 |
 | 用户跳过 | 项目无参考图，后续正常生成 |
+| base64 数据过大 | 限制图片尺寸，压缩后返回 |
 
 ---
 
