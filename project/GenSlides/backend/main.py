@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
+from starlette.responses import FileResponse
 
 # 加载 .env 文件
 load_dotenv(Path(__file__).parent / ".env")
@@ -46,6 +47,16 @@ image_generator = ImageGenerator(
 
 # === Projects CRUD ===
 
+def _get_project_thumbnail_path(slug: str) -> Path | None:
+    """获取项目缩略图路径（第一个 slide 的图片）"""
+    slides_data = slides_manager.get_all_slides(slug)
+    if not slides_data.slides:
+        return None
+    first_slide = slides_data.slides[0]
+    text_hash = slides_manager.compute_text_hash(first_slide.text)
+    return slides_manager.get_slide_images_dir(first_slide.sid, slug) / f"{text_hash}.jpg"
+
+
 @app.get("/api/projects", response_model=ProjectListResponse)
 async def get_projects():
     """获取所有项目列表"""
@@ -60,12 +71,9 @@ async def get_projects():
         slide_counts[project.slug] = len(slides_data.slides)
 
         # 获取第一个 slide 的缩略图
-        if slides_data.slides:
-            first_slide = slides_data.slides[0]
-            text_hash = slides_manager.compute_text_hash(first_slide.text)
-            image_path = slides_manager.get_slide_images_dir(first_slide.sid, project.slug) / f"{text_hash}.jpg"
-            if image_path.exists():
-                thumbnails[project.slug] = f"/api/projects/{project.slug}/thumbnail"
+        image_path = _get_project_thumbnail_path(project.slug)
+        if image_path and image_path.exists():
+            thumbnails[project.slug] = f"/api/projects/{project.slug}/thumbnail"
 
     return ProjectListResponse(
         projects=projects,
@@ -109,44 +117,36 @@ async def get_project_thumbnail(slug: str):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    slides_data = slides_manager.get_all_slides(slug)
-    if not slides_data.slides:
-        raise HTTPException(status_code=404, detail="No slides in project")
-
-    first_slide = slides_data.slides[0]
-    text_hash = slides_manager.compute_text_hash(first_slide.text)
-    image_path = slides_manager.get_slide_images_dir(first_slide.sid, slug) / f"{text_hash}.jpg"
-
-    if not image_path.exists():
+    image_path = _get_project_thumbnail_path(slug)
+    if not image_path or not image_path.exists():
         raise HTTPException(status_code=404, detail="Thumbnail not found")
 
-    from starlette.responses import FileResponse
     return FileResponse(str(image_path), media_type="image/jpeg")
 
 
 # === Slides CRUD ===
 
-@app.get("/api/slides", response_model=SlideListResponse)
-async def get_slides(slug: str = Query(default="default")):
+@app.get("/api/projects/{slug}/slides", response_model=SlideListResponse)
+async def get_slides(slug: str):
     return slides_manager.get_all_slides(slug)
 
 
-@app.post("/api/slides", response_model=dict)
-async def create_slide(slide_data: SlideCreate, slug: str = Query(default="default")):
+@app.post("/api/projects/{slug}/slides", response_model=dict)
+async def create_slide(slug: str, slide_data: SlideCreate):
     slide = slides_manager.create_slide(slide_data, slug)
     return slide.model_dump(mode="json")
 
 
-@app.put("/api/slides/{sid}", response_model=dict)
-async def update_slide(sid: str, slide_data: SlideUpdate, slug: str = Query(default="default")):
+@app.put("/api/projects/{slug}/slides/{sid}", response_model=dict)
+async def update_slide(slug: str, sid: str, slide_data: SlideUpdate):
     slide = slides_manager.update_slide(sid, slide_data, slug)
     if slide is None:
         raise HTTPException(status_code=404, detail="Slide not found")
     return slide.model_dump(mode="json")
 
 
-@app.delete("/api/slides/{sid}")
-async def delete_slide(sid: str, slug: str = Query(default="default")):
+@app.delete("/api/projects/{slug}/slides/{sid}")
+async def delete_slide(slug: str, sid: str):
     success = slides_manager.delete_slide(sid, slug)
     if not success:
         raise HTTPException(status_code=404, detail="Slide not found")
@@ -155,13 +155,16 @@ async def delete_slide(sid: str, slug: str = Query(default="default")):
 
 # === Image Generation ===
 
-@app.post("/api/slides/{sid}/generate", response_model=GenerateResponse)
+@app.post("/api/projects/{slug}/slides/{sid}/generate", response_model=GenerateResponse)
 async def generate_image(
     sid: str,
     request: GenerateRequest = GenerateRequest(),
-    slug: str = Query(default="default")
+    slug: str = "default"
 ):
-    slide = slides_manager.get_slide_by_sid(sid, slug)
+    # 确保 slug 不为 None
+    effective_slug = slug or "default"
+
+    slide = slides_manager.get_slide_by_sid(sid, effective_slug)
     if slide is None:
         raise HTTPException(status_code=404, detail="Slide not found")
 
@@ -169,13 +172,14 @@ async def generate_image(
         sid=sid,
         text=slide.text,
         provider=request.provider,
-        force=request.force
+        force=request.force,
+        project_slug=effective_slug
     )
 
 
-@app.get("/api/slides/{sid}/images")
-async def get_slide_images(sid: str):
-    images_dir = slides_manager.get_slide_images_dir(sid)
+@app.get("/api/projects/{slug}/slides/{sid}/images")
+async def get_slide_images(slug: str, sid: str):
+    images_dir = slides_manager.get_slide_images_dir(sid, slug)
     if not images_dir.exists():
         return {"images": []}
 
@@ -184,7 +188,7 @@ async def get_slide_images(sid: str):
         hash_value = img_path.stem
         images.append(ImageInfo(
             hash=hash_value,
-            url=f"/api/images/{sid}/{hash_value}",
+            url=f"/api/images/{slug}/{sid}/{hash_value}",
             cached=True
         ))
 
@@ -193,12 +197,11 @@ async def get_slide_images(sid: str):
 
 # === Image Serving ===
 
-@app.get("/api/images/{sid}/{hash}")
-async def get_image(sid: str, hash: str):
-    image_path = slides_manager.get_slide_images_dir(sid) / f"{hash}.jpg"
+@app.get("/api/images/{slug}/{sid}/{hash}")
+async def get_image(slug: str, sid: str, hash: str):
+    image_path = slides_manager.get_slide_images_dir(sid, slug) / f"{hash}.jpg"
     if not image_path.exists():
         raise HTTPException(status_code=404, detail="Image not found")
-    from starlette.responses import FileResponse
     return FileResponse(str(image_path), media_type="image/jpeg")
 
 
@@ -218,11 +221,11 @@ async def get_playback_slides(slug: str = Query(default="default"), start_index:
     playback_slides = []
     for slide in slide_list.slides:
         text_hash = slides_manager.compute_text_hash(slide.text)
-        image_path = slides_manager.get_slide_images_dir(slide.sid) / f"{text_hash}.jpg"
+        image_path = slides_manager.get_slide_images_dir(slide.sid, slug) / f"{text_hash}.jpg"
 
         main_url = None
         if image_path.exists():
-            main_url = f"/api/images/{slide.sid}/{text_hash}"
+            main_url = f"/api/images/{slug}/{slide.sid}/{text_hash}"
 
         playback_slides.append(PlaybackSlide(
             sid=slide.sid,

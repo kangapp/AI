@@ -26,10 +26,11 @@ class ImageGenerator:
         sid: str,
         text: str,
         provider: ImageProvider = ImageProvider.MINIMAX,
-        force: bool = False
+        force: bool = False,
+        project_slug: str = "default"
     ) -> GenerateResponse:
         text_hash = self.slides_manager.compute_text_hash(text)
-        images_dir = self.slides_manager.get_slide_images_dir(sid)
+        images_dir = self.slides_manager.get_slide_images_dir(sid, project_slug)
         image_path = images_dir / f"{text_hash}.jpg"
 
         # 检查缓存
@@ -37,7 +38,7 @@ class ImageGenerator:
             return GenerateResponse(
                 sid=sid,
                 hash=text_hash,
-                image_url=f"/api/images/{sid}/{text_hash}",
+                image_url=f"/api/images/{project_slug}/{sid}/{text_hash}",
                 cached=True
             )
 
@@ -53,7 +54,7 @@ class ImageGenerator:
         return GenerateResponse(
             sid=sid,
             hash=text_hash,
-            image_url=f"/api/images/{sid}/{text_hash}",
+            image_url=f"/api/images/{project_slug}/{sid}/{text_hash}",
             cached=False
         )
 
@@ -125,11 +126,20 @@ class ImageGenerator:
             print(f"MiniMax API response body: {response.text}")
 
             response.raise_for_status()
-            data = response.json()
+
+            try:
+                data = response.json()
+            except Exception as e:
+                raise ValueError(f"Failed to parse JSON response: {response.text}, error: {e}")
+
+            if data is None:
+                raise ValueError(f"Empty JSON response from MiniMax API: {response.text}")
 
             # 下载图片
-            image_urls = data.get("data", {}).get("image_urls", [])
-            image_url = image_urls[0] if image_urls else None
+            data_dict = data if isinstance(data, dict) else {}
+            data_block = data_dict.get("data") or {}
+            image_urls = data_block.get("image_urls", []) if isinstance(data_block, dict) else []
+            image_url = image_urls[0] if image_urls and len(image_urls) > 0 else None
             if not image_url:
                 raise ValueError(f"Failed to get image URL from response: {data}")
 

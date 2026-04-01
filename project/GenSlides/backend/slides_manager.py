@@ -9,8 +9,8 @@ from models import Slide, SlideCreate, SlideUpdate, SlideListResponse
 
 
 class SlidesManager:
-    SLIDES_DIR = Path("slides")
-    IMAGES_DIR = Path("slides/images")
+    SLIDES_DIR = Path("projects")
+    IMAGES_DIR = Path("projects")
 
     def __init__(self, base_path: Optional[Path] = None):
         if base_path:
@@ -23,7 +23,7 @@ class SlidesManager:
         self.images_dir.mkdir(parents=True, exist_ok=True)
 
     def _get_project_dir(self, slug: str = "default") -> Path:
-        return self.slides_dir / slug
+        return self.slides_dir / slug / "slides"
 
     def _get_outline_path(self, slug: str = "default") -> Path:
         return self._get_project_dir(slug) / "outline.yml"
@@ -83,8 +83,9 @@ class SlidesManager:
                 return True
         return False
 
-    def get_slide_images_dir(self, sid: str) -> Path:
-        path = self.images_dir / sid
+    def get_slide_images_dir(self, sid: str, slug: str = "default") -> Path:
+        """获取 slide 图片目录: projects/{slug}/slides/images/{sid}"""
+        path = self.images_dir / slug / "slides" / "images" / sid
         path.mkdir(parents=True, exist_ok=True)
         return path
 
