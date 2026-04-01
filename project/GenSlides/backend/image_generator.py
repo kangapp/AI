@@ -63,7 +63,14 @@ class ImageGenerator:
         # 调用 API 生成图片
         # 如果有参考图且使用 Gemini，优先使用参考图功能
         if provider == ImageProvider.GEMINI and style_reference_image:
-            await self._generate_gemini_with_reference(full_text, style_reference_image, image_path)
+            # style_reference_image 可能是文件路径，需要读取并转换为 base64
+            ref_path = Path(style_reference_image)
+            if ref_path.exists():
+                with open(ref_path, "rb") as f:
+                    ref_base64 = f"data:image/jpeg;base64,{base64.b64encode(f.read()).decode()}"
+                await self._generate_gemini_with_reference(full_text, ref_base64, image_path)
+            else:
+                await self._generate_gemini(full_text, image_path)
         elif provider == ImageProvider.GEMINI:
             await self._generate_gemini(full_text, image_path)
         else:
