@@ -13,12 +13,12 @@ class ImageGenerator:
         slides_manager: SlidesManager,
         cost_tracker: CostTracker,
         minimax_api_key: Optional[str] = None,
-        minimax_group_id: Optional[str] = None
+        apiiyi_api_key: Optional[str] = None
     ):
         self.slides_manager = slides_manager
         self.cost_tracker = cost_tracker
         self.minimax_api_key = minimax_api_key or os.getenv("MINIMAX_API_KEY", "")
-        self.minimax_group_id = minimax_group_id or os.getenv("MINIMAX_GROUP_ID", "")
+        self.apiyi_api_key = apiiyi_api_key or os.getenv("APIIYI_API_KEY", "")
 
     async def generate_image(
         self,
@@ -57,12 +57,50 @@ class ImageGenerator:
         )
 
     async def _generate_gemini(self, text: str, output_path: Path) -> None:
-        # Gemini Nano Banana Pro 图片生成 API
+        # APIYI Gemini Nano Banana Pro 图片生成 API
         # 参考: https://docs.apiyi.com/api-capabilities/nano-banana-image
-        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-nano-banana-pro:generateImage"
+        if not self.apiyi_api_key:
+            raise ValueError("APIIYI_API_KEY must be set")
 
-        # TODO: 实现 Gemini API 调用
-        raise NotImplementedError("Gemini API integration pending")
+        url = "https://api.apiyi.com/v1/images/generations"
+
+        headers = {
+            "Authorization": f"Bearer {self.apiyi_api_key}",
+            "Content-Type": "application/json"
+        }
+
+        payload = {
+            "model": "gemini-nano-banana-pro",
+            "prompt": text,
+            "image_size": "16:9"
+        }
+
+        async with httpx.AsyncClient(timeout=120.0) as client:
+            response = await client.post(url, headers=headers, json=payload)
+
+            print(f"Gemini API response status: {response.status_code}")
+            print(f"Gemini API response body: {response.text}")
+
+            response.raise_for_status()
+            data = response.json()
+
+            # 解析响应 - APIYI 可能返回不同的格式
+            image_url = None
+            if "data" in data and isinstance(data["data"], dict):
+                image_url = data["data"].get("url") or data["data"].get("image_url")
+            elif "image_url" in data:
+                image_url = data["image_url"]
+            elif "images" in data and len(data["images"]) > 0:
+                image_url = data["images"][0].get("url") if isinstance(data["images"][0], dict) else data["images"][0]
+
+            if not image_url:
+                raise ValueError(f"Failed to get image URL from response: {data}")
+
+            img_response = await client.get(image_url)
+            img_response.raise_for_status()
+
+            with open(output_path, "wb") as f:
+                f.write(img_response.content)
 
     async def _generate_minimax(self, text: str, output_path: Path) -> None:
         # MiniMax Image API

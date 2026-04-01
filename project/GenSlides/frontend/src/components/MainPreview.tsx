@@ -1,14 +1,22 @@
+import { useState } from 'react';
 import { useSlidesStore } from '../stores/slidesStore';
 import ThumbnailStrip from './ThumbnailStrip';
 
 export default function MainPreview() {
   const { selectedSid, slides, images, generateImage, isLoading } = useSlidesStore();
+  const [provider, setProvider] = useState<'minimax' | 'gemini'>('minimax');
 
   const selectedSlide = slides.find(s => s.sid === selectedSid);
   const slideImages = selectedSid ? images[selectedSid] || [] : [];
 
   // Get main image (first one, or the one matching current text hash)
   const mainImage = slideImages[0];
+
+  const handleGenerate = () => {
+    if (selectedSid) {
+      generateImage(selectedSid, provider);
+    }
+  };
 
   if (!selectedSlide) {
     return (
@@ -20,6 +28,33 @@ export default function MainPreview() {
 
   return (
     <div className="flex flex-col h-full p-6">
+      {/* Provider Selector */}
+      <div className="flex items-center gap-4 mb-4">
+        <span className="text-sm text-gray-400">图片生成:</span>
+        <div className="flex rounded-lg overflow-hidden border border-gray-700">
+          <button
+            onClick={() => setProvider('minimax')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              provider === 'minimax'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            MiniMax
+          </button>
+          <button
+            onClick={() => setProvider('gemini')}
+            className={`px-4 py-2 text-sm font-medium transition-colors ${
+              provider === 'gemini'
+                ? 'bg-blue-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            Gemini Nano
+          </button>
+        </div>
+      </div>
+
       {/* Main Image Area */}
       <div className="flex-1 bg-gray-900 rounded-xl overflow-hidden flex items-center justify-center relative">
         {isLoading ? (
@@ -37,7 +72,7 @@ export default function MainPreview() {
           <div className="text-center">
             <p className="text-gray-400 mb-4">图片根据当前 slide 文字内容生成</p>
             <button
-              onClick={() => selectedSid && generateImage(selectedSid)}
+              onClick={handleGenerate}
               disabled={isLoading}
               className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-medium transition-colors"
             >
