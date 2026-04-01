@@ -172,25 +172,31 @@ class ImageGenerator:
         max_retries: int = 2
     ) -> Optional[bytes]:
         """生成预览图，返回图片字节数据，失败返回 None"""
-        for attempt in range(max_retries):
-            try:
-                prompt = f"{style_prompt}, abstract texture only, no specific content"
-                output_path = Path(tempfile.gettempdir()) / f"preview_{uuid.uuid4().hex}.jpg"
+        output_path = None
+        try:
+            for attempt in range(max_retries):
+                try:
+                    prompt = f"{style_prompt}, abstract texture only, no specific content"
+                    output_path = Path(tempfile.gettempdir()) / f"preview_{uuid.uuid4().hex}.jpg"
 
-                if provider == ImageProvider.GEMINI:
-                    await self._generate_gemini(prompt, output_path)
-                else:
-                    await self._generate_minimax(prompt, output_path)
+                    if provider == ImageProvider.GEMINI:
+                        await self._generate_gemini(prompt, output_path)
+                    else:
+                        await self._generate_minimax(prompt, output_path)
 
-                with open(output_path, "rb") as f:
-                    return f.read()
-            except httpx.HTTPStatusError as e:
-                if e.response.status_code == 429 and attempt < max_retries - 1:
-                    await asyncio.sleep(2 ** attempt)  # 指数退避
-                    continue
-                print(f"Preview generation failed for {provider}: {e}")
-                return None
-            except Exception as e:
-                print(f"Preview generation failed for {provider}: {e}")
-                return None
-        return None
+                    with open(output_path, "rb") as f:
+                        return f.read()
+                except httpx.HTTPStatusError as e:
+                    if e.response.status_code == 429 and attempt < max_retries - 1:
+                        await asyncio.sleep(2 ** attempt)  # 指数退避
+                        continue
+                    print(f"Preview generation failed for {provider}: {e}")
+                    return None
+                except Exception as e:
+                    print(f"Preview generation failed for {provider}: {e}")
+                    return None
+            return None
+        finally:
+            # 清理临时文件
+            if output_path and output_path.exists():
+                output_path.unlink()
