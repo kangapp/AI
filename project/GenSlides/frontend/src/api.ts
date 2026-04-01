@@ -84,6 +84,6 @@ export const costApi = {
 
 // Playback API
 export const playbackApi = {
-  getSlides: (startIndex = 0): Promise<PlaybackResponse> =>
-    fetchJSON(`/playback/slides?start_index=${startIndex}`),
+  getSlides: (slug: string, startIndex = 0): Promise<PlaybackResponse> =>
+    fetchJSON(`/playback/slides?slug=${slug}&start_index=${startIndex}`),
 };

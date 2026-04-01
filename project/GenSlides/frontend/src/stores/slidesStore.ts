@@ -22,11 +22,11 @@ interface SlidesState {
 
   // Actions
   loadSlides: (projectSlug?: string) => Promise<void>;
-  createSlide: (text?: string) => Promise<void>;
+  createSlide: (text?: string, projectSlug?: string) => Promise<void>;
   updateSlide: (sid: string, text: string) => Promise<void>;
   deleteSlide: (sid: string) => Promise<void>;
   selectSlide: (sid: string | null) => void;
-  generateImage: (sid: string, provider?: 'gemini' | 'minimax') => Promise<void>;
+  generateImage: (sid: string, provider?: 'gemini' | 'minimax', projectSlug?: string) => Promise<void>;
   loadImages: (sid: string, projectSlug?: string) => Promise<void>;
   loadCost: () => Promise<void>;
   startPlayback: () => Promise<void>;
@@ -160,11 +160,12 @@ export const useSlidesStore = create<SlidesState>((set, get) => ({
   },
 
   startPlayback: async () => {
-    const { selectedSid, slides } = get();
+    const { selectedSid, slides, selectedProjectSlug } = get();
+    const slug = selectedProjectSlug || 'default';
     const startIndex = slides.findIndex(s => s.sid === selectedSid) ?? 0;
 
     try {
-      const data = await playbackApi.getSlides(startIndex);
+      const data = await playbackApi.getSlides(slug, startIndex);
       set({
         playbackSlides: data.slides,
         playbackIndex: data.start_index,
