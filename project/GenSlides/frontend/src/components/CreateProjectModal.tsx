@@ -188,17 +188,24 @@ function SelectingStep({
         <button
           type="button"
           onClick={() => onSelectImage('minimax')}
+          disabled={!minimaxImage}
           className={`relative flex-1 rounded-lg overflow-hidden border-2 transition-colors ${
             selectedImage === 'minimax'
               ? 'border-blue-500 ring-2 ring-blue-500'
               : 'border-gray-700 hover:border-gray-500'
-          }`}
+          } ${!minimaxImage ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          <img
-            src={`data:image/png;base64,${minimaxImage}`}
-            alt="MiniMax 风格预览"
-            className="w-full h-40 object-cover"
-          />
+          {minimaxImage ? (
+            <img
+              src={minimaxImage}
+              alt="MiniMax 风格预览"
+              className="w-full h-40 object-cover"
+            />
+          ) : (
+            <div className="w-full h-40 bg-gray-800 flex items-center justify-center">
+              <span className="text-gray-500 text-sm">生成失败</span>
+            </div>
+          )}
           <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-1 text-center text-sm text-white">
             MiniMax
           </div>
@@ -208,17 +215,24 @@ function SelectingStep({
         <button
           type="button"
           onClick={() => onSelectImage('gemini')}
+          disabled={!geminiImage}
           className={`relative flex-1 rounded-lg overflow-hidden border-2 transition-colors ${
             selectedImage === 'gemini'
               ? 'border-purple-500 ring-2 ring-purple-500'
               : 'border-gray-700 hover:border-gray-500'
-          }`}
+          } ${!geminiImage ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
-          <img
-            src={`data:image/png;base64,${geminiImage}`}
-            alt="Gemini 风格预览"
-            className="w-full h-40 object-cover"
-          />
+          {geminiImage ? (
+            <img
+              src={geminiImage}
+              alt="Gemini 风格预览"
+              className="w-full h-40 object-cover"
+            />
+          ) : (
+            <div className="w-full h-40 bg-gray-800 flex items-center justify-center">
+              <span className="text-gray-500 text-sm">生成失败</span>
+            </div>
+          )}
           <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-1 text-center text-sm text-white">
             Gemini
           </div>
