@@ -1044,9 +1044,9 @@ export default function ProjectPage() {
       <Header projectSlug={slug} />
 
       <div className="flex h-[calc(100vh-64px)]">
-        <Sidebar />
+        <Sidebar projectSlug={slug} />
         <main className="flex-1 p-6 overflow-auto">
-          <MainPreview />
+          <MainPreview projectSlug={slug} />
         </main>
       </div>
 
@@ -1064,9 +1064,39 @@ export default function ProjectPage() {
 }
 ```
 
-- [ ] **Step 4: 更新 api.ts 添加 projects API**
+- [ ] **Step 4: 更新 api.ts 添加 projects API 并修改 slidesApi**
 
 ```typescript
+// 更新后的 Slides API - 所有方法接受 slug 参数
+export const slidesApi = {
+  getAll: (slug: string): Promise<SlideListResponse> =>
+    fetchJSON(`/projects/${slug}/slides`),
+
+  create: (slug: string, text: string): Promise<Slide> =>
+    fetchJSON(`/projects/${slug}/slides`, {
+      method: 'POST',
+      body: JSON.stringify({ text }),
+    }),
+
+  update: (slug: string, sid: string, text: string): Promise<Slide> =>
+    fetchJSON(`/projects/${slug}/slides/${sid}`, {
+      method: 'PUT',
+      body: JSON.stringify({ text }),
+    }),
+
+  delete: (slug: string, sid: string): Promise<void> =>
+    fetch(`${API_BASE}/projects/${slug}/slides/${sid}`, { method: 'DELETE' }).then(r => r.json()),
+
+  generate: (slug: string, sid: string, provider: 'gemini' | 'minimax' = 'minimax', force = false): Promise<GenerateResponse> =>
+    fetchJSON(`/projects/${slug}/slides/${sid}/generate`, {
+      method: 'POST',
+      body: JSON.stringify({ provider, force }),
+    }),
+
+  getImages: (slug: string, sid: string): Promise<{ images: ImageInfo[] }> =>
+    fetchJSON(`/projects/${slug}/slides/${sid}/images`),
+};
+
 // Projects API
 export const projectsApi = {
   getAll: (): Promise<{ projects: Project[]; slide_counts: Record<string, number>; thumbnails: Record<string, string> }> =>
@@ -1108,8 +1138,7 @@ loadSlides: async (projectSlug?: string) => {
   }
 },
 
-// 修改 slidesApi.getAll 接受 slug
-// 修改其他 API 调用传递 slug
+// 其他方法也需要更新传递 slug 参数
 ```
 
 - [ ] **Step 6: 提交**
@@ -1240,6 +1269,63 @@ git commit -m "feat: integrate project style into image generation"
 
 ---
 
+### Task 8: 前端 - Sidebar 和 MainPreview 支持 project_slug
+
+**Files:**
+- Modify: `frontend/src/components/Sidebar.tsx`
+- Modify: `frontend/src/components/MainPreview.tsx`
+
+- [ ] **Step 1: 修改 Sidebar 组件传递 project_slug**
+
+```tsx
+// Sidebar.tsx 需要:
+interface SidebarProps {
+  projectSlug: string;  // 新增
+}
+
+// 所有 API 调用需要传递 projectSlug
+const handleCreateSlide = async () => {
+  await slidesApi.create(projectSlug, '新幻灯片');
+};
+
+// API 调用改为:
+slidesApi.getAll(projectSlug)  // 代替 slidesApi.getAll()
+slidesApi.create(projectSlug, text)
+slidesApi.update(projectSlug, sid, text)
+slidesApi.delete(projectSlug, sid)
+```
+
+- [ ] **Step 2: 修改 MainPreview 传递 projectSlug 到图片生成**
+
+```tsx
+// MainPreview.tsx
+interface MainPreviewProps {
+  projectSlug: string;  // 新增
+}
+
+// generateImage 调用时传递 projectSlug
+const handleGenerate = () => {
+  if (selectedSid && projectSlug) {
+    generateImage(selectedSid, provider, projectSlug);  // 新增参数
+  }
+};
+```
+
+- [ ] **Step 3: 更新 slidesStore 的 generateImage 签名**
+
+```typescript
+generateImage: (sid: string, provider?: 'gemini' | 'minimax', projectSlug?: string) => Promise<void>
+```
+
+- [ ] **Step 4: 提交**
+
+```bash
+git add frontend/src/components/Sidebar.tsx frontend/src/components/MainPreview.tsx
+git commit -m "feat: update Sidebar and MainPreview to support project slug"
+```
+
+---
+
 ## 任务清单
 
 - [x] Task 1: 后端 - Projects Manager (含数据模型)
@@ -1249,6 +1335,7 @@ git commit -m "feat: integrate project style into image generation"
 - [x] Task 5: 前端 - 路由和 App 重构
 - [x] Task 6: 前端 - Header 组件改造
 - [x] Task 7: 后端 - 图片生成集成风格
+- [x] Task 8: 前端 - Sidebar 和 MainPreview 支持 project_slug
 
 ---
 
