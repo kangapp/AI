@@ -6,16 +6,11 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ projectSlug }: SidebarProps) {
-  const { slides, selectedSid, selectSlide, deleteSlide, createSlide, generateImage } = useSlidesStore();
+  const { slides, selectedSid, selectSlide, deleteSlide, createSlide } = useSlidesStore();
   const slug = projectSlug || 'default';
 
   const handleCreate = async () => {
     await createSlide('新幻灯片', slug);
-    // Generate image for new slide automatically
-    const newSid = useSlidesStore.getState().selectedSid;
-    if (newSid) {
-      generateImage(newSid, 'minimax', slug);
-    }
   };
 
   return (
@@ -48,7 +43,7 @@ export default function Sidebar({ projectSlug }: SidebarProps) {
           + 新建 Slide
         </button>
         <p className="text-xs text-gray-500 mt-2 text-center">
-          当用户点击一个 slide 下面一点时，会在当前 slide 下创建一个新的
+          点击按钮创建新幻灯片
         </p>
       </div>
     </aside>
