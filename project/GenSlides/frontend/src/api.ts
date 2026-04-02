@@ -35,11 +35,27 @@ export const slidesApi = {
       body: JSON.stringify({ text }),
     }),
 
-  update: (slug: string, sid: string, text: string): Promise<Slide> =>
+  update: (slug: string, sid: string, text: string, title?: string, thumbnail?: string): Promise<Slide> =>
     fetchJSON(`/projects/${slug}/slides/${sid}`, {
       method: 'PUT',
+      body: JSON.stringify({ text, ...(title !== undefined && { title }), ...(thumbnail !== undefined && { thumbnail }) }),
+    }),
+
+  extractTitle: (slug: string, sid: string, text: string): Promise<{ title: string }> =>
+    fetchJSON(`/projects/${slug}/slides/${sid}/extract-title`, {
+      method: 'POST',
       body: JSON.stringify({ text }),
     }),
+
+  generateMultipleImages: (slug: string, sid: string, provider: 'gemini' | 'minimax' = 'minimax', count: number = 2): Promise<GenerateResponse[]> =>
+    Promise.all(
+      Array.from({ length: count }, () =>
+        fetchJSON<GenerateResponse>(`/projects/${slug}/slides/${sid}/generate`, {
+          method: 'POST',
+          body: JSON.stringify({ provider, force: true }),
+        })
+      )
+    ),
 
   delete: (slug: string, sid: string): Promise<void> =>
     fetch(`${API_BASE}/projects/${slug}/slides/${sid}`, {
