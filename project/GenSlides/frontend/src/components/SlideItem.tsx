@@ -62,7 +62,7 @@ export default function SlideItem({ slide, isSelected, onSelect, onDelete }: Sli
           {/* 标题和状态 */}
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium truncate">{displayTitle}</p>
-            {slide.thumbnail && (
+            {thumbnail && (
               <span className="text-xs text-green-600 flex items-center gap-1">
                 <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span>
                 已生成
