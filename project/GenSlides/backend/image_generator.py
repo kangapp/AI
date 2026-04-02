@@ -37,34 +37,49 @@ class ImageGenerator:
     ) -> GenerateResponse:
         text_hash = self.slides_manager.compute_text_hash(text)
         images_dir = self.slides_manager.get_slide_images_dir(sid, project_slug)
-        image_path = images_dir / f"{text_hash}.jpg"
 
-        # 检查缓存
+        # 当 force=True 时使用带 UUID 的文件名，避免覆盖同名缓存
+        if force:
+            image_hash = f"{text_hash}_{uuid.uuid4().hex[:8]}"
+        else:
+            image_hash = text_hash
+
+        image_path = images_dir / f"{image_hash}.jpg"
+
+        # 检查缓存 (仅在非 force 模式)
         if image_path.exists() and not force:
             return GenerateResponse(
                 sid=sid,
-                hash=text_hash,
-                image_url=f"/api/images/{project_slug}/{sid}/{text_hash}",
+                hash=image_hash,
+                image_url=f"/api/images/{project_slug}/{sid}/{image_hash}",
                 cached=True
             )
 
         # 获取项目风格并注入到 prompt
         style_prompt = ""
         style_reference_image = None
+        reference_image_base64 = None
         if self.projects_manager:
             project = self.projects_manager.get_project(project_slug)
             if project:
                 style_prompt = project.get_full_style()
                 style_reference_image = project.style_reference_image
+                # 读取参考图并转为 base64
+                if style_reference_image:
+                    ref_path = self.projects_manager._get_project_dir(project_slug) / style_reference_image
+                    if ref_path.exists():
+                        with open(ref_path, "rb") as f:
+                            ref_base64 = base64.b64encode(f.read()).decode()
+                            reference_image_base64 = f"data:image/jpeg;base64,{ref_base64}"
 
         # 构建完整 prompt
         full_text = f"{style_prompt}, {text}" if style_prompt else text
 
         # 调用 API 生成图片
-        # 如果有参考图且使用 Gemini，优先使用参考图功能
+        # 如果有参考图，传递给支持参考图的 API
         if provider == ImageProvider.GEMINI and style_reference_image:
-            # style_reference_image 可能是文件路径，需要读取并转换为 base64
-            ref_path = Path(style_reference_image)
+            # Gemini 参考图 - 读取文件转为 base64
+            ref_path = self.projects_manager._get_project_dir(project_slug) / style_reference_image
             if ref_path.exists():
                 with open(ref_path, "rb") as f:
                     ref_base64 = f"data:image/jpeg;base64,{base64.b64encode(f.read()).decode()}"
@@ -73,6 +88,9 @@ class ImageGenerator:
                 await self._generate_gemini(full_text, image_path)
         elif provider == ImageProvider.GEMINI:
             await self._generate_gemini(full_text, image_path)
+        elif provider == ImageProvider.MINIMAX and reference_image_base64:
+            # MiniMax 参考图 - 使用 base64 data URL
+            await self._generate_minimax(full_text, image_path, reference_image_base64=reference_image_base64)
         else:
             await self._generate_minimax(full_text, image_path)
 
@@ -81,8 +99,8 @@ class ImageGenerator:
 
         return GenerateResponse(
             sid=sid,
-            hash=text_hash,
-            image_url=f"/api/images/{project_slug}/{sid}/{text_hash}",
+            hash=image_hash,
+            image_url=f"/api/images/{project_slug}/{sid}/{image_hash}",
             cached=False
         )
 
@@ -174,7 +192,7 @@ class ImageGenerator:
             with open(output_path, "wb") as f:
                 f.write(image_bytes)
 
-    async def _generate_minimax(self, text: str, output_path: Path) -> None:
+    async def _generate_minimax(self, text: str, output_path: Path, reference_image_base64: str = None) -> None:
         # MiniMax Image API
         # 参考: https://platform.minimaxi.com/docs/guides/image-generation
         if not self.minimax_api_key:
@@ -190,15 +208,25 @@ class ImageGenerator:
         payload = {
             "model": "image-01",
             "prompt": text,
-            "image_size": "16:9"
+            "aspect_ratio": "16:9",
+            "response_format": "base64"
         }
+
+        # 如果有参考图，添加 subject_reference (使用 base64 data URL)
+        if reference_image_base64:
+            payload["subject_reference"] = [
+                {
+                    "type": "character",
+                    "image_file": reference_image_base64
+                }
+            ]
 
         async with httpx.AsyncClient(timeout=120.0) as client:
             response = await client.post(url, headers=headers, json=payload)
 
             # 打印响应状态和内容用于调试
             print(f"MiniMax API response status: {response.status_code}")
-            print(f"MiniMax API response body: {response.text}")
+            print(f"MiniMax API response body: {response.text[:500]}...")
 
             response.raise_for_status()
 
@@ -210,19 +238,26 @@ class ImageGenerator:
             if data is None:
                 raise ValueError(f"Empty JSON response from MiniMax API: {response.text}")
 
-            # 下载图片
+            # 解析 base64 图片数据
             data_dict = data if isinstance(data, dict) else {}
-            data_block = data_dict.get("data") or {}
-            image_urls = data_block.get("image_urls", []) if isinstance(data_block, dict) else []
-            image_url = image_urls[0] if image_urls and len(image_urls) > 0 else None
-            if not image_url:
-                raise ValueError(f"Failed to get image URL from response: {data}")
+            image_base64_list = data_dict.get("data", {}).get("image_base64", []) if isinstance(data_dict.get("data"), dict) else []
+            image_base64 = image_base64_list[0] if image_base64_list else None
 
-            img_response = await client.get(image_url)
-            img_response.raise_for_status()
-
-            with open(output_path, "wb") as f:
-                f.write(img_response.content)
+            if not image_base64:
+                # 兼容 image_urls 格式
+                image_urls = data_dict.get("data", {}).get("image_urls", []) if isinstance(data_dict.get("data"), dict) else []
+                image_url = image_urls[0] if image_urls else None
+                if image_url:
+                    img_response = await client.get(image_url)
+                    img_response.raise_for_status()
+                    with open(output_path, "wb") as f:
+                        f.write(img_response.content)
+                else:
+                    raise ValueError(f"Failed to get image from response: {data}")
+            else:
+                image_bytes = base64.b64decode(image_base64)
+                with open(output_path, "wb") as f:
+                    f.write(image_bytes)
 
     async def generate_preview_image(
         self,
