@@ -231,13 +231,14 @@ async def extract_title(slug: str, sid: str, request: ExtractTitleRequest):
         raise HTTPException(status_code=404, detail="Slide not found")
 
     # 使用 Gemini API 提取标题
-    if not apiiyi_api_key:
+    apiiyi_key = os.getenv("APIIYI_API_KEY", "")
+    if not apiiyi_key:
         raise HTTPException(status_code=500, detail="APIIYI_API_KEY not configured")
 
     url = "https://api.apiyi.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
     headers = {
         "Content-Type": "application/json",
-        "Authorization": f"Bearer {apiyi_api_key}"
+        "Authorization": f"Bearer {apiiyi_key}"
     }
 
     prompt = f"""从以下文本提取一个简短的标题（10-20字），只返回标题，不要其他内容：
