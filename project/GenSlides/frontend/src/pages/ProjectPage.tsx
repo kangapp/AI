@@ -18,23 +18,21 @@ export default function ProjectPage() {
   }, [slug, loadSlides, loadCost]);
 
   return (
-    <div className="min-h-screen bg-text-primary">
-      {/* 背景全屏预览 */}
-      <MainPreview projectSlug={slug} />
-
-      {/* 顶部悬浮 Header */}
+    <div className="min-h-screen bg-bg-light">
       <Header projectSlug={slug} />
 
-      {/* 左侧悬浮侧边栏 */}
-      <div className="absolute left-0 top-16 bottom-10 w-64 z-30">
+      <div className="flex h-[calc(100vh-64px)]">
         <Sidebar projectSlug={slug} />
+        <main className="flex-1 p-6 overflow-auto">
+          <MainPreview projectSlug={slug} />
+        </main>
       </div>
 
-      {/* 右下角悬浮成本显示 */}
-      <footer className="fixed bottom-4 right-4 z-30 px-4 py-2 bg-white/90 backdrop-blur-sm rounded-lg shadow-lg text-xs text-text-primary/60 flex gap-4">
+      {/* Cost display */}
+      <footer className="fixed bottom-0 left-0 right-0 px-6 py-2 bg-white border-t border-text-primary/10 text-xs text-text-primary/50 flex justify-end gap-6">
         <span>Gemini: ${cost?.gemini_cost.toFixed(4) || '0.0000'}</span>
         <span>MiniMax: ${cost?.minimax_cost.toFixed(4) || '0.0000'}</span>
-        <span className="text-text-primary font-medium">${cost?.total_cost.toFixed(4) || '0.0000'}</span>
+        <span className="text-text-primary font-medium">Total: ${cost?.total_cost.toFixed(4) || '0.0000'}</span>
       </footer>
 
       {/* Fullscreen Player */}
