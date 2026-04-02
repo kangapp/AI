@@ -89,19 +89,19 @@ export default function MainPreview({ projectSlug }: MainPreviewProps) {
         </div>
       </div>
 
-      {/* 底部渐变信息 */}
-      <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-16 pb-4 px-6">
+      {/* 底部渐变信息 - 避开底部 footer */}
+      <div className="absolute bottom-10 left-0 right-0 z-10 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-12 pb-3 px-6">
         <p className="text-white text-lg font-medium truncate">{selectedSlide.text}</p>
         {selectedSlide.title && (
           <p className="text-white/60 text-sm mt-0.5">{selectedSlide.title}</p>
         )}
       </div>
 
-      {/* 无图片时提示 */}
+      {/* 无图片时提示 - 居中显示 */}
       {!mainImage && !isGenerating && showControls && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
+        <div className="absolute inset-0 flex items-center justify-center z-20">
           <div className="bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-6 text-center">
-            <p className="text-text-primary/70 text-sm mb-3">点击下方按钮生成图片</p>
+            <p className="text-text-primary/70 text-sm mb-3">点击按钮生成图片</p>
             <button
               onClick={handleGenerate}
               className="px-6 py-2.5 bg-primary hover:bg-primary/90 text-text-primary text-sm font-medium rounded-xl shadow transition-all hover:scale-105"
