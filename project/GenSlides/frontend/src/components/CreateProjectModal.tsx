@@ -17,6 +17,7 @@ interface CreateState {
   minimaxImage: string | null;
   geminiImage: string | null;
   selectedImage: 'minimax' | 'gemini' | null;
+  isRefreshing: boolean;
 }
 
 const INITIAL_STATE: CreateState = {
@@ -27,6 +28,7 @@ const INITIAL_STATE: CreateState = {
   minimaxImage: null,
   geminiImage: null,
   selectedImage: null,
+  isRefreshing: false,
 };
 
 const STYLE_OPTIONS = [
@@ -70,25 +72,25 @@ function FormStep({
     >
       {/* Project Name */}
       <div className="mb-4">
-        <label className="block text-sm text-gray-400 mb-2">项目名称</label>
+        <label className="block text-sm text-text-primary/70 mb-2">项目名称</label>
         <input
           type="text"
           value={name}
           onChange={(e) => onNameChange(e.target.value)}
           maxLength={50}
           placeholder="最多 50 字符"
-          className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none"
+          className="w-full px-4 py-2 bg-bg-light text-text-primary rounded-lg border border-text-primary/20 focus:border-primary focus:outline-none"
           autoFocus
         />
       </div>
 
       {/* Style Select */}
       <div className="mb-4">
-        <label className="block text-sm text-gray-400 mb-2">风格</label>
+        <label className="block text-sm text-text-primary/70 mb-2">风格</label>
         <select
           value={style}
           onChange={(e) => onStyleChange(e.target.value as ProjectStyle)}
-          className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none"
+          className="w-full px-4 py-2 bg-bg-light text-text-primary rounded-lg border border-text-primary/20 focus:border-primary focus:outline-none"
         >
           {STYLE_OPTIONS.map(opt => (
             <option key={opt.value} value={opt.value}>
@@ -100,15 +102,15 @@ function FormStep({
 
       {/* Style Prompt */}
       <div className="mb-6">
-        <label className="block text-sm text-gray-400 mb-2">
-          {isCustomStyle ? '风格描述' : '补充描述'} <span className="text-gray-600">(可选)</span>
+        <label className="block text-sm text-text-primary/70 mb-2">
+          {isCustomStyle ? '风格描述' : '补充描述'} <span className="text-text-primary/40">(可选)</span>
         </label>
         <textarea
           value={stylePrompt}
           onChange={(e) => onStylePromptChange(e.target.value)}
           placeholder={isCustomStyle ? '描述你想要的图片风格...' : '对所选风格的补充说明...'}
           rows={3}
-          className="w-full px-4 py-2 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-blue-500 focus:outline-none resize-none"
+          className="w-full px-4 py-2 bg-bg-light text-text-primary rounded-lg border border-text-primary/20 focus:border-primary focus:outline-none resize-none"
         />
       </div>
 
@@ -140,21 +142,21 @@ function PreviewingStep() {
       <div className="flex gap-8 mb-8">
         {/* MiniMax Loading */}
         <div className="flex flex-col items-center">
-          <div className="w-40 h-40 rounded-lg bg-gray-800 flex items-center justify-center mb-3">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent"></div>
+          <div className="w-40 h-40 rounded-lg bg-bg-light border border-text-primary/10 flex items-center justify-center mb-3">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
           </div>
-          <span className="text-gray-400">MiniMax</span>
+          <span className="text-text-primary/70">MiniMax</span>
         </div>
 
         {/* Gemini Loading */}
         <div className="flex flex-col items-center">
-          <div className="w-40 h-40 rounded-lg bg-gray-800 flex items-center justify-center mb-3">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-purple-500 border-t-transparent"></div>
+          <div className="w-40 h-40 rounded-lg bg-bg-light border border-text-primary/10 flex items-center justify-center mb-3">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-primary border-t-transparent"></div>
           </div>
-          <span className="text-gray-400">Gemini</span>
+          <span className="text-text-primary/70">Gemini</span>
         </div>
       </div>
-      <p className="text-gray-400">正在生成风格预览...</p>
+      <p className="text-text-primary/70">正在生成风格预览...</p>
     </div>
   );
 }
@@ -167,7 +169,9 @@ function SelectingStep({
   onSelectImage,
   onSkip,
   onCreateProject,
+  onRefresh,
   isCreating,
+  isRefreshing,
 }: {
   minimaxImage: string | null;
   geminiImage: string | null;
@@ -175,12 +179,29 @@ function SelectingStep({
   onSelectImage: (image: 'minimax' | 'gemini') => void;
   onSkip: () => void;
   onCreateProject: () => void;
+  onRefresh: () => void;
   isCreating: boolean;
+  isRefreshing: boolean;
 }) {
   return (
     <div>
-      <h3 className="text-lg font-medium text-white mb-4">选择参考图</h3>
-      <p className="text-sm text-gray-400 mb-4">点击选择一张图片作为风格参考，或跳过此步骤</p>
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          <h3 className="text-lg font-medium text-text-primary">选择参考图</h3>
+          <p className="text-sm text-text-primary/60">点击选择一张图片作为风格参考，或跳过此步骤</p>
+        </div>
+        <button
+          type="button"
+          onClick={onRefresh}
+          disabled={isRefreshing}
+          className="px-3 py-1.5 text-sm text-text-primary hover:text-text-primary/80 border border-text-primary/20 hover:border-text-primary/40 rounded-lg transition-colors disabled:opacity-50 flex items-center gap-1"
+        >
+          <svg className={`w-4 h-4 ${isRefreshing ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          {isRefreshing ? '刷新中...' : '刷新'}
+        </button>
+      </div>
 
       {/* Image Selection */}
       <div className="flex gap-4 mb-6">
@@ -191,8 +212,8 @@ function SelectingStep({
           disabled={!minimaxImage}
           className={`relative flex-1 rounded-lg overflow-hidden border-2 transition-colors ${
             selectedImage === 'minimax'
-              ? 'border-blue-500 ring-2 ring-blue-500'
-              : 'border-gray-700 hover:border-gray-500'
+              ? 'border-primary ring-2 ring-primary'
+              : 'border-text-primary/20 hover:border-primary'
           } ${!minimaxImage ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {minimaxImage ? (
@@ -202,11 +223,11 @@ function SelectingStep({
               className="w-full h-40 object-cover"
             />
           ) : (
-            <div className="w-full h-40 bg-gray-800 flex items-center justify-center">
-              <span className="text-gray-500 text-sm">生成失败</span>
+            <div className="w-full h-40 bg-bg-light flex items-center justify-center border border-text-primary/10">
+              <span className="text-text-primary/40 text-sm">生成失败</span>
             </div>
           )}
-          <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-1 text-center text-sm text-white">
+          <div className="absolute bottom-0 left-0 right-0 bg-text-primary/60 py-1 text-center text-sm text-white">
             MiniMax
           </div>
         </button>
@@ -218,8 +239,8 @@ function SelectingStep({
           disabled={!geminiImage}
           className={`relative flex-1 rounded-lg overflow-hidden border-2 transition-colors ${
             selectedImage === 'gemini'
-              ? 'border-purple-500 ring-2 ring-purple-500'
-              : 'border-gray-700 hover:border-gray-500'
+              ? 'border-primary ring-2 ring-primary'
+              : 'border-text-primary/20 hover:border-primary'
           } ${!geminiImage ? 'opacity-50 cursor-not-allowed' : ''}`}
         >
           {geminiImage ? (
@@ -229,11 +250,11 @@ function SelectingStep({
               className="w-full h-40 object-cover"
             />
           ) : (
-            <div className="w-full h-40 bg-gray-800 flex items-center justify-center">
-              <span className="text-gray-500 text-sm">生成失败</span>
+            <div className="w-full h-40 bg-bg-light flex items-center justify-center border border-text-primary/10">
+              <span className="text-text-primary/40 text-sm">生成失败</span>
             </div>
           )}
-          <div className="absolute bottom-0 left-0 right-0 bg-black/60 py-1 text-center text-sm text-white">
+          <div className="absolute bottom-0 left-0 right-0 bg-text-primary/60 py-1 text-center text-sm text-white">
             Gemini
           </div>
         </button>
@@ -245,7 +266,7 @@ function SelectingStep({
           type="button"
           onClick={onSkip}
           disabled={isCreating}
-          className="px-4 py-2 text-gray-400 hover:text-white transition-colors disabled:opacity-50"
+          className="px-4 py-2 text-text-primary/60 hover:text-text-primary transition-colors disabled:opacity-50"
         >
           不使用参考图
         </button>
@@ -253,7 +274,7 @@ function SelectingStep({
           type="button"
           onClick={onCreateProject}
           disabled={isCreating}
-          className="px-6 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-700 disabled:text-gray-500 text-white font-medium rounded-lg transition-colors"
+          className="btn-primary"
         >
           {isCreating ? '创建中...' : '创建项目'}
         </button>
@@ -283,6 +304,35 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
 
   const handleSelectImage = (image: 'minimax' | 'gemini') => {
     setState(prev => ({ ...prev, selectedImage: image }));
+  };
+
+  // Refresh preview images
+  const handleRefresh = async () => {
+    setState(prev => ({ ...prev, isRefreshing: true, selectedImage: null }));
+
+    try {
+      const response = await fetch('/api/projects/preview-style', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ style_prompt: state.stylePrompt }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to generate preview');
+      }
+
+      const data = await response.json();
+
+      setState(prev => ({
+        ...prev,
+        minimaxImage: data.minimax_image,
+        geminiImage: data.gemini_image,
+        isRefreshing: false,
+      }));
+    } catch (error) {
+      console.error('Preview refresh failed:', error);
+      setState(prev => ({ ...prev, isRefreshing: false }));
+    }
   };
 
   // Generate preview images
@@ -371,7 +421,9 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
             onSelectImage={handleSelectImage}
             onSkip={handleSkip}
             onCreateProject={handleCreateProject}
+            onRefresh={handleRefresh}
             isCreating={isStoreCreating}
+            isRefreshing={state.isRefreshing}
           />
         );
     }
@@ -389,9 +441,9 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
   };
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div className="bg-gray-900 rounded-xl w-full max-w-md p-6">
-        <h2 className="text-xl font-semibold text-white mb-6">{getStepTitle()}</h2>
+    <div className="fixed inset-0 bg-text-primary/50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl w-full max-w-md p-6 shadow-hard">
+        <h2 className="text-xl font-semibold text-text-primary mb-6">{getStepTitle()}</h2>
         {renderStep()}
       </div>
     </div>

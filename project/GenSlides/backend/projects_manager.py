@@ -97,12 +97,17 @@ class ProjectsManager:
             base_slug = slugify(data.name)
             slug = self._generate_unique_slug(base_slug)
 
+            # 创建目录结构（先创建目录）
+            project_dir = self._get_project_dir(slug)
+            project_dir.mkdir(parents=True, exist_ok=True)
+            (project_dir / "slides").mkdir(parents=True, exist_ok=True)
+            (project_dir / "slides" / "images").mkdir(parents=True, exist_ok=True)
+
             # 保存参考图到项目目录
             style_reference_image_path = None
             if data.style_reference_image:
                 ref_data = data.style_reference_image.replace("data:image/jpeg;base64,", "")
                 style_reference_image_path = f"style_reference.jpg"
-                project_dir = self._get_project_dir(slug)
                 ref_image_path = project_dir / style_reference_image_path
                 with open(ref_image_path, "wb") as f:
                     f.write(base64.b64decode(ref_data))
@@ -115,12 +120,6 @@ class ProjectsManager:
                 style_reference_image=style_reference_image_path,
                 created_at=datetime.now(timezone.utc)
             )
-
-            # 创建目录结构
-            project_dir = self._get_project_dir(slug)
-            project_dir.mkdir(parents=True, exist_ok=True)
-            (project_dir / "slides").mkdir(parents=True, exist_ok=True)
-            (project_dir / "slides" / "images").mkdir(parents=True, exist_ok=True)
 
             # 创建空的 outline.yml
             outline_path = project_dir / "slides" / "outline.yml"

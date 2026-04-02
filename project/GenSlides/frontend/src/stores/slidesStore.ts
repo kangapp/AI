@@ -15,6 +15,7 @@ interface SlidesState {
   // UI State
   isPlaying: boolean;
   isLoading: boolean;
+  generatingSid: string | null;  // 正在生成的 slide sid
   error: string | null;
 
   // Current project slug
@@ -47,6 +48,7 @@ export const useSlidesStore = create<SlidesState>((set, get) => ({
   playbackIndex: 0,
   isPlaying: false,
   isLoading: false,
+  generatingSid: null,
   error: null,
   selectedProjectSlug: null,
 
@@ -139,20 +141,20 @@ export const useSlidesStore = create<SlidesState>((set, get) => ({
 
   generateImage: async (sid: string, provider = 'minimax', projectSlug?: string) => {
     const slug = projectSlug || get().selectedProjectSlug || 'default';
-    set({ isLoading: true, error: null });
+    set({ isLoading: true, generatingSid: sid, error: null });
     try {
-      const result = await slidesApi.generate(slug, sid, provider);
+      const result = await slidesApi.generate(slug, sid, provider, true);
       set(state => {
         const newImages = { ...state.images };
         newImages[sid] = [
           { hash: result.hash, url: result.image_url, cached: result.cached },
           ...(newImages[sid] || []).filter(i => i.hash !== result.hash)
         ];
-        return { images: newImages, isLoading: false };
+        return { images: newImages, isLoading: false, generatingSid: null };
       });
       get().loadCost();
     } catch (err) {
-      set({ error: (err as Error).message, isLoading: false });
+      set({ error: (err as Error).message, isLoading: false, generatingSid: null });
     }
   },
 

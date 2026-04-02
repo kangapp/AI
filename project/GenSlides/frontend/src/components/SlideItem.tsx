@@ -13,7 +13,8 @@ interface SlideItemProps {
 
 export default function SlideItem({ slide, isSelected, onSelect, onDelete, projectSlug }: SlideItemProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const { updateSlideFull, images } = useSlidesStore();
+  const { updateSlideFull, images, generatingSid } = useSlidesStore();
+  const isGenerating = generatingSid === slide.sid;
 
   // 获取缩略图: 优先使用 slide.thumbnail，否则使用第一张生成的图片
   const getThumbnail = () => {
@@ -50,7 +51,11 @@ export default function SlideItem({ slide, isSelected, onSelect, onDelete, proje
       >
         <div className="flex items-center gap-3">
           {/* 缩略图 */}
-          {thumbnail ? (
+          {isGenerating ? (
+            <div className="w-16 h-9 rounded flex-shrink-0 bg-text-primary/10 flex items-center justify-center">
+              <div className="w-4 h-4 border-2 border-text-primary/30 border-t-text-primary rounded-full animate-spin"></div>
+            </div>
+          ) : thumbnail ? (
             <div className="w-16 h-9 rounded overflow-hidden flex-shrink-0 bg-text-primary/10">
               <img src={thumbnail} alt="" className="w-full h-full object-cover" />
             </div>

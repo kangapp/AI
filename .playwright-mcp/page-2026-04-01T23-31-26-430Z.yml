@@ -1,0 +1,1044 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - paragraph [ref=e7]:
+        - text: "Launching HumanDB: hand-selected, small-batch, locally-sourced insights."
+        - link "Get it now" [ref=e9] [cursor=pointer]:
+          - /url: https://motherduck.com/humandb/
+          - generic [ref=e10]: Get it now
+          - img [ref=e11]
+      - generic [ref=e15]:
+        - button "Motherduck home" [ref=e21] [cursor=pointer]:
+          - img [ref=e23]
+        - img [ref=e29] [cursor=pointer]
+      - generic:
+        - generic:
+          - navigation:
+            - generic:
+              - generic:
+                - button "PRODUCT":
+                  - generic: PRODUCT
+                  - img
+              - link "Hypertenancy":
+                - /url: /product/hypertenancy/
+              - link "AI + MCP Server":
+                - /url: /product/mcp-server/
+              - link "Integrations":
+                - /url: /ecosystem/
+              - link "Dives":
+                - /url: /product/dives/
+              - link "Customer-Facing Analytics":
+                - /url: /product/app-developers/
+              - link "Data Warehousing + BI":
+                - /url: /product/data-teams/
+              - link "Overview":
+                - /url: /product/
+              - link "For DuckDB Users":
+                - /url: /product/duckdb-users/
+              - link "Case Studies":
+                - /url: /case-studies/
+              - link "Trust & Security":
+                - /url: /trust-and-security/
+              - link "Support":
+                - /url: /customer-support/
+            - generic:
+              - generic:
+                - button "COMMUNITY":
+                  - generic: COMMUNITY
+                  - img
+              - link "MotherDuck Blog":
+                - /url: /blog/
+              - link "Videos & Streams":
+                - /url: /videos/
+              - link "Slack Community":
+                - /url: https://slack.motherduck.com/
+                - text: Slack Community
+                - img
+              - link "Events":
+                - /url: /events/
+              - link "Dive Gallery":
+                - /url: /dive-gallery/
+              - link "YouTube":
+                - /url: https://www.youtube.com/@motherduckdb
+                - text: YouTube
+                - img
+              - link "DuckDB Snippets":
+                - /url: https://duckdbsnippets.com/
+                - text: DuckDB Snippets
+                - img
+              - link "Free DuckDB Book":
+                - /url: /duckdb-book-brief/
+              - link "DuckLake Guide":
+                - /url: /ducklake-open-table-format-guide/
+              - link "Learn":
+                - /url: /learn-more/
+              - link "Small Data SF":
+                - /url: https://smalldatasf.com/?__hstc=43009530.d12de943ecae31bc8458e4b2c3211c7c.1774883675880.1774976159176.1775086286235.4&__hssc=43009530.1.1775086286235&__hsfp=2a1b5c0bdac6cd5b2f8fcfd530cfcec6
+                - text: Small Data SF
+                - img
+              - link "DuckDB Newsletter":
+                - /url: /duckdb-news/
+            - generic:
+              - generic:
+                - button "COMPANY":
+                  - generic: COMPANY
+                  - img
+              - link "About Us":
+                - /url: /about-us/
+              - link "Careers":
+                - /url: /careers/
+              - link "Quacking":
+                - /url: /quacking-around-the-web/
+              - link "Research":
+                - /url: /research/
+            - generic:
+              - generic:
+                - link "DOCS":
+                  - /url: /docs/getting-started/
+                  - generic: DOCS
+            - generic:
+              - generic:
+                - link "PRICING":
+                  - /url: /product/pricing/
+                  - generic: PRICING
+            - generic:
+              - generic:
+                - link "CONTACT US":
+                  - /url: /contact-us/product-expert/
+                  - generic: CONTACT US
+            - generic:
+              - generic:
+                - link "LOG IN":
+                  - /url: https://app.motherduck.com/?ext-ph_distinct_id=019d3f4f-6382-79fc-8b69-64dd6eb8da22
+                  - generic: LOG IN
+          - generic:
+            - generic:
+              - link "START FREE":
+                - /url: https://app.motherduck.com/?auth_flow=signup&ext-ph_distinct_id=019d3f4f-6382-79fc-8b69-64dd6eb8da22
+                - generic: START FREE
+    - main [ref=e30]:
+      - generic [ref=e31]:
+        - generic [ref=e33]:
+          - generic [ref=e34]:
+            - heading "Infrastructure for Answers" [level=1] [ref=e35]
+            - paragraph [ref=e36]: The cloud data warehouse built for answers, in SQL or natural language. Fast, serverless analytics powered by DuckDB–from production apps to internal insights.
+            - generic [ref=e37]:
+              - link "Try 7 Days Free" [ref=e39] [cursor=pointer]:
+                - /url: https://app.motherduck.com/?auth_flow=signup&ext-ph_distinct_id=019d3f4f-6382-79fc-8b69-64dd6eb8da22
+                - generic [ref=e40]: Try 7 Days Free
+                - img [ref=e41]
+              - link "BOOK A DEMO" [ref=e45] [cursor=pointer]:
+                - /url: /contact-us/product-expert/
+                - generic [ref=e46]: BOOK A DEMO
+          - generic [ref=e47]:
+            - generic [ref=e48]:
+              - generic [ref=e49]:
+                - generic [ref=e50]:
+                  - img [ref=e51]
+                  - heading "MotherDuck AI" [level=2] [ref=e54]
+                  - generic [ref=e55]: Powered by MotherDuck MCP
+                - generic [ref=e57]: 3 questions left
+              - generic [ref=e60]:
+                - heading "Choose a report to start" [level=2] [ref=e61]
+                - generic [ref=e62]:
+                  - button "Sales by Product Sales by Product Click to explore →" [ref=e63] [cursor=pointer]:
+                    - generic [ref=e65]: Sales by Product
+                    - img "Sales by Product" [ref=e67]
+                    - text: Click to explore →
+                  - button "Regional Sales Regional Sales Click to explore →" [ref=e68] [cursor=pointer]:
+                    - generic [ref=e70]: Regional Sales
+                    - img "Regional Sales" [ref=e72]
+                    - text: Click to explore →
+                  - button "Customer Health Customer Health Click to explore →" [ref=e73] [cursor=pointer]:
+                    - generic [ref=e75]: Customer Health
+                    - img "Customer Health" [ref=e77]
+                    - text: Click to explore →
+              - generic [ref=e78]:
+                - textbox "Ask a question about the data..." [ref=e79]
+                - button "Send message" [disabled] [ref=e80]:
+                  - img [ref=e81]
+            - img [ref=e85]
+            - img [ref=e87]
+            - img [ref=e90]
+            - img [ref=e94]
+            - img [ref=e97]
+            - img [ref=e100]
+            - img [ref=e103]
+            - img [ref=e106]
+            - img [ref=e109]
+            - img [ref=e112]
+        - generic [ref=e115]:
+          - img [ref=e117]
+          - generic [ref=e118]:
+            - heading "\"DuckDB In Action\" Book for Free" [level=2] [ref=e119]
+            - paragraph [ref=e120]: Get the complete book for free in your inbox!
+            - generic [ref=e121]:
+              - generic [ref=e122]:
+                - textbox [ref=e123]
+                - paragraph: Work Email
+              - generic [ref=e124]:
+                - generic [ref=e125]:
+                  - generic [ref=e126]:
+                    - checkbox "Subscribe to MotherDuck news Subscribe to other MotherDuck emails" [checked] [ref=e127] [cursor=pointer]
+                    - img [ref=e129]
+                  - generic [ref=e131] [cursor=pointer]: Subscribe to MotherDuck news
+                - generic [ref=e132]:
+                  - generic [ref=e133]:
+                    - checkbox "Subscribe to DuckDB ecosystem newsletter" [checked] [ref=e134] [cursor=pointer]
+                    - img [ref=e136]
+                  - generic [ref=e138] [cursor=pointer]: Subscribe to DuckDB ecosystem newsletter
+              - generic [ref=e139]:
+                - button "SUBMIT" [disabled]:
+                  - generic: SUBMIT
+      - generic [ref=e140]:
+        - generic [ref=e142]:
+          - generic [ref=e143]: Data Warehouse + AI
+          - generic [ref=e144]: Data Warehouse + AI
+          - generic [ref=e145]: Data Warehouse + AI
+          - generic [ref=e146]: Data Warehouse + AI
+          - generic [ref=e147]: Data Warehouse + AI
+          - generic [ref=e148]: Data Warehouse + AI
+          - generic [ref=e149]: Data Warehouse + AI
+          - generic [ref=e150]: Data Warehouse + AI
+          - heading "Data Warehouse + AI" [level=2] [ref=e151]
+        - generic [ref=e155]:
+          - generic [ref=e156]:
+            - generic [ref=e157]:
+              - heading "Hypertenancy Data Warehouse" [level=3] [ref=e158]
+              - paragraph [ref=e159]: A cloud analytical database that scales per-user compute nodes independently, serving sub-second latency without resource contention.
+              - link "Learn more" [ref=e161] [cursor=pointer]:
+                - /url: /product/hypertenancy/
+                - generic [ref=e162]: Learn more
+            - img [ref=e164]
+          - generic [ref=e165]:
+            - generic [ref=e166]:
+              - heading "MotherDuck MCP Server" [level=3] [ref=e167]
+              - paragraph [ref=e168]: Turn natural language questions into accurate, traceable SQL queries with fully sandboxed compute.
+              - link "Learn more" [ref=e170] [cursor=pointer]:
+                - /url: /product/mcp-server/
+                - generic [ref=e171]: Learn more
+            - img [ref=e173]
+      - generic [ref=e174]:
+        - generic [ref=e178]:
+          - generic [ref=e179]:
+            - heading "Who is it for?" [level=2] [ref=e180]
+            - paragraph [ref=e181]: Cloud analytics and data warehouse solutions for every team
+          - generic [ref=e182]:
+            - link "Software Engineers Who ended up with a big data problem" [ref=e183] [cursor=pointer]:
+              - /url: /product/app-developers
+              - img [ref=e185]
+              - heading "Software Engineers" [level=3] [ref=e186]
+              - paragraph [ref=e187]: Who ended up with a big data problem
+            - link "Data Scientists Who ended up having to do data engineering" [ref=e188] [cursor=pointer]:
+              - /url: /product/duckdb-users
+              - img [ref=e190]
+              - heading "Data Scientists" [level=3] [ref=e191]
+              - paragraph [ref=e192]: Who ended up having to do data engineering
+            - link "Data Engineers With slow, brittle pipelines" [ref=e193] [cursor=pointer]:
+              - /url: /product/data-teams
+              - img [ref=e195]
+              - heading "Data Engineers" [level=3] [ref=e196]
+              - paragraph [ref=e197]: With slow, brittle pipelines
+        - generic:
+          - img
+          - img
+      - generic [ref=e198]:
+        - generic:
+          - img
+          - img
+        - generic [ref=e200]:
+          - generic [ref=e201]: Use Cases
+          - generic [ref=e202]: Use Cases
+          - generic [ref=e203]: Use Cases
+          - generic [ref=e204]: Use Cases
+          - generic [ref=e205]: Use Cases
+          - generic [ref=e206]: Use Cases
+          - generic [ref=e207]: Use Cases
+          - generic [ref=e208]: Use Cases
+          - generic [ref=e209]: Use Cases
+          - generic [ref=e210]: Use Cases
+          - generic [ref=e211]: Use Cases
+          - generic [ref=e212]: Use Cases
+          - generic [ref=e213]: Use Cases
+          - generic [ref=e214]: Use Cases
+          - heading "Use Cases" [level=2] [ref=e215]
+        - generic [ref=e217]:
+          - generic [ref=e219]:
+            - img "'For Data Teams' duck illustration" [ref=e220]
+            - img "'For App Devs' duck illustration"
+          - generic [ref=e221]:
+            - generic [ref=e222]:
+              - generic [ref=e223]:
+                - heading "Data Warehousing" [level=3] [ref=e224]
+                - paragraph [ref=e225]: Is your data all over the place? Modern cloud data warehouse tools bring it together for business intelligence and SQL analytics. Build data pipelines, share data, and collaborate with your team.
+              - generic [ref=e226]:
+                - link "How it Works" [ref=e228] [cursor=pointer]:
+                  - /url: /docs/getting-started/data-warehouse/
+                  - generic [ref=e229]: How it Works
+                  - img [ref=e230]
+                - link "Case Studies" [ref=e234] [cursor=pointer]:
+                  - /url: /case-studies/
+                  - generic [ref=e235]: Case Studies
+                  - img [ref=e236]
+            - generic [ref=e238]:
+              - generic [ref=e239]:
+                - heading "Customer-facing Analytics" [level=3] [ref=e240]
+                - paragraph [ref=e241]: Unlike traditional BI, customer-facing analytics is built directly into your product for end users. This embedded analytics solution delivers real-time, low-latency insights at scale — think milliseconds, not minutes — powered by a columnar database that handles thousands to millions of concurrent queries. MotherDuck's architecture, from Hypertenancy to Wasm support, is designed for Customer-Facing Analytics that drives user engagement directly in your app.
+              - generic [ref=e242]:
+                - link "How it Works" [ref=e244] [cursor=pointer]:
+                  - /url: /docs/getting-started/customer-facing-analytics/
+                  - generic [ref=e245]: How it Works
+                  - img [ref=e246]
+                - link "Case Studies" [ref=e250] [cursor=pointer]:
+                  - /url: /case-studies/
+                  - generic [ref=e251]: Case Studies
+                  - img [ref=e252]
+      - generic [ref=e254]:
+        - heading "How We Scale" [level=2] [ref=e256]
+        - generic [ref=e258]:
+          - heading "Duckling Sizes" [level=3] [ref=e259]
+          - generic [ref=e260]:
+            - text: MotherDuck’s per-user tenancy model gives each user an isolated
+            - generic [ref=e261]: duckling
+            - text: (DuckDB instance) in one of five sizes to enable individual, user-level configuration.
+          - generic [ref=e262]:
+            - generic [ref=e265]:
+              - img [ref=e267]
+              - img [ref=e367]
+              - img [ref=e392]
+              - img [ref=e417]
+              - img [ref=e442]
+              - img [ref=e467]
+            - generic [ref=e490]:
+              - generic [ref=e492]:
+                - img "Pulse Instance type illustration" [ref=e494]
+                - paragraph [ref=e495]: Pulse
+                - paragraph [ref=e496]: Our smallest instance, perfect for ad-hoc analytics tasks
+              - generic [ref=e498]:
+                - img "Standard Instance type illustration" [ref=e500]
+                - paragraph [ref=e501]: Standard
+                - paragraph [ref=e502]: Built to handle common data warehouse workloads, including loads and transforms
+              - generic [ref=e504]:
+                - img "Jumbo Instance type illustration" [ref=e506]
+                - paragraph [ref=e507]: Jumbo
+                - paragraph [ref=e508]: For larger data warehouse workloads with many transformations or complex aggregations
+              - generic [ref=e510]:
+                - img "Mega Instance type illustration" [ref=e512]
+                - paragraph [ref=e513]: Mega
+                - paragraph [ref=e514]: An extremely large instance for when you need complex transformations done quickly
+              - generic [ref=e516]:
+                - img "Giga Instance type illustration" [ref=e518]
+                - paragraph [ref=e519]: Giga
+                - paragraph [ref=e520]: Largest instances enable the toughest transformations to run faster
+          - generic [ref=e521]:
+            - img [ref=e523]
+            - paragraph [ref=e524]: Take a closer look at
+            - link "DUCKLING SIZES" [ref=e526] [cursor=pointer]:
+              - /url: /product/pricing/#instance-types
+              - generic [ref=e527]: DUCKLING SIZES
+              - img [ref=e528]
+        - generic [ref=e534]:
+          - generic [ref=e535]:
+            - generic [ref=e536]:
+              - heading "Hypertenancy and vertical scaling" [level=3] [ref=e537]
+              - paragraph [ref=e538]: MotherDuck's cloud data warehouse employs a Hypertenancy and vertical scaling strategy. Users connect to their own MotherDuck Ducklings (DuckDB instances), which are sized (pulse, standard, jumbo, mega, giga) to meet their specific needs. There is also the option for additional Ducklings, through read scaling (explained below), to ensure flexible resource allocation. Ultimately, each Duckling establishes a connection with the central data warehouse storage.
+              - link "Learn more" [ref=e540] [cursor=pointer]:
+                - /url: /product/hypertenancy/
+                - generic [ref=e541]: Learn more
+            - img [ref=e543]
+          - generic [ref=e544]:
+            - generic [ref=e545]:
+              - heading "Read Scaling" [level=3] [ref=e546]
+              - paragraph [ref=e547]: MotherDuck's read scaling capabilities allow users to connect via a BI Tool to dedicated Ducklings that function as read replicas. These read replicas can be provisioned in various sizes (pulse, standard, jumbo, mega or giga) to accommodate different needs. Ultimately, these read replicas connect to the Data Warehouse storage, enabling efficient handling of read operations.
+            - img [ref=e549]
+      - generic [ref=e550]:
+        - generic [ref=e552]:
+          - generic [ref=e553]:
+            - heading "Ecosystem" [level=2] [ref=e554]
+            - paragraph [ref=e555]: Modern Duck Stack
+          - generic [ref=e556]:
+            - generic [ref=e557]:
+              - generic [ref=e559]:
+                - heading "CLOUD DATA WAREHOUSE" [level=3] [ref=e560]
+                - img [ref=e562]
+              - generic [ref=e571]:
+                - heading "Sources" [level=3] [ref=e572]
+                - generic [ref=e573]:
+                  - img [ref=e575]
+                  - img [ref=e577]
+                  - img [ref=e579]
+                  - img [ref=e581]
+                  - img [ref=e583]
+              - link "Business Intelligence" [ref=e585] [cursor=pointer]:
+                - /url: /ecosystem/?category=Business+Intelligence/
+                - generic [ref=e586]:
+                  - heading "Business Intelligence" [level=3] [ref=e587]:
+                    - text: Business Intelligence
+                    - img [ref=e588]
+                  - generic [ref=e590]:
+                    - img [ref=e592]
+                    - img [ref=e594]
+                    - img [ref=e596]
+                    - img [ref=e598]
+                    - img [ref=e600]
+              - link "Ingestion" [ref=e602] [cursor=pointer]:
+                - /url: /ecosystem/?category=Ingestion/
+                - generic [ref=e603]:
+                  - heading "Ingestion" [level=3] [ref=e604]:
+                    - text: Ingestion
+                    - img [ref=e605]
+                  - generic [ref=e607]:
+                    - img [ref=e609]
+                    - img [ref=e611]
+                    - img [ref=e613]
+                    - img [ref=e615]
+                    - img [ref=e617]
+              - link "Data Science & AI" [ref=e619] [cursor=pointer]:
+                - /url: /ecosystem/?category=Data+Science+%26+AI/
+                - generic [ref=e620]:
+                  - heading "Data Science & AI" [level=3] [ref=e621]:
+                    - text: Data Science & AI
+                    - img [ref=e622]
+                  - generic [ref=e624]:
+                    - img [ref=e626]
+                    - img [ref=e628]
+                    - img [ref=e630]
+                    - img [ref=e632]
+                    - img [ref=e634]
+              - link "Reverse ETL" [ref=e636] [cursor=pointer]:
+                - /url: /ecosystem/?category=Reverse+ETL/
+                - generic [ref=e637]:
+                  - heading "Reverse ETL" [level=3] [ref=e638]:
+                    - text: Reverse ETL
+                    - img [ref=e639]
+                  - img [ref=e643]
+              - link "Transformation" [ref=e644] [cursor=pointer]:
+                - /url: /ecosystem/?category=Transformation/
+                - generic [ref=e645]:
+                  - heading "Transformation" [level=3] [ref=e646]:
+                    - text: Transformation
+                    - img [ref=e647]
+                  - generic [ref=e649]:
+                    - img [ref=e651]
+                    - img [ref=e653]
+                    - img [ref=e655]
+              - link "Dev Tools" [ref=e656] [cursor=pointer]:
+                - /url: /ecosystem/?category=Dev+Tools/
+                - generic [ref=e657]:
+                  - heading "Dev Tools" [level=3] [ref=e658]:
+                    - text: Dev Tools
+                    - img [ref=e659]
+                  - generic [ref=e661]:
+                    - img [ref=e663]
+                    - img [ref=e665]
+                    - img [ref=e667]
+            - generic [ref=e668]:
+              - link "Orchestration" [ref=e670] [cursor=pointer]:
+                - /url: /ecosystem/?category=Orchestration/
+                - generic [ref=e671]:
+                  - heading "Orchestration" [level=3] [ref=e672]:
+                    - text: Orchestration
+                    - img [ref=e673]
+                  - generic [ref=e675]:
+                    - img [ref=e677]
+                    - img [ref=e679]
+                    - img [ref=e681]
+                    - img [ref=e683]
+                    - img [ref=e685]
+              - link "Data Quality" [ref=e688] [cursor=pointer]:
+                - /url: /ecosystem/?category=Data+Quality/
+                - generic [ref=e689]:
+                  - heading "Data Quality" [level=3] [ref=e690]:
+                    - text: Data Quality
+                    - img [ref=e691]
+                  - generic [ref=e693]:
+                    - img [ref=e695]
+                    - img [ref=e697]
+                    - img [ref=e699]
+                    - img [ref=e701]
+        - generic:
+          - img
+          - img
+      - generic [ref=e702]:
+        - generic [ref=e703]:
+          - generic [ref=e705]:
+            - generic [ref=e707]:
+              - generic [ref=e709]:
+                - img [ref=e711]
+                - paragraph [ref=e713]: We now have a doctor vibe-coding artifacts and tools that can talk to all the data that the company has, run processes, and then actually go and affect them directly.
+                - img [ref=e715]
+                - link "READ MORE" [ref=e718] [cursor=pointer]:
+                  - /url: https://motherduck.com/case-studies/zero-health-ai-powered-analytics/
+                  - generic [ref=e719]: READ MORE
+                  - img [ref=e720]
+              - generic [ref=e722]:
+                - img "Greg Inman's photo" [ref=e724]
+                - generic [ref=e725]:
+                  - paragraph [ref=e726]: Greg Inman
+                  - paragraph [ref=e727]: Chief Technology Officer
+            - generic [ref=e730]:
+              - generic [ref=e732]:
+                - img [ref=e734]
+                - paragraph [ref=e736]: MotherDuck is the GOAT
+                - img [ref=e738]
+                - link "READ MORE" [ref=e741] [cursor=pointer]:
+                  - /url: https://motherduck.com/case-studies/reflex-careers-gig-economy-retail/
+                  - generic [ref=e742]: READ MORE
+                  - img [ref=e743]
+              - generic [ref=e745]:
+                - img "Nate Hamm's photo" [ref=e747]
+                - generic [ref=e748]:
+                  - paragraph [ref=e749]: Nate Hamm
+                  - paragraph [ref=e750]: Sr Software Developer at Reflex
+            - generic [ref=e753]:
+              - generic [ref=e755]:
+                - img [ref=e757]
+                - paragraph [ref=e759]: MotherDuck is insanely performant, and there’s no infrastructure to manage. The cost of experimentation is incredibly low — which means we can afford to ask more questions and build more features, faster.
+                - img [ref=e761]
+                - link "READ MORE" [ref=e764] [cursor=pointer]:
+                  - /url: https://motherduck.com/case-studies/kultura-capital/
+                  - generic [ref=e765]: READ MORE
+                  - img [ref=e766]
+              - generic [ref=e768]:
+                - img "Kristov Paulus's photo" [ref=e770]
+                - generic [ref=e771]:
+                  - paragraph [ref=e772]: Kristov Paulus
+                  - paragraph [ref=e773]: Founder, Chief Investment Officer at Kultura Capital
+            - generic [ref=e776]:
+              - generic [ref=e778]:
+                - img [ref=e780]
+                - paragraph [ref=e782]: We used to do analytics in a MySQL database with all of our daily device, telemetry, and image processing data. There was no way to scale that further using MySQL. With MotherDuck, we’re finally starting to find patterns in our data to help customers grow produce more effectively.
+                - img [ref=e784]
+                - link "READ MORE" [ref=e787] [cursor=pointer]:
+                  - /url: https://motherduck.com/case-studies/gardyn/
+                  - generic [ref=e788]: READ MORE
+                  - img [ref=e789]
+              - generic [ref=e791]:
+                - img "Rob Teeuwen's photo" [ref=e793]
+                - generic [ref=e794]:
+                  - paragraph [ref=e795]: Rob Teeuwen
+                  - paragraph [ref=e796]: Data Scientist at Gardyn
+            - generic [ref=e799]:
+              - generic [ref=e801]:
+                - img [ref=e803]
+                - paragraph [ref=e805]: Instant SQL in MotherDuck will save me the misery of having to try and wrangle SQL in my BI tool where iteration speed can be very slow. This lets me get the data right earlier in the process and with faster feedback than waiting for a chart to render, or having to clear an analytics cache.
+                - img [ref=e807]
+                - link "DashFuel" [ref=e810] [cursor=pointer]:
+                  - /url: https://www.getdashfuel.com/
+                  - generic [ref=e811]: DashFuel
+                  - img [ref=e812]
+              - generic [ref=e814]:
+                - img "Mike McClannahan's photo" [ref=e816]
+                - generic [ref=e817]:
+                  - paragraph [ref=e818]: Mike McClannahan
+                  - paragraph [ref=e819]: CTO, DashFuel
+            - generic [ref=e822]:
+              - generic [ref=e824]:
+                - img [ref=e826]
+                - paragraph [ref=e828]: Bringing MotherDuck into our data stack has been a game changer. We're reducing friction and supercharging our dev and ops experience by leveraging the DuckDB interoperability across local and cloud.
+                - img [ref=e830]
+                - link "READ MORE" [ref=e833] [cursor=pointer]:
+                  - /url: https://motherduck.com/case-studies/dexibit/
+                  - generic [ref=e834]: READ MORE
+                  - img [ref=e835]
+              - generic [ref=e837]:
+                - img "Ravi Chandra's photo" [ref=e839]
+                - generic [ref=e840]:
+                  - paragraph [ref=e841]: Ravi Chandra
+                  - paragraph [ref=e842]: CTO at Dexibit
+            - generic [ref=e845]:
+              - generic [ref=e847]:
+                - img [ref=e849]
+                - paragraph [ref=e851]: Moving to MotherDuck, a billed by-the-second cloud offering is a no-brainer for us, considering the elegance and efficiency of a single node system compared to traditional OLAP solutions.
+                - img [ref=e853]
+                - link "ATM.COM" [ref=e856] [cursor=pointer]:
+                  - /url: https://atm.com/
+                  - generic [ref=e857]: ATM.COM
+                  - img [ref=e858]
+              - generic [ref=e860]:
+                - img "Nico Ritschel's photo" [ref=e862]
+                - generic [ref=e863]:
+                  - paragraph [ref=e864]: Nico Ritschel
+                  - paragraph [ref=e865]: Director of Engineering at atm.com
+            - generic [ref=e868]:
+              - generic [ref=e870]:
+                - img [ref=e872]
+                - paragraph [ref=e874]: MotherDuck with DuckDB was by far the fastest of the OLAP platforms we evaluated - both in the cloud and run on our developer's machines - bridging price and performance and greatly increasing productivity.
+                - img [ref=e876]
+                - link "READ MORE" [ref=e879] [cursor=pointer]:
+                  - /url: https://motherduck.com/case-studies/saasworks/
+                  - generic [ref=e880]: READ MORE
+                  - img [ref=e881]
+              - generic [ref=e883]:
+                - img "Jim O’Neill's photo" [ref=e885]
+                - generic [ref=e886]:
+                  - paragraph [ref=e887]: Jim O’Neill
+                  - paragraph [ref=e888]: CTO and Co-founder at FinQore
+            - generic [ref=e891]:
+              - generic [ref=e893]:
+                - img [ref=e895]
+                - paragraph [ref=e897]: I just onboarded some non-technical users to MotherDuck, and I can’t imagine having done so in a different system with this level of ease and lack of intimidation. Between the ‘Filter’ button, Column Explorer, and the FROM syntax - they feel empowered to answer many of their own questions! 🙂
+                - img [ref=e899]
+                - link "READ MORE" [ref=e902] [cursor=pointer]:
+                  - /url: https://motherduck.com/blog/dosomething-motherduck-data-warehouse-ROI/
+                  - generic [ref=e903]: READ MORE
+                  - img [ref=e904]
+              - generic [ref=e906]:
+                - img "Sahil Gupta's photo" [ref=e908]
+                - generic [ref=e909]:
+                  - paragraph [ref=e910]: Sahil Gupta
+                  - paragraph [ref=e911]: Senior Data Engineer at dosomething.org
+            - generic [ref=e914]:
+              - generic [ref=e916]:
+                - img [ref=e918]
+                - paragraph [ref=e920]: MotherDuck proving once again they are not constrained by what is easy or common. Instant SQL will not only enable complex query construction for those who find the task daunting (everyone?), it'll help past me communicate with future me.
+                - img [ref=e922]
+                - link "DashFuel" [ref=e925] [cursor=pointer]:
+                  - /url: https://www.getdashfuel.com/
+                  - generic [ref=e926]: DashFuel
+                  - img [ref=e927]
+              - generic [ref=e929]:
+                - img "SJ Browne's photo" [ref=e931]
+                - generic [ref=e932]:
+                  - paragraph [ref=e933]: SJ Browne
+                  - paragraph [ref=e934]: Software Engineer at DashFuel
+            - generic [ref=e937]:
+              - generic [ref=e939]:
+                - img [ref=e941]
+                - paragraph [ref=e943]: We found that DuckDB and MotherDuck are amazing tools for small data teams like ours.
+                - img [ref=e945]
+                - link "READ MORE" [ref=e948] [cursor=pointer]:
+                  - /url: https://motherduck.com/case-studies/dosomething-non-profit-tco-cost-savings/
+                  - generic [ref=e949]: READ MORE
+                  - img [ref=e950]
+              - generic [ref=e952]:
+                - img "Dave Crusoe's photo" [ref=e954]
+                - generic [ref=e955]:
+                  - paragraph [ref=e956]: Dave Crusoe
+                  - paragraph [ref=e957]: VP of Product & Engineering at DoSomething
+          - generic [ref=e959]:
+            - img [ref=e960] [cursor=pointer]
+            - img [ref=e962] [cursor=pointer]
+        - generic [ref=e965]:
+          - generic [ref=e966]:
+            - heading "Our Community" [level=2] [ref=e967]
+            - generic [ref=e970]:
+              - link "Ryan Dolley profile picture Ryan Dolley ryandolley MotherDuck ... bringing big innovation to SQL to make it more like a real language and less like a 'groovy ancient programming language from the 70s.' Check it out." [ref=e972] [cursor=pointer]:
+                - /url: https://www.linkedin.com/posts/ryandolley_duckdb-activity-7320941264818884609-1fij?utm_source=share&utm_medium=member_desktop&rcm=ACoAAACw0KEBx7lMe9uvdRJxJyQifAb-I4X7yQA
+                - generic [ref=e974]:
+                  - generic [ref=e975]:
+                    - img "Ryan Dolley profile picture" [ref=e976]
+                    - generic [ref=e977]:
+                      - paragraph [ref=e978]: Ryan Dolley
+                      - generic [ref=e979]: ryandolley
+                    - img [ref=e981]
+                  - paragraph [ref=e985]: MotherDuck ... bringing big innovation to SQL to make it more like a real language and less like a 'groovy ancient programming language from the 70s.' Check it out.
+              - link "Robert Lancer profile picture Robert Lancer robertlancer The progress on the MotherDuck UI is amazing! It went from minimal utility to my preferred place to write SQL in a matter of months" [ref=e987] [cursor=pointer]:
+                - /url: https://www.linkedin.com/feed/update/urn:li:ugcPost:7163558312741982208?commentUrn=ur[…]89847054557184%2Curn%3Ali%3AugcPost%3A7163558312741982208%29
+                - generic [ref=e989]:
+                  - generic [ref=e990]:
+                    - img "Robert Lancer profile picture" [ref=e991]
+                    - generic [ref=e992]:
+                      - paragraph [ref=e993]: Robert Lancer
+                      - generic [ref=e994]: robertlancer
+                    - img [ref=e996]
+                  - paragraph [ref=e1000]: The progress on the MotherDuck UI is amazing! It went from minimal utility to my preferred place to write SQL in a matter of months
+              - link "Caleb Fahlgren profile picture Caleb Fahlgren @calebfahlgren The amount of data I am storing in @motherduck rn for a new project is criminal 🤣 Decided to try it out since I am a big @duckdb user. Is pretty good so far. Have few hundred million records." [ref=e1002] [cursor=pointer]:
+                - /url: https://x.com/calebfahlgren
+                - generic [ref=e1004]:
+                  - generic [ref=e1005]:
+                    - img "Caleb Fahlgren profile picture" [ref=e1006]
+                    - generic [ref=e1007]:
+                      - paragraph [ref=e1008]: Caleb Fahlgren
+                      - generic [ref=e1009]: "@calebfahlgren"
+                    - img [ref=e1011]
+                  - paragraph [ref=e1014]: The amount of data I am storing in @motherduck rn for a new project is criminal 🤣 Decided to try it out since I am a big @duckdb user. Is pretty good so far. Have few hundred million records.
+              - 'link "Simon Späti 🏔️ profile picture Simon Späti 🏔️ @sspaeti I''m just checking a little about the hosted DuckDB by @motherduck. What a nice user experience. It automatically detects errors, and `accept & run` fixes common errors. Love it." [ref=e1016] [cursor=pointer]':
+                - /url: https://x.com/sspaeti/status/1798290369110749458
+                - generic [ref=e1018]:
+                  - generic [ref=e1019]:
+                    - img "Simon Späti 🏔️ profile picture" [ref=e1020]
+                    - generic [ref=e1021]:
+                      - paragraph [ref=e1022]: Simon Späti 🏔️
+                      - generic [ref=e1023]: "@sspaeti"
+                    - img [ref=e1025]
+                  - paragraph [ref=e1028]: "I'm just checking a little about the hosted DuckDB by @motherduck. What a nice user experience. It automatically detects errors, and `accept & run` fixes common errors. Love it."
+              - 'link "Jacob Matson profile picture Jacob Matson @matsonj using sql for data cleaning vs excel (reason 879 to learn sql) levenstein distance between 590strings in excel (350k combinations): excel: 25 mins of spinning. duckdb: 1.2s" [ref=e1030] [cursor=pointer]':
+                - /url: https://twitter.com/matsonj/status/1669434599095816192
+                - generic [ref=e1032]:
+                  - generic [ref=e1033]:
+                    - img "Jacob Matson profile picture" [ref=e1034]
+                    - generic [ref=e1035]:
+                      - paragraph [ref=e1036]: Jacob Matson
+                      - generic [ref=e1037]: "@matsonj"
+                    - img [ref=e1039]
+                  - paragraph [ref=e1042]: "using sql for data cleaning vs excel (reason 879 to learn sql) levenstein distance between 590strings in excel (350k combinations): excel: 25 mins of spinning. duckdb: 1.2s"
+              - 'link "Bob Currier profile picture Bob Currier bobcurrier If you''re not familiar with DuckDB, you definitely want to give it a look. I''ve recently converted all my existing code from using CSV files and SQLite databases for exploratory analysis to parquet files, DuckDB and MotherDuck. The transformation in my workflow has been nothing short of astounding. 10GB of CSV files turned into 1GB of parquet files that are now stored in S3 buckets. Using DuckDB and MotherDuck, I can run exploratory queries seamlessly thanks to the DuckStack with dual execution with local processing and cloud scale. My query development time has decreased by 90%. And I''m loving the team feature of the MotherDuck platform. OCEANCODA is rocking the small data life! #duckdb #python #motherduck #eda #ai #ml (Graphic courtesy of Manning Publications Co. book ''DuckDB in Action.'' ) Check it out." [ref=e1044] [cursor=pointer]':
+                - /url: https://www.linkedin.com/feed/update/urn:li:activity:7221573493295910912/
+                - generic [ref=e1046]:
+                  - generic [ref=e1047]:
+                    - img "Bob Currier profile picture" [ref=e1048]
+                    - generic [ref=e1049]:
+                      - paragraph [ref=e1050]: Bob Currier
+                      - generic [ref=e1051]: bobcurrier
+                    - img [ref=e1053]
+                  - paragraph [ref=e1057]: "If you're not familiar with DuckDB, you definitely want to give it a look. I've recently converted all my existing code from using CSV files and SQLite databases for exploratory analysis to parquet files, DuckDB and MotherDuck. The transformation in my workflow has been nothing short of astounding. 10GB of CSV files turned into 1GB of parquet files that are now stored in S3 buckets. Using DuckDB and MotherDuck, I can run exploratory queries seamlessly thanks to the DuckStack with dual execution with local processing and cloud scale. My query development time has decreased by 90%. And I'm loving the team feature of the MotherDuck platform. OCEANCODA is rocking the small data life! #duckdb #python #motherduck #eda #ai #ml (Graphic courtesy of Manning Publications Co. book 'DuckDB in Action.' ) Check it out."
+              - link "evidence profile picture evidence @evidence_dev DuckDB is increasingly being built into every data tool, but DuckDB isn't designed to be used as a cloud data warehouse @motherduck is solving that problem, and they’re doing it in a delightful, uniquely DuckDB way" [ref=e1059] [cursor=pointer]:
+                - /url: https://x.com/evidence_dev/status/1801630536252768584
+                - generic [ref=e1061]:
+                  - generic [ref=e1062]:
+                    - img "evidence profile picture" [ref=e1063]
+                    - generic [ref=e1064]:
+                      - paragraph [ref=e1065]: evidence
+                      - generic [ref=e1066]: "@evidence_dev"
+                    - img [ref=e1068]
+                  - paragraph [ref=e1071]: DuckDB is increasingly being built into every data tool, but DuckDB isn't designed to be used as a cloud data warehouse @motherduck is solving that problem, and they’re doing it in a delightful, uniquely DuckDB way
+              - link "Ethan profile picture Ethan @@ethanf_17 DuckDB is my new best friend for analytics. It's so fast, makes it easy to manipulate dataframes, ingests anything, and exports it to whatever form I want. Parquet, Arrow dataframes, and DuckDB are the future for analytics." [ref=e1073] [cursor=pointer]:
+                - /url: https://x.com/ethanf_17/status/1809835395695407529
+                - generic [ref=e1075]:
+                  - generic [ref=e1076]:
+                    - img "Ethan profile picture" [ref=e1077]
+                    - generic [ref=e1078]:
+                      - paragraph [ref=e1079]: Ethan
+                      - generic [ref=e1080]: "@@ethanf_17"
+                    - img [ref=e1082]
+                  - paragraph [ref=e1085]: DuckDB is my new best friend for analytics. It's so fast, makes it easy to manipulate dataframes, ingests anything, and exports it to whatever form I want. Parquet, Arrow dataframes, and DuckDB are the future for analytics.
+              - 'link "uwe geercken profile picture uwe geercken @uweeegeee #duckdb is really impressive: good terminal client, solid, easy and fast import of csv data and impressive speed on a 20mio data set. With automatic schema creation. Easy export to parquet and more. I think I am gonna spend more time on it..." [ref=e1087] [cursor=pointer]':
+                - /url: https://twitter.com/uweeegeee/status/1611663518033498117
+                - generic [ref=e1089]:
+                  - generic [ref=e1090]:
+                    - img "uwe geercken profile picture" [ref=e1091]
+                    - generic [ref=e1092]:
+                      - paragraph [ref=e1093]: uwe geercken
+                      - generic [ref=e1094]: "@uweeegeee"
+                    - img [ref=e1096]
+                  - paragraph [ref=e1099]: "#duckdb is really impressive: good terminal client, solid, easy and fast import of csv data and impressive speed on a 20mio data set. With automatic schema creation. Easy export to parquet and more. I think I am gonna spend more time on it..."
+              - link "Etienne Posthumus profile picture Etienne Posthumus @epoz I have been kicking the tyres of @motherduck - and it is 🤯 Being able to do hybrid queries over local and humongous remote datasets are incredible. The potential applications are making my head spin with awe and excitement. Well done." [ref=e1101] [cursor=pointer]:
+                - /url: https://twitter.com/epoz/status/1688924943806013441
+                - generic [ref=e1103]:
+                  - generic [ref=e1104]:
+                    - img "Etienne Posthumus profile picture" [ref=e1105]
+                    - generic [ref=e1106]:
+                      - paragraph [ref=e1107]: Etienne Posthumus
+                      - generic [ref=e1108]: "@epoz"
+                    - img [ref=e1110]
+                  - paragraph [ref=e1113]: I have been kicking the tyres of @motherduck - and it is 🤯 Being able to do hybrid queries over local and humongous remote datasets are incredible. The potential applications are making my head spin with awe and excitement. Well done.
+              - link "Jamin Ball profile picture Jamin Ball @jaminball Another awesome & insightful post from the @motherduck team. The last few decades have been about scale-out. The next decade will be about scale-up! What you can accomplish with a single machine these days is incredibly impressive" [ref=e1115] [cursor=pointer]:
+                - /url: https://twitter.com/jaminball/status/1659324081848864768
+                - generic [ref=e1117]:
+                  - generic [ref=e1118]:
+                    - img "Jamin Ball profile picture" [ref=e1119]
+                    - generic [ref=e1120]:
+                      - paragraph [ref=e1121]: Jamin Ball
+                      - generic [ref=e1122]: "@jaminball"
+                    - img [ref=e1124]
+                  - paragraph [ref=e1127]: Another awesome & insightful post from the @motherduck team. The last few decades have been about scale-out. The next decade will be about scale-up! What you can accomplish with a single machine these days is incredibly impressive
+              - link "Danny Blumenthal profile picture Danny Blumenthal dpblumenthal Our friends at MotherDuck stand out in the data space for how consistently they keep shipping awesome new features." [ref=e1129] [cursor=pointer]:
+                - /url: https://www.linkedin.com/posts/dpblumenthal_instant-sql-is-here-activity-7321571222222217218-mAm5/?utm_source=share&utm_medium=member_desktop&rcm=ACoAAACw0KEBx7lMe9uvdRJxJyQifAb-I4X7yQA
+                - generic [ref=e1131]:
+                  - generic [ref=e1132]:
+                    - img "Danny Blumenthal profile picture" [ref=e1133]
+                    - generic [ref=e1134]:
+                      - paragraph [ref=e1135]: Danny Blumenthal
+                      - generic [ref=e1136]: dpblumenthal
+                    - img [ref=e1138]
+                  - paragraph [ref=e1142]: Our friends at MotherDuck stand out in the data space for how consistently they keep shipping awesome new features.
+              - link "Nico Ritschel profile picture Nico Ritschel @nicoritschel I just deployed to Rill cloud backed by Motherduck and it worked great— wonderful experience... In-browser CLI auth with Rill Cloud, added my Motherduck token, invited some viewers, I'm live. Took 3 minutes." [ref=e1144] [cursor=pointer]:
+                - /url: https://twitter.com/nicoritschel/status/1686595084454961152
+                - generic [ref=e1146]:
+                  - generic [ref=e1147]:
+                    - img "Nico Ritschel profile picture" [ref=e1148]
+                    - generic [ref=e1149]:
+                      - paragraph [ref=e1150]: Nico Ritschel
+                      - generic [ref=e1151]: "@nicoritschel"
+                    - img [ref=e1153]
+                  - paragraph [ref=e1156]: I just deployed to Rill cloud backed by Motherduck and it worked great— wonderful experience... In-browser CLI auth with Rill Cloud, added my Motherduck token, invited some viewers, I'm live. Took 3 minutes.
+              - link "Damon Cortesi profile picture Damon Cortesi @dacort Because, I don't have enough time on my hands, I created a DuckDB extension that allows you to import data by scanning an Athena table. https://github.com/dacort/duckdb-athena-extension" [ref=e1158] [cursor=pointer]:
+                - /url: https://twitter.com/dacort/status/1633952720561516544
+                - generic [ref=e1160]:
+                  - generic [ref=e1161]:
+                    - img "Damon Cortesi profile picture" [ref=e1162]
+                    - generic [ref=e1163]:
+                      - paragraph [ref=e1164]: Damon Cortesi
+                      - generic [ref=e1165]: "@dacort"
+                    - img [ref=e1167]
+                  - paragraph [ref=e1170]: Because, I don't have enough time on my hands, I created a DuckDB extension that allows you to import data by scanning an Athena table. https://github.com/dacort/duckdb-athena-extension
+              - 'link "George Fraser profile picture George Fraser @frasergeorgew How fast is DuckDB compared to the best commercial data warehouses? I decided to benchmark it myself. Short version: very fast! But it''s not (yet) great at scaling up to many cores. https://fivetran.com/blog/how-fast-is-duckdb-really" [ref=e1172] [cursor=pointer]':
+                - /url: https://twitter.com/frasergeorgew/status/1638314840488923139
+                - generic [ref=e1174]:
+                  - generic [ref=e1175]:
+                    - img "George Fraser profile picture" [ref=e1176]
+                    - generic [ref=e1177]:
+                      - paragraph [ref=e1178]: George Fraser
+                      - generic [ref=e1179]: "@frasergeorgew"
+                    - img [ref=e1181]
+                  - paragraph [ref=e1184]: "How fast is DuckDB compared to the best commercial data warehouses? I decided to benchmark it myself. Short version: very fast! But it's not (yet) great at scaling up to many cores. https://fivetran.com/blog/how-fast-is-duckdb-really"
+              - link "MotherDuck profile picture MotherDuck @motherduck @duckdb is empowering machine learning use cases! 🤖 Any good model training starts with some good data exploration. @huggingface now enables SQL queries using DuckDB on any dataset stored on the Hub!" [ref=e1186] [cursor=pointer]:
+                - /url: https://twitter.com/motherduck/status/1666804451552935938
+                - generic [ref=e1188]:
+                  - generic [ref=e1189]:
+                    - img "MotherDuck profile picture" [ref=e1190]
+                    - generic [ref=e1191]:
+                      - paragraph [ref=e1192]: MotherDuck
+                      - generic [ref=e1193]: "@motherduck"
+                    - img [ref=e1195]
+                  - paragraph [ref=e1198]: "@duckdb is empowering machine learning use cases! 🤖 Any good model training starts with some good data exploration. @huggingface now enables SQL queries using DuckDB on any dataset stored on the Hub!"
+              - link "DuckDB profile picture DuckDB @duckdb DuckDB Co-Creator @hfmuehleisen and MotherDuck Founder @jrdntgn in this new podcast - among other things about the origin story of DuckDB and later MotherDuck:" [ref=e1200] [cursor=pointer]:
+                - /url: https://twitter.com/duckdb/status/1649305101570306048
+                - generic [ref=e1202]:
+                  - generic [ref=e1203]:
+                    - img "DuckDB profile picture" [ref=e1204]
+                    - generic [ref=e1205]:
+                      - paragraph [ref=e1206]: DuckDB
+                      - generic [ref=e1207]: "@duckdb"
+                    - img [ref=e1209]
+                  - paragraph [ref=e1212]: "DuckDB Co-Creator @hfmuehleisen and MotherDuck Founder @jrdntgn in this new podcast - among other things about the origin story of DuckDB and later MotherDuck:"
+              - link "Garrett McClintock profile picture Garrett McClintock @GJMcClintock just built a pipeline using @dltHub and @motherduck and it's very nice. 10/10 experience once you get the hang of it and very scalable." [ref=e1214] [cursor=pointer]:
+                - /url: https://x.com/GJMcClintock/status/1800962608939303002
+                - generic [ref=e1216]:
+                  - generic [ref=e1217]:
+                    - img "Garrett McClintock profile picture" [ref=e1218]
+                    - generic [ref=e1219]:
+                      - paragraph [ref=e1220]: Garrett McClintock
+                      - generic [ref=e1221]: "@GJMcClintock"
+                    - img [ref=e1223]
+                  - paragraph [ref=e1226]: just built a pipeline using @dltHub and @motherduck and it's very nice. 10/10 experience once you get the hang of it and very scalable.
+              - link "Andrew Madson profile picture Andrew Madson andrew-madsen Instant SQL! This is one of the highlights of Data Council... Instant SQL caches a sample of your table instantly, and synchronously updates the query results, AS YOU TYPE!" [ref=e1228] [cursor=pointer]:
+                - /url: https://www.linkedin.com/posts/andrew-madson_duckdb-instant-sql-this-is-one-of-the-activity-7321023818074894336-sbar?utm_source=share&utm_medium=member_desktop&rcm=ACoAAACw0KEBx7lMe9uvdRJxJyQifAb-I4X7yQA
+                - generic [ref=e1230]:
+                  - generic [ref=e1231]:
+                    - img "Andrew Madson profile picture" [ref=e1232]
+                    - generic [ref=e1233]:
+                      - paragraph [ref=e1234]: Andrew Madson
+                      - generic [ref=e1235]: andrew-madsen
+                    - img [ref=e1237]
+                  - paragraph [ref=e1241]: Instant SQL! This is one of the highlights of Data Council... Instant SQL caches a sample of your table instantly, and synchronously updates the query results, AS YOU TYPE!
+              - 'link "KKovacs [ス] profile picture KKovacs [ス] @kkovacs I don’t want to say that #DuckDB is a silver bullet because there is no such thing, but it’s surprisingly projectile-shaped, very shiny, and killed all the various werewolves (ok, data problems) I’ve thrown at it" [ref=e1243] [cursor=pointer]':
+                - /url: https://twitter.com/kkovacs/status/1801607688889012587
+                - generic [ref=e1245]:
+                  - generic [ref=e1246]:
+                    - img "KKovacs [ス] profile picture" [ref=e1247]
+                    - generic [ref=e1248]:
+                      - paragraph [ref=e1249]: KKovacs [ス]
+                      - generic [ref=e1250]: "@kkovacs"
+                    - img [ref=e1252]
+                  - paragraph [ref=e1255]: "I don’t want to say that #DuckDB is a silver bullet because there is no such thing, but it’s surprisingly projectile-shaped, very shiny, and killed all the various werewolves (ok, data problems) I’ve thrown at it"
+              - link "evidence profile picture evidence @evidence_dev DuckDB is increasingly being built into every data tool, but DuckDB isn't designed to be used as a cloud data warehouse @motherduck is solving that problem, and they’re doing it in a delightful, uniquely DuckDB way..." [ref=e1257] [cursor=pointer]:
+                - /url: https://twitter.com/evidence_dev/status/1801630536252768584
+                - generic [ref=e1259]:
+                  - generic [ref=e1260]:
+                    - img "evidence profile picture" [ref=e1261]
+                    - generic [ref=e1262]:
+                      - paragraph [ref=e1263]: evidence
+                      - generic [ref=e1264]: "@evidence_dev"
+                    - img [ref=e1266]
+                  - paragraph [ref=e1269]: DuckDB is increasingly being built into every data tool, but DuckDB isn't designed to be used as a cloud data warehouse @motherduck is solving that problem, and they’re doing it in a delightful, uniquely DuckDB way...
+              - 'link "Zach Wilson profile picture Zach Wilson eczachly Matt Martin and I did a runtime benchmark of Apache Spark vs DuckDB (by MotherDuck) We found that data sets under 20 gigabytes ran about 100 times faster on DuckDB than they did on Apache Spark! This benchmark uses plain parquet files and COUNT distinct to truly measure performance without skipping any data so we know the differences are correct. Here''s the complete writeup: https://lnkd.in/gXuWGWyy" [ref=e1271] [cursor=pointer]':
+                - /url: https://www.linkedin.com/posts/eczachly_matt-martin-and-i-did-a-runtime-benchmark-activity-7376304145978310657-GzkR/
+                - generic [ref=e1273]:
+                  - generic [ref=e1274]:
+                    - img "Zach Wilson profile picture" [ref=e1275]
+                    - generic [ref=e1276]:
+                      - paragraph [ref=e1277]: Zach Wilson
+                      - generic [ref=e1278]: eczachly
+                    - img [ref=e1280]
+                  - paragraph [ref=e1284]: "Matt Martin and I did a runtime benchmark of Apache Spark vs DuckDB (by MotherDuck) We found that data sets under 20 gigabytes ran about 100 times faster on DuckDB than they did on Apache Spark! This benchmark uses plain parquet files and COUNT distinct to truly measure performance without skipping any data so we know the differences are correct. Here's the complete writeup: https://lnkd.in/gXuWGWyy"
+              - link "Daniel Beach profile picture Daniel Beach @dataengineeringcentral This MotherDuck thingy is such a beauty it brings a tear to me old eye. You have no idea how many new tools (maybe you do) I agonize over while trying to bring you the good, the bad, and the ugly." [ref=e1286] [cursor=pointer]:
+                - /url: https://dataengineeringcentral.substack.com/p/honest-review-of-motherduck
+                - generic [ref=e1288]:
+                  - generic [ref=e1289]:
+                    - img "Daniel Beach profile picture" [ref=e1290]
+                    - generic [ref=e1291]:
+                      - paragraph [ref=e1292]: Daniel Beach
+                      - generic [ref=e1293]: "@dataengineeringcentral"
+                    - img [ref=e1295]
+                  - paragraph [ref=e1297]: This MotherDuck thingy is such a beauty it brings a tear to me old eye. You have no idea how many new tools (maybe you do) I agonize over while trying to bring you the good, the bad, and the ugly.
+            - generic [ref=e1298]:
+              - generic [ref=e1299]:
+                - img [ref=e1300] [cursor=pointer]
+                - img [ref=e1302] [cursor=pointer]
+              - generic [ref=e1304]:
+                - paragraph [ref=e1305]: FOLLOW US
+                - link "MotherDuck Twitter" [ref=e1306] [cursor=pointer]:
+                  - /url: https://twitter.com/motherduck
+                  - img [ref=e1307]
+                - link "MotherDuck LinkedIn" [ref=e1309] [cursor=pointer]:
+                  - /url: https://linkedin.com/company/motherduck/
+                  - img [ref=e1310]
+          - img [ref=e1316]
+        - generic [ref=e1319]:
+          - generic [ref=e1320]:
+            - heading "Join the flock" [level=2] [ref=e1321]
+            - generic "Link to slack" [ref=e1322]:
+              - link "CHAT WITH US ON SLACK" [ref=e1323] [cursor=pointer]:
+                - /url: https://slack.motherduck.com/
+                - generic [ref=e1324]: CHAT WITH US ON SLACK
+                - img [ref=e1325]
+          - link "Link to slack" [ref=e1327] [cursor=pointer]:
+            - /url: https://slack.motherduck.com/
+            - img "Desktop Slack banner" [ref=e1328]
+        - generic [ref=e1329]:
+          - heading "SUBSCRIBE" [level=2] [ref=e1330]
+          - generic [ref=e1332]:
+            - generic [ref=e1333]:
+              - heading "Subscribe to our newsletter" [level=3] [ref=e1334]
+              - generic [ref=e1335]:
+                - generic [ref=e1336]:
+                  - textbox "Email" [ref=e1337]
+                  - paragraph: E-mail
+                - generic [ref=e1338]:
+                  - generic [ref=e1339]:
+                    - checkbox [checked] [ref=e1340] [cursor=pointer]
+                    - img [ref=e1342]
+                  - generic [ref=e1344] [cursor=pointer]: Subscribe to other MotherDuck emails
+                - generic [ref=e1345]:
+                  - button "Submit" [disabled]:
+                    - generic: Submit
+            - img [ref=e1347]
+            - generic:
+              - img
+    - contentinfo [ref=e1349]:
+      - generic [ref=e1351]:
+        - generic [ref=e1352]:
+          - generic [ref=e1353]:
+            - link "Motherduck site" [ref=e1354] [cursor=pointer]:
+              - /url: /#
+              - img [ref=e1355]
+            - generic [ref=e1360]:
+              - link "Our Slack link" [ref=e1361] [cursor=pointer]:
+                - /url: https://slack.motherduck.com/
+                - img [ref=e1363]
+              - link "Our Twitter link" [ref=e1365] [cursor=pointer]:
+                - /url: https://twitter.com/motherduck
+                - img [ref=e1367]
+              - link "Our LinkedIn link" [ref=e1369] [cursor=pointer]:
+                - /url: https://linkedin.com/company/motherduck
+                - img [ref=e1371]
+              - link "Our Youtube link" [ref=e1376] [cursor=pointer]:
+                - /url: https://www.youtube.com/@motherduckdb
+                - img [ref=e1378]
+              - link "Our Mail link" [ref=e1381] [cursor=pointer]:
+                - /url: mailto:info@motherduck.com
+                - img [ref=e1383]
+              - link "Our Rss link" [ref=e1387] [cursor=pointer]:
+                - /url: https://motherduck.com/rss.xml
+                - img [ref=e1389]
+          - generic [ref=e1394]:
+            - navigation [ref=e1395]:
+              - paragraph [ref=e1396]: MotherDuck
+              - link "Docs" [ref=e1397] [cursor=pointer]:
+                - /url: /docs/getting-started/
+              - link "Pricing" [ref=e1398] [cursor=pointer]:
+                - /url: /product/pricing/
+              - paragraph [ref=e1399]: Recent Webinars
+              - 'link "Beyond Charts: Building Interactive Data Apps with MotherDuck Dives" [ref=e1400] [cursor=pointer]':
+                - /url: /videos/interactive-data-apps-motherduck-dives/
+              - link "Building an Analytics Chatbot for your SaaS app in 1 day" [ref=e1401] [cursor=pointer]:
+                - /url: /videos/building-ai-chatbot-saas-mcp/
+              - link "Shareable visualizations built by your favorite agent" [ref=e1402] [cursor=pointer]:
+                - /url: /videos/ai-agent-shareable-visualizations/
+              - 'link "The MCP Sessions - Vol 2: Supply Chain Analytics" [ref=e1403] [cursor=pointer]':
+                - /url: /videos/mcp-sessions-supply-chain-analytics/
+              - link "Reliable AI Agents for Business Analytics" [ref=e1404] [cursor=pointer]:
+                - /url: /video/reliable-ai-agents-for-business-analytics-llms-warehouse/
+            - navigation [ref=e1405]:
+              - paragraph [ref=e1406]: Product
+              - link "Overview" [ref=e1407] [cursor=pointer]:
+                - /url: /product/
+              - link "Hypertenancy" [ref=e1408] [cursor=pointer]:
+                - /url: /product/hypertenancy/
+              - link "Integrations" [ref=e1409] [cursor=pointer]:
+                - /url: /ecosystem/
+              - link "AI + MCP Server" [ref=e1410] [cursor=pointer]:
+                - /url: /product/mcp-server/
+              - link "Dives" [ref=e1411] [cursor=pointer]:
+                - /url: /product/dives/
+              - link "Data Warehousing and BI" [ref=e1412] [cursor=pointer]:
+                - /url: /product/data-teams/
+              - link "Customer-facing Analytics" [ref=e1413] [cursor=pointer]:
+                - /url: /product/app-developers/
+              - link "For DuckDB Users" [ref=e1414] [cursor=pointer]:
+                - /url: /product/duckdb-users/
+              - link "Postgres Integration" [ref=e1415] [cursor=pointer]:
+                - /url: /product/postgres-integration/
+              - link "Case Studies" [ref=e1416] [cursor=pointer]:
+                - /url: /case-studies/
+              - link "Startups" [ref=e1417] [cursor=pointer]:
+                - /url: /startups/
+              - link "Support" [ref=e1418] [cursor=pointer]:
+                - /url: /customer-support/
+              - link "Trust & Security" [ref=e1419] [cursor=pointer]:
+                - /url: /trust-and-security/
+            - navigation [ref=e1420]:
+              - paragraph [ref=e1421]: Community
+              - link "Blog" [ref=e1422] [cursor=pointer]:
+                - /url: /blog/
+              - link "Slack" [ref=e1423] [cursor=pointer]:
+                - /url: https://slack.motherduck.com/
+                - text: Slack
+                - img [ref=e1424]
+              - link "Events" [ref=e1426] [cursor=pointer]:
+                - /url: /events/
+              - link "YouTube" [ref=e1427] [cursor=pointer]:
+                - /url: https://www.youtube.com/@motherduckdb
+                - text: YouTube
+                - img [ref=e1428]
+              - link "Small Data SF" [ref=e1430] [cursor=pointer]:
+                - /url: https://smalldatasf.com/?__hstc=43009530.d12de943ecae31bc8458e4b2c3211c7c.1774883675880.1774976159176.1775086286235.4&__hssc=43009530.1.1775086286235&__hsfp=2a1b5c0bdac6cd5b2f8fcfd530cfcec6
+                - text: Small Data SF
+                - img [ref=e1431]
+              - link "Community and OSS" [ref=e1433] [cursor=pointer]:
+                - /url: /community-and-open-source/
+              - link "Videos & Streams" [ref=e1434] [cursor=pointer]:
+                - /url: /videos/
+              - link "Dive Gallery" [ref=e1435] [cursor=pointer]:
+                - /url: /dive-gallery/
+              - link "DuckDB News" [ref=e1436] [cursor=pointer]:
+                - /url: /duckdb-news/
+              - link "DuckDB Snippets" [ref=e1437] [cursor=pointer]:
+                - /url: https://duckdbsnippets.com/
+                - text: DuckDB Snippets
+                - img [ref=e1438]
+              - link "Free DuckDB Book" [ref=e1440] [cursor=pointer]:
+                - /url: /duckdb-book-brief/
+              - link "Learn" [ref=e1441] [cursor=pointer]:
+                - /url: /learn-more/
+              - link "Code of Conduct" [ref=e1442] [cursor=pointer]:
+                - /url: /community-code/
+            - navigation [ref=e1443]:
+              - paragraph [ref=e1444]: Company
+              - link "About us" [ref=e1445] [cursor=pointer]:
+                - /url: /about-us/
+              - link "Careers" [ref=e1446] [cursor=pointer]:
+                - /url: /careers/
+              - link "Quacking" [ref=e1447] [cursor=pointer]:
+                - /url: /quacking-around-the-web/
+              - link "Research" [ref=e1448] [cursor=pointer]:
+                - /url: /research/
+              - link "Contact Us" [ref=e1449] [cursor=pointer]:
+                - /url: /contact-us/
+        - generic [ref=e1450]:
+          - generic [ref=e1451]:
+            - generic [ref=e1452]:
+              - text: MotherDuck is powered by
+              - link "DuckDB" [ref=e1454] [cursor=pointer]:
+                - /url: https://duckdb.org/
+                - generic [ref=e1455]: DuckDB
+            - generic [ref=e1456]:
+              - link "Terms of Use" [ref=e1458] [cursor=pointer]:
+                - /url: /terms-of-use/
+                - generic [ref=e1459]: Terms of Use
+              - link "Privacy Policy" [ref=e1461] [cursor=pointer]:
+                - /url: /privacy-policy/
+                - generic [ref=e1462]: Privacy Policy
+              - link "Support Policy" [ref=e1464] [cursor=pointer]:
+                - /url: /support-policy/
+                - generic [ref=e1465]: Support Policy
+          - generic [ref=e1466]:
+            - link "SOC" [ref=e1468] [cursor=pointer]:
+              - /url: /trust-and-security/#Compliance
+              - img "SOC"
+            - link "GDPR" [ref=e1470] [cursor=pointer]:
+              - /url: /trust-and-security/#Compliance
+              - img "GDPR"
+  - alert [ref=e1471]

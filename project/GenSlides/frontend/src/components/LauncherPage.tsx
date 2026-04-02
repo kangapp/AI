@@ -36,14 +36,14 @@ export default function LauncherPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950">
+    <div className="min-h-screen bg-bg-light">
       {/* Header */}
-      <header className="flex items-center justify-between px-8 py-6 border-b border-gray-800">
+      <header className="flex items-center justify-between px-8 py-6 border-b border-text-primary/10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-            <span className="text-white font-bold text-xl">G</span>
+          <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
+            <span className="text-text-primary font-bold text-xl">G</span>
           </div>
-          <h1 className="text-2xl font-bold text-white">GenSlides</h1>
+          <h1 className="text-2xl font-bold text-text-primary">GenSlides</h1>
         </div>
       </header>
 
@@ -53,7 +53,7 @@ export default function LauncherPage() {
         <div className="mb-10">
           <button
             onClick={handleCreateProject}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors flex items-center gap-2"
+            className="btn-primary flex items-center gap-2"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -65,11 +65,11 @@ export default function LauncherPage() {
         {/* Projects Grid */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
         ) : projects.length === 0 ? (
           <div className="text-center py-20">
-            <p className="text-gray-500 text-lg">还没有项目，点击上方按钮创建一个</p>
+            <p className="text-text-primary/50 text-lg">还没有项目，点击上方按钮创建一个</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

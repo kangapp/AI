@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Slide } from '../types';
 import { slidesApi } from '../api';
+import { useSlidesStore } from '../stores/slidesStore';
 
 interface SlideEditModalProps {
   slide: Slide;
@@ -9,55 +10,54 @@ interface SlideEditModalProps {
   onSave: (updatedSlide: Slide) => void;
 }
 
-type ModalState = 'idle' | 'generating' | 'saving';
-
 export default function SlideEditModal({ slide, projectSlug, onClose, onSave }: SlideEditModalProps) {
   const [text, setText] = useState(slide.text);
   const [title, setTitle] = useState(slide.title || '');
   const [provider, setProvider] = useState<'minimax' | 'gemini'>('minimax');
-  const [state, setState] = useState<ModalState>('idle');
-  const [generatedImage, setGeneratedImage] = useState<{ hash: string; url: string } | null>(
-    slide.thumbnail ? { hash: '', url: slide.thumbnail } : null
-  );
+  const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(slide.thumbnail || null);
+  const { generateImage } = useSlidesStore();
 
   const handleGenerate = async () => {
-    setState('generating');
-    try {
-      // 生成 1 张图片
-      const results = await slidesApi.generateMultipleImages(projectSlug, slide.sid, provider, 1);
-      if (results.length > 0) {
-        const img = results[0];
-        setGeneratedImage({ hash: img.hash, url: img.image_url });
+    // 立即关闭弹窗
+    onClose();
 
-        // 自动提取标题
-        try {
-          const titleResult = await slidesApi.extractTitle(projectSlug, slide.sid, text);
-          setTitle(titleResult.title);
-        } catch (err) {
-          console.error('Failed to extract title:', err);
-        }
+    // 触发后台生成
+    try {
+      // 生成图片 (后台异步)
+      const result = await slidesApi.generate(projectSlug, slide.sid, provider, true);
+      setGeneratedImageUrl(result.image_url);
+
+      // 自动提取标题
+      try {
+        const titleResult = await slidesApi.extractTitle(projectSlug, slide.sid, text);
+        setTitle(titleResult.title);
+        // 同时更新 slide 的 title
+        await slidesApi.update(projectSlug, slide.sid, text, titleResult.title, result.image_url);
+        onSave({ ...slide, text, title: titleResult.title, thumbnail: result.image_url });
+      } catch (err) {
+        console.error('Failed to extract title:', err);
+        // 即使标题提取失败，也保存图片
+        await slidesApi.update(projectSlug, slide.sid, text, undefined, result.image_url);
+        onSave({ ...slide, text, thumbnail: result.image_url });
       }
     } catch (err) {
       console.error('Failed to generate image:', err);
-    } finally {
-      setState('idle');
     }
   };
 
   const handleSave = async () => {
-    setState('saving');
     try {
       const updated = await slidesApi.update(
         projectSlug,
         slide.sid,
         text,
         title || undefined,
-        generatedImage?.url || undefined
+        generatedImageUrl || undefined
       );
       onSave(updated);
+      onClose();
     } catch (err) {
       console.error('Failed to save:', err);
-      setState('idle');
     }
   };
 
@@ -109,20 +109,20 @@ export default function SlideEditModal({ slide, projectSlug, onClose, onSave }: 
             <label className="block text-sm font-medium text-text-primary/70 mb-2">图片生成</label>
             <button
               onClick={handleGenerate}
-              disabled={state === 'generating' || state === 'saving'}
-              className="px-4 py-2 bg-primary hover:bg-primary/90 text-text-primary rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+              className="px-4 py-2 bg-primary hover:bg-primary/90 text-text-primary rounded-lg text-sm font-medium transition-colors"
             >
-              {state === 'generating' ? '生成中...' : '生成图片'}
+              生成图片
             </button>
+            <p className="text-xs text-text-primary/50 mt-1">生成后将自动关闭弹窗</p>
           </div>
 
-          {/* Generated Image Preview */}
-          {generatedImage && (
+          {/* Existing Image Preview */}
+          {generatedImageUrl && (
             <div className="mt-2">
               <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-bg-light">
-                <img src={generatedImage.url} alt="Generated" className="w-full h-full object-cover" />
+                <img src={generatedImageUrl} alt="Current" className="w-full h-full object-cover" />
               </div>
-              <p className="text-xs text-text-primary/50 mt-1">生成完毕，自动设为展示图</p>
+              <p className="text-xs text-text-primary/50 mt-1">当前展示图</p>
             </div>
           )}
         </div>
@@ -137,10 +137,9 @@ export default function SlideEditModal({ slide, projectSlug, onClose, onSave }: 
           </button>
           <button
             onClick={handleSave}
-            disabled={state === 'saving' || state === 'generating'}
-            className="px-6 py-2 bg-primary hover:bg-primary/90 text-text-primary font-medium rounded-lg transition-colors disabled:opacity-50"
+            className="px-6 py-2 bg-primary hover:bg-primary/90 text-text-primary font-medium rounded-lg transition-colors"
           >
-            {state === 'saving' ? '保存中...' : '确认保存'}
+            保存
           </button>
         </div>
       </div>

@@ -28,10 +28,10 @@ export default function ProjectCard({ project, onClick, onDelete }: ProjectCardP
   return (
     <div
       onClick={onClick}
-      className="bg-gray-900 rounded-xl overflow-hidden cursor-pointer hover:bg-gray-800 transition-colors group"
+      className="card cursor-pointer hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform group"
     >
       {/* Thumbnail */}
-      <div className="aspect-video bg-gray-800 relative">
+      <div className="aspect-video bg-bg-light relative">
         {project.thumbnail_url ? (
           <img
             src={project.thumbnail_url}
@@ -40,16 +40,16 @@ export default function ProjectCard({ project, onClick, onDelete }: ProjectCardP
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-gray-600 text-4xl">📷</span>
+            <span className="text-text-primary/30 text-4xl">📷</span>
           </div>
         )}
 
         {/* Delete button */}
         <button
           onClick={onDelete}
-          className="absolute top-2 right-2 w-8 h-8 bg-black/50 hover:bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+          className="absolute top-2 right-2 w-8 h-8 bg-text-primary/50 hover:bg-red-600 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"
         >
-          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
@@ -57,17 +57,17 @@ export default function ProjectCard({ project, onClick, onDelete }: ProjectCardP
 
       {/* Info */}
       <div className="p-4">
-        <h3 className="text-white font-medium truncate">{project.name}</h3>
+        <h3 className="text-text-primary font-medium truncate">{project.name}</h3>
         <div className="flex items-center justify-between mt-2">
-          <span className="text-xs text-gray-500">
+          <span className="text-xs text-text-primary/50">
             {project.slide_count || 0} slides
           </span>
-          <span className="text-xs px-2 py-1 bg-gray-700 text-gray-300 rounded">
+          <span className="text-xs px-2 py-1 bg-primary text-text-primary rounded">
             {STYLE_LABELS[project.style] || project.style}
           </span>
         </div>
         <div className="mt-1">
-          <span className="text-xs text-gray-600">
+          <span className="text-xs text-text-primary/30">
             创建于 {formatDate(project.created_at)}
           </span>
         </div>

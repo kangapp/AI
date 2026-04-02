@@ -2,15 +2,50 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-primary: #FFDE00;
+  --color-text-primary: #383838;
+  --color-bg-light: #F4EFEA;
+  --shadow-hard: -6px 6px 0px 0px #383838;
+  --shadow-hard-sm: -3px 3px 0px 0px #383838;
+}
+
 body {
   margin: 0;
   padding: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #1a1a2e;
-  color: #eaeaea;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--color-bg-light);
+  color: var(--color-text-primary);
   min-height: 100vh;
 }
 
 * {
   box-sizing: border-box;
+}
+
+/* MotherDuck 风格按钮 */
+.btn-primary {
+  @apply bg-primary text-text-primary font-heading px-6 py-3 transition-transform hover:-translate-x-0.5 hover:-translate-y-0.5;
+  box-shadow: var(--shadow-hard);
+}
+
+.btn-primary:hover {
+  box-shadow: -8px 8px 0px 0px #383838;
+}
+
+.btn-secondary {
+  @apply bg-white text-text-primary font-heading px-6 py-3 transition-transform hover:-translate-x-0.5 hover:-translate-y-0.5;
+  box-shadow: var(--shadow-hard-sm);
+}
+
+/* 卡片风格 */
+.card {
+  @apply bg-white rounded-md p-6;
+  box-shadow: var(--shadow-hard);
+}
+
+/* 标题字体 */
+h1, h2, h3, h4 {
+  font-family: 'Aeonik', 'Inter', sans-serif;
+  @apply font-bold;
 }
