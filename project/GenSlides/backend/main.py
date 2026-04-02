@@ -4,7 +4,9 @@ from pathlib import Path
 from typing import Optional
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Query
+from pydantic import BaseModel
 from starlette.responses import FileResponse
+import httpx
 
 # 加载 .env 文件
 load_dotenv(Path(__file__).parent / ".env")
@@ -13,7 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from models import (
     SlideCreate, SlideUpdate, GenerateRequest, GenerateResponse,
     SlideListResponse, ImageInfo, CostInfo, PlaybackResponse, PlaybackSlide,
-    ProjectCreate, ProjectListResponse, StylePreviewRequest
+    ProjectCreate, ProjectListResponse, StylePreviewRequest, ImageProvider
 )
 from slides_manager import SlidesManager
 from projects_manager import ProjectsManager
@@ -46,6 +48,15 @@ image_generator = ImageGenerator(
     minimax_api_key=os.getenv("MINIMAX_API_KEY", ""),
     apiiyi_api_key=os.getenv("APIIYI_API_KEY", "")
 )
+
+# API Key for extract-title
+apiyi_api_key = os.getenv("APIIYI_API_KEY", "")
+
+
+# === Request Models ===
+
+class ExtractTitleRequest(BaseModel):
+    text: str
 
 
 # === Projects CRUD ===
@@ -174,6 +185,23 @@ async def get_project_thumbnail(slug: str):
     return FileResponse(str(image_path), media_type="image/jpeg")
 
 
+@app.get("/api/projects/{slug}/style-reference")
+async def get_project_style_reference(slug: str):
+    """获取项目风格参考图"""
+    project = projects_manager.get_project(slug)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if not project.style_reference_image:
+        raise HTTPException(status_code=404, detail="No style reference image")
+
+    ref_path = projects_manager._get_project_dir(slug) / project.style_reference_image
+    if not ref_path.exists():
+        raise HTTPException(status_code=404, detail="Style reference image not found")
+
+    return FileResponse(str(ref_path), media_type="image/jpeg")
+
+
 # === Slides CRUD ===
 
 @app.get("/api/projects/{slug}/slides", response_model=SlideListResponse)
@@ -193,6 +221,42 @@ async def update_slide(slug: str, sid: str, slide_data: SlideUpdate):
     if slide is None:
         raise HTTPException(status_code=404, detail="Slide not found")
     return slide.model_dump(mode="json")
+
+
+@app.post("/api/projects/{slug}/slides/{sid}/extract-title")
+async def extract_title(slug: str, sid: str, request: ExtractTitleRequest):
+    """从 slide 文本提取标题"""
+    slide = slides_manager.get_slide_by_sid(sid, slug)
+    if slide is None:
+        raise HTTPException(status_code=404, detail="Slide not found")
+
+    # 使用 Gemini API 提取标题
+    if not apiiyi_api_key:
+        raise HTTPException(status_code=500, detail="APIIYI_API_KEY not configured")
+
+    url = "https://api.apiyi.com/v1beta/models/gemini-3-pro-image-preview:generateContent"
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {apiyi_api_key}"
+    }
+
+    prompt = f"""从以下文本提取一个简短的标题（10-20字），只返回标题，不要其他内容：
+
+{request.text}
+
+标题:"""
+
+    payload = {
+        "contents": [{"parts": [{"text": prompt}]}]
+    }
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.post(url, headers=headers, json=payload)
+        response.raise_for_status()
+        data = response.json()
+
+    title = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    return {"title": title}
 
 
 @app.delete("/api/projects/{slug}/slides/{sid}")
