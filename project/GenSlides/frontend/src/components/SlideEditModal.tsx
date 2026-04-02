@@ -9,36 +9,37 @@ interface SlideEditModalProps {
   onSave: (updatedSlide: Slide) => void;
 }
 
-type ModalState = 'idle' | 'extracting' | 'generating' | 'selecting' | 'saving';
+type ModalState = 'idle' | 'generating' | 'saving';
 
 export default function SlideEditModal({ slide, projectSlug, onClose, onSave }: SlideEditModalProps) {
   const [text, setText] = useState(slide.text);
   const [title, setTitle] = useState(slide.title || '');
   const [provider, setProvider] = useState<'minimax' | 'gemini'>('minimax');
   const [state, setState] = useState<ModalState>('idle');
-  const [generatedImages, setGeneratedImages] = useState<{ hash: string; url: string }[]>([]);
-  const [selectedImage, setSelectedImage] = useState<string | null>(slide.thumbnail || null);
+  const [generatedImage, setGeneratedImage] = useState<{ hash: string; url: string } | null>(
+    slide.thumbnail ? { hash: '', url: slide.thumbnail } : null
+  );
 
-  const handleExtractTitle = async () => {
-    setState('extracting');
-    try {
-      const result = await slidesApi.extractTitle(projectSlug, slide.sid, text);
-      setTitle(result.title);
-    } catch (err) {
-      console.error('Failed to extract title:', err);
-    } finally {
-      setState('idle');
-    }
-  };
-
-  const handleGenerateImages = async () => {
+  const handleGenerate = async () => {
     setState('generating');
     try {
-      const results = await slidesApi.generateMultipleImages(projectSlug, slide.sid, provider, 2);
-      setGeneratedImages(results.map(r => ({ hash: r.hash, url: r.image_url })));
-      setState('selecting');
+      // 生成 1 张图片
+      const results = await slidesApi.generateMultipleImages(projectSlug, slide.sid, provider, 1);
+      if (results.length > 0) {
+        const img = results[0];
+        setGeneratedImage({ hash: img.hash, url: img.image_url });
+
+        // 自动提取标题
+        try {
+          const titleResult = await slidesApi.extractTitle(projectSlug, slide.sid, text);
+          setTitle(titleResult.title);
+        } catch (err) {
+          console.error('Failed to extract title:', err);
+        }
+      }
     } catch (err) {
-      console.error('Failed to generate images:', err);
+      console.error('Failed to generate image:', err);
+    } finally {
       setState('idle');
     }
   };
@@ -46,7 +47,13 @@ export default function SlideEditModal({ slide, projectSlug, onClose, onSave }: 
   const handleSave = async () => {
     setState('saving');
     try {
-      const updated = await slidesApi.update(projectSlug, slide.sid, text, title || undefined, selectedImage || undefined);
+      const updated = await slidesApi.update(
+        projectSlug,
+        slide.sid,
+        text,
+        title || undefined,
+        generatedImage?.url || undefined
+      );
       onSave(updated);
     } catch (err) {
       console.error('Failed to save:', err);
@@ -87,17 +94,13 @@ export default function SlideEditModal({ slide, projectSlug, onClose, onSave }: 
             />
           </div>
 
-          {/* Extract Title */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={handleExtractTitle}
-              disabled={state === 'extracting'}
-              className="px-4 py-2 bg-bg-light hover:bg-primary/20 text-text-primary rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
-            >
-              {state === 'extracting' ? '提取中...' : '提取标题'}
-            </button>
-            {title && <span className="text-sm text-text-primary/70">{title}</span>}
-          </div>
+          {/* Title Display */}
+          {title && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-text-primary/70">标题:</span>
+              <span className="text-sm font-medium text-text-primary">{title}</span>
+            </div>
+          )}
 
           <hr className="border-text-primary/10" />
 
@@ -105,33 +108,21 @@ export default function SlideEditModal({ slide, projectSlug, onClose, onSave }: 
           <div>
             <label className="block text-sm font-medium text-text-primary/70 mb-2">图片生成</label>
             <button
-              onClick={handleGenerateImages}
+              onClick={handleGenerate}
               disabled={state === 'generating' || state === 'saving'}
               className="px-4 py-2 bg-primary hover:bg-primary/90 text-text-primary rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
             >
-              {state === 'generating' ? '生成中...' : '生成 2 张图片'}
+              {state === 'generating' ? '生成中...' : '生成图片'}
             </button>
           </div>
 
-          {/* Image Selection */}
-          {(state === 'selecting' || generatedImages.length > 0) && (
-            <div className="flex gap-3">
-              {generatedImages.map((img, idx) => (
-                <div
-                  key={img.hash}
-                  onClick={() => setSelectedImage(img.url)}
-                  className={`relative w-32 h-32 rounded-lg overflow-hidden cursor-pointer border-2 transition-colors ${
-                    selectedImage === img.url ? 'border-primary' : 'border-transparent'
-                  }`}
-                >
-                  <img src={img.url} alt={`Generated ${idx + 1}`} className="w-full h-full object-cover" />
-                  {selectedImage === img.url && (
-                    <div className="absolute top-1 right-1 w-5 h-5 bg-primary rounded-full flex items-center justify-center">
-                      <span className="text-xs text-text-primary">✓</span>
-                    </div>
-                  )}
-                </div>
-              ))}
+          {/* Generated Image Preview */}
+          {generatedImage && (
+            <div className="mt-2">
+              <div className="relative w-full aspect-video rounded-lg overflow-hidden bg-bg-light">
+                <img src={generatedImage.url} alt="Generated" className="w-full h-full object-cover" />
+              </div>
+              <p className="text-xs text-text-primary/50 mt-1">生成完毕，自动设为展示图</p>
             </div>
           )}
         </div>
