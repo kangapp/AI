@@ -1,6 +1,8 @@
 export interface Slide {
   sid: string;
   text: string;
+  title?: string;      // AI 提取的标题
+  thumbnail?: string;  // 该 slide 的展示图 URL
   created_at: string;
 }
 
