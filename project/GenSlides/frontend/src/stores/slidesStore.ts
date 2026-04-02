@@ -24,6 +24,7 @@ interface SlidesState {
   loadSlides: (projectSlug?: string) => Promise<void>;
   createSlide: (text?: string, projectSlug?: string) => Promise<void>;
   updateSlide: (sid: string, text: string) => Promise<void>;
+  updateSlideFull: (sid: string, text: string, title?: string, thumbnail?: string) => Promise<void>;
   deleteSlide: (sid: string) => Promise<void>;
   selectSlide: (sid: string | null) => void;
   generateImage: (sid: string, provider?: 'gemini' | 'minimax', projectSlug?: string) => Promise<void>;
@@ -91,6 +92,21 @@ export const useSlidesStore = create<SlidesState>((set, get) => ({
       await slidesApi.update(slug, sid, text);
       set(state => ({
         slides: state.slides.map(s => s.sid === sid ? { ...s, text } : s)
+      }));
+    } catch (err) {
+      set({ error: (err as Error).message });
+    }
+  },
+
+  updateSlideFull: async (sid: string, text: string, title?: string, thumbnail?: string) => {
+    const { selectedProjectSlug } = get();
+    const slug = selectedProjectSlug || 'default';
+    try {
+      await slidesApi.update(slug, sid, text, title, thumbnail);
+      set(state => ({
+        slides: state.slides.map(s =>
+          s.sid === sid ? { ...s, text, ...(title !== undefined && { title }), ...(thumbnail !== undefined && { thumbnail }) } : s
+        )
       }));
     } catch (err) {
       set({ error: (err as Error).message });
