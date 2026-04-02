@@ -18,11 +18,15 @@ class SlideCreate(SlideBase):
 
 
 class SlideUpdate(BaseModel):
-    text: str = Field(..., min_length=1)
+    text: Optional[str] = Field(None, min_length=1)
+    title: Optional[str] = None
+    thumbnail: Optional[str] = None
 
 
 class Slide(SlideBase):
     sid: str = Field(..., description="唯一标识符")
+    title: Optional[str] = None   # 新增
+    thumbnail: Optional[str] = None # 新增
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     model_config = ConfigDict(from_attributes=True)
