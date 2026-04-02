@@ -19,14 +19,15 @@ export default function Sidebar({ projectSlug }: SidebarProps) {
         <h2 className="text-sm font-semibold text-text-primary">Slides</h2>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+      <div className="flex-1 overflow-y-auto p-3 grid grid-cols-2 gap-2 content-start">
         {slides.length === 0 ? (
           <p className="text-sm text-text-primary/50 text-center py-8">暂无幻灯片</p>
         ) : (
-          slides.map((slide) => (
+          slides.map((slide, index) => (
             <SlideItem
               key={slide.sid}
               slide={slide}
+              index={index + 1}
               isSelected={slide.sid === selectedSid}
               onSelect={() => selectSlide(slide.sid)}
               onDelete={() => deleteSlide(slide.sid)}

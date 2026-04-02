@@ -5,18 +5,18 @@ import SlideEditModal from './SlideEditModal';
 
 interface SlideItemProps {
   slide: Slide;
+  index: number;
   isSelected: boolean;
   onSelect: () => void;
   onDelete: () => void;
   projectSlug?: string;
 }
 
-export default function SlideItem({ slide, isSelected, onSelect, onDelete, projectSlug }: SlideItemProps) {
+export default function SlideItem({ slide, index, isSelected, onSelect, onDelete, projectSlug }: SlideItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const { updateSlideFull, images, generatingSid } = useSlidesStore();
   const isGenerating = generatingSid === slide.sid;
 
-  // 获取缩略图: 优先使用 slide.thumbnail，否则使用第一张生成的图片
   const getThumbnail = () => {
     if (slide.thumbnail) {
       return slide.thumbnail;
@@ -26,7 +26,7 @@ export default function SlideItem({ slide, isSelected, onSelect, onDelete, proje
   };
 
   const thumbnail = getThumbnail();
-  const displayTitle = slide.title || slide.text.slice(0, 30);
+  const displayTitle = slide.title || slide.text.slice(0, 20);
 
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -41,49 +41,58 @@ export default function SlideItem({ slide, isSelected, onSelect, onDelete, proje
   return (
     <>
       <div
-        className={`p-3 rounded-lg cursor-pointer transition-all ${
+        className={`relative rounded-xl overflow-hidden cursor-pointer transition-all duration-200 ${
           isSelected
-            ? 'bg-primary text-text-primary'
-            : 'bg-bg-light text-text-primary/70 hover:bg-primary/20'
+            ? 'ring-2 ring-primary shadow-hard'
+            : 'hover:shadow-md'
         }`}
         onClick={onSelect}
         onDoubleClick={handleDoubleClick}
       >
-        <div className="flex items-center gap-3">
-          {/* 缩略图 - 加载中优先显示动画 */}
+        {/* 卡片背景 */}
+        <div className={`aspect-video ${isSelected ? 'bg-primary' : 'bg-bg-light'}`}>
+          {/* 加载动画 */}
           {isGenerating ? (
-            <div className="w-16 h-9 rounded flex-shrink-0 bg-text-primary/10 flex items-center justify-center">
-              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="w-8 h-8 border-3 border-text-primary/20 border-t-text-primary rounded-full animate-spin"></div>
             </div>
           ) : thumbnail ? (
-            <div className="w-16 h-9 rounded overflow-hidden flex-shrink-0 bg-text-primary/10">
-              <img src={thumbnail} alt="" className="w-full h-full object-cover" />
-            </div>
+            <img src={thumbnail} alt="" className="w-full h-full object-cover" />
           ) : (
-            <div className="w-16 h-9 rounded flex-shrink-0 bg-text-primary/10 flex items-center justify-center">
-              <span className="text-text-primary/30 text-xs">无图</span>
+            <div className="w-full h-full flex items-center justify-center">
+              <span className="text-text-primary/20 text-3xl font-light">+</span>
             </div>
           )}
-
-          {/* 标题和状态 */}
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium truncate">{displayTitle}</p>
-            {thumbnail && (
-              <span className="text-xs text-green-600 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span>
-                已生成
-              </span>
-            )}
-          </div>
-
-          {/* 删除按钮 */}
-          <button
-            onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="text-xs opacity-50 hover:opacity-100 hover:text-red-500"
-          >
-            ×
-          </button>
         </div>
+
+        {/* 底部信息栏 */}
+        <div className={`absolute bottom-0 left-0 right-0 px-2 py-1.5 flex items-end justify-between ${
+          isSelected ? 'bg-primary' : 'bg-text-primary/60'
+        }`}>
+          {/* 标题 - 左下 */}
+          <span className={`text-xs font-medium truncate max-w-[70%] ${
+            isSelected ? 'text-text-primary' : 'text-white/90'
+          }`}>
+            {displayTitle}
+          </span>
+
+          {/* 序号 - 右下 */}
+          <span className={`text-xs font-mono ${
+            isSelected ? 'text-text-primary/60' : 'text-white/50'
+          }`}>
+            {String(index).padStart(2, '0')}
+          </span>
+        </div>
+
+        {/* 删除按钮 */}
+        <button
+          onClick={(e) => { e.stopPropagation(); onDelete(); }}
+          className={`absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs transition-opacity hover:opacity-100 ${
+            isSelected ? 'bg-text-primary/60 text-white' : 'bg-text-primary/40 text-white/80'
+          } opacity-0 group-hover:opacity-100`}
+        >
+          ×
+        </button>
       </div>
 
       {/* 编辑弹窗 */}
