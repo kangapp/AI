@@ -8,9 +8,10 @@ interface SlideItemProps {
   isSelected: boolean;
   onSelect: () => void;
   onDelete: () => void;
+  projectSlug?: string;
 }
 
-export default function SlideItem({ slide, isSelected, onSelect, onDelete }: SlideItemProps) {
+export default function SlideItem({ slide, isSelected, onSelect, onDelete, projectSlug }: SlideItemProps) {
   const [isEditing, setIsEditing] = useState(false);
   const { updateSlideFull, images } = useSlidesStore();
 
@@ -84,7 +85,7 @@ export default function SlideItem({ slide, isSelected, onSelect, onDelete }: Sli
       {isEditing && (
         <SlideEditModal
           slide={slide}
-          projectSlug={useSlidesStore.getState().selectedProjectSlug || 'default'}
+          projectSlug={projectSlug || useSlidesStore.getState().selectedProjectSlug || 'default'}
           onClose={() => setIsEditing(false)}
           onSave={handleSaveEdit}
         />
