@@ -63,7 +63,12 @@ class SlidesManager:
         outline = self._load_outline(slug)
         for s in outline.get("slides", []):
             if s["sid"] == sid:
-                s["text"] = slide_data.text
+                if slide_data.text is not None:
+                    s["text"] = slide_data.text
+                if slide_data.title is not None:
+                    s["title"] = slide_data.title
+                if slide_data.thumbnail is not None:
+                    s["thumbnail"] = slide_data.thumbnail
                 self._save_outline(outline, slug)
                 return Slide(**s)
         return None
