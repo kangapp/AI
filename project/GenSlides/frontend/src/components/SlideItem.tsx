@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { Slide } from '../types';
 import { useSlidesStore } from '../stores/slidesStore';
+import SlideEditModal from './SlideEditModal';
 
 interface SlideItemProps {
   slide: Slide;
@@ -11,69 +12,83 @@ interface SlideItemProps {
 
 export default function SlideItem({ slide, isSelected, onSelect, onDelete }: SlideItemProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const [editText, setEditText] = useState(slide.text);
-  const { updateSlide } = useSlidesStore();
+  const { updateSlideFull, images } = useSlidesStore();
 
-  const handleDoubleClick = () => {
-    setIsEditing(true);
-    setEditText(slide.text);
+  // 获取缩略图: 优先使用 slide.thumbnail，否则使用第一张生成的图片
+  const getThumbnail = () => {
+    if (slide.thumbnail) {
+      return slide.thumbnail;
+    }
+    const slideImages = images[slide.sid] || [];
+    return slideImages[0]?.url || null;
   };
 
-  const handleConfirm = () => {
-    if (editText.trim() && editText !== slide.text) {
-      updateSlide(slide.sid, editText.trim());
-    }
+  const thumbnail = getThumbnail();
+  const displayTitle = slide.title || slide.text.slice(0, 30);
+
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = (updatedSlide: Slide) => {
+    updateSlideFull(updatedSlide.sid, updatedSlide.text, updatedSlide.title, updatedSlide.thumbnail);
     setIsEditing(false);
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      handleConfirm();
-    } else if (e.key === 'Escape') {
-      setIsEditing(false);
-      setEditText(slide.text);
-    }
-  };
-
   return (
-    <div
-      className={`p-3 rounded-lg cursor-pointer transition-all ${
-        isSelected
-          ? 'bg-blue-600 text-white'
-          : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
-      }`}
-      onClick={onSelect}
-    >
-      <div className="flex items-center justify-between mb-1">
-        <span className="text-xs font-medium opacity-75">Slide {slide.sid.slice(0, 6)}</span>
-        <button
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="text-xs opacity-50 hover:opacity-100 hover:text-red-400"
-        >
-          ×
-        </button>
+    <>
+      <div
+        className={`p-3 rounded-lg cursor-pointer transition-all ${
+          isSelected
+            ? 'bg-primary text-text-primary'
+            : 'bg-bg-light text-text-primary/70 hover:bg-primary/20'
+        }`}
+        onClick={onSelect}
+        onDoubleClick={handleDoubleClick}
+      >
+        <div className="flex items-center gap-3">
+          {/* 缩略图 */}
+          {thumbnail ? (
+            <div className="w-16 h-9 rounded overflow-hidden flex-shrink-0 bg-text-primary/10">
+              <img src={thumbnail} alt="" className="w-full h-full object-cover" />
+            </div>
+          ) : (
+            <div className="w-16 h-9 rounded flex-shrink-0 bg-text-primary/10 flex items-center justify-center">
+              <span className="text-text-primary/30 text-xs">无图</span>
+            </div>
+          )}
+
+          {/* 标题和状态 */}
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium truncate">{displayTitle}</p>
+            {slide.thumbnail && (
+              <span className="text-xs text-green-600 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-green-600"></span>
+                已生成
+              </span>
+            )}
+          </div>
+
+          {/* 删除按钮 */}
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="text-xs opacity-50 hover:opacity-100 hover:text-red-500"
+          >
+            ×
+          </button>
+        </div>
       </div>
 
-      {isEditing ? (
-        <input
-          type="text"
-          value={editText}
-          onChange={(e) => setEditText(e.target.value)}
-          onBlur={handleConfirm}
-          onKeyDown={handleKeyDown}
-          onClick={(e) => e.stopPropagation()}
-          className="w-full px-2 py-1 text-sm bg-gray-900 border border-blue-400 rounded text-white focus:outline-none"
-          autoFocus
+      {/* 编辑弹窗 */}
+      {isEditing && (
+        <SlideEditModal
+          slide={slide}
+          projectSlug={useSlidesStore.getState().selectedProjectSlug || 'default'}
+          onClose={() => setIsEditing(false)}
+          onSave={handleSaveEdit}
         />
-      ) : (
-        <p
-          className="text-sm truncate"
-          onDoubleClick={handleDoubleClick}
-          title="双击编辑"
-        >
-          {slide.text}
-        </p>
       )}
-    </div>
+    </>
   );
 }
