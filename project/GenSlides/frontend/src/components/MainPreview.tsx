@@ -89,11 +89,11 @@ export default function MainPreview({ projectSlug }: MainPreviewProps) {
         </div>
       </div>
 
-      {/* 底部渐变信息 - 避开底部 footer */}
-      <div className="absolute bottom-10 left-0 right-0 z-10 bg-gradient-to-t from-black/70 via-black/30 to-transparent pt-12 pb-3 px-6">
-        <p className="text-white text-lg font-medium truncate">{selectedSlide.text}</p>
+      {/* 底部文字信息 - 避开底部 footer */}
+      <div className="absolute bottom-10 left-4 right-4 z-10">
+        <p className="text-white text-lg font-medium truncate drop-shadow-md">{selectedSlide.text}</p>
         {selectedSlide.title && (
-          <p className="text-white/60 text-sm mt-0.5">{selectedSlide.title}</p>
+          <p className="text-white/80 text-sm mt-0.5 drop-shadow-md">{selectedSlide.title}</p>
         )}
       </div>
 
