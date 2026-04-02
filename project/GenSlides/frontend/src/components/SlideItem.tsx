@@ -50,10 +50,10 @@ export default function SlideItem({ slide, isSelected, onSelect, onDelete, proje
         onDoubleClick={handleDoubleClick}
       >
         <div className="flex items-center gap-3">
-          {/* 缩略图 */}
+          {/* 缩略图 - 加载中优先显示动画 */}
           {isGenerating ? (
             <div className="w-16 h-9 rounded flex-shrink-0 bg-text-primary/10 flex items-center justify-center">
-              <div className="w-4 h-4 border-2 border-text-primary/30 border-t-text-primary rounded-full animate-spin"></div>
+              <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
             </div>
           ) : thumbnail ? (
             <div className="w-16 h-9 rounded overflow-hidden flex-shrink-0 bg-text-primary/10">
