@@ -50,9 +50,12 @@ jobs:
 
             cd /home/admin/app
 
-            # 如果不是 git 仓库，先克隆
-            if [ ! -e .git ]; then
-              rm -rf .git
+            # 检查是否是 git 仓库
+            if [ ! -d .git ]; then
+              # 目录存在但不是 git 仓库，备份并重建
+              if [ "$(ls -A)" ]; then
+                mv . /tmp/old_app_backup_$(date +%s) 2>/dev/null || true
+              fi
               git clone git@github.com:kangapp/AI.git .
             fi
 
