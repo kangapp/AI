@@ -49,29 +49,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 部署到服务器
-        env:
-          PROJECT: ${{ needs.build.outputs.project }}
-          SERVER_HOST: ${{ secrets.SERVER_HOST }}
-          SERVER_USER: ${{ secrets.SERVER_USER }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-        run: |
-          mkdir -p ~/.ssh
-
-          # 获取服务器 host key
-          ssh-keyscan -H ${SERVER_HOST} >> ~/.ssh/known_hosts 2>/dev/null
-
-          # 配置 SSH 私钥
-          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-
-          # 复制部署脚本和 compose 文件
-          scp .github/scripts/deploy.sh ${SERVER_USER}@${SERVER_HOST}:/home/admin/app/
-          scp docker-compose.yml ${SERVER_USER}@${SERVER_HOST}:/home/admin/app/
-
-          # 执行部署 (包含清理)
-          ssh ${SERVER_USER}@${SERVER_HOST} "
+      - name: Deploy via SSH Action
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
             cd /home/admin/app
-            chmod +x deploy.sh
-            ./deploy.sh ${PROJECT} up
-          "
+            git pull origin master
+            docker compose up -d --build ${{ needs.build.outputs.project }}
