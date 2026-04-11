@@ -1,9 +1,0 @@
-- generic [ref=e3]:
-  - banner [ref=e4]:
-    - generic [ref=e5]:
-      - generic [ref=e7]: G
-      - heading "GenSlides" [level=1] [ref=e8]
-  - main [ref=e9]:
-    - button "创建项目" [ref=e11] [cursor=pointer]:
-      - img [ref=e12]
-      - text: 创建项目
