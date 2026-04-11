@@ -57,6 +57,11 @@ jobs:
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         run: |
           mkdir -p ~/.ssh
+
+          # 获取服务器 host key
+          ssh-keyscan -H ${SERVER_HOST} >> ~/.ssh/known_hosts 2>/dev/null
+
+          # 配置 SSH 私钥
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
