@@ -1,0 +1,51 @@
+# Git
+.git
+.gitignore
+.gitmodules
+
+# Node_modules
+project/*/node_modules
+project/*/frontend/node_modules
+project/*/dist
+
+# Python 虚拟环境
+project/*/.venv
+project/*/venv
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# 环境文件
+.env
+.env.*
+!.env.example
+
+# 文档和配置
+*.md
+!README.md
+docs
+*.log
+
+# CI/CD (不上镜像)
+.github
+.github/workflows
+.github/scripts
+
+# Docker 相关
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# 测试
+*_test.py
+*.test.ts
+*.spec.ts
+__tests__
+coverage
+
+# OS
+.DS_Store
+Thumbs.db

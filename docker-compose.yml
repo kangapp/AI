@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  db_query:
+    build:
+      context: ./project/db_query
+      dockerfile: Dockerfile
+    container_name: db_query
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./project/db_query/.env
+    networks:
+      - app_network
+
+  simple_agent:
+    build:
+      context: ./project/simple-agent
+      dockerfile: Dockerfile
+    container_name: simple_agent
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - ./project/simple-agent/.env
+    networks:
+      - app_network
+
+  gen_slides:
+    build:
+      context: ./project/GenSlides
+      dockerfile: Dockerfile
+    container_name: gen_slides
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./project/GenSlides/.env
+    networks:
+      - app_network
+
+  llm_log_visualizer:
+    build:
+      context: ./project/llm-log-visualizer
+      dockerfile: Dockerfile
+    container_name: llm_log_visualizer
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    env_file:
+      - ./project/llm-log-visualizer/.env
+    networks:
+      - app_network
+
+  code_review_agent:
+    build:
+      context: ./project/code-review-agent
+      dockerfile: Dockerfile
+    container_name: code_review_agent
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    env_file:
+      - ./project/code-review-agent/.env
+    networks:
+      - app_network
+
+  raflow:
+    build:
+      context: ./project/raflow
+      dockerfile: Dockerfile
+    container_name: raflow
+    restart: unless-stopped
+    ports:
+      - "1420:1420"
+    env_file:
+      - ./project/raflow/.env
+    networks:
+      - app_network
+
+networks:
+  app_network:
+    driver: bridge
