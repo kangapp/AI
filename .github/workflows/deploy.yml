@@ -1,0 +1,72 @@
+name: Deploy Services
+
+on:
+  workflow_dispatch:
+    inputs:
+      project:
+        type: choice
+        options:
+          - db_query
+          - simple_agent
+          - gen_slides
+          - llm_log_visualizer
+          - code_review_agent
+          - raflow
+        required: true
+        description: 选择要部署的项目
+  push:
+    paths:
+      - 'project/**'
+      - 'docker-compose.yml'
+      - '.github/workflows/**'
+      - '.github/scripts/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    outputs:
+      project: ${{ steps.detect.outputs.project }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 检测变更项目
+        id: detect
+        run: |
+          if [ "${{ github.event.inputs.project }}" != "" ]; then
+            echo "project=${{ github.event.inputs.project }}" >> $GITHUB_OUTPUT
+          else
+            changed=$(git diff --name-only ${{ github.event.before }} HEAD | cut -d/ -f2 | sort -u | head -1)
+            echo "project=${changed}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: 构建 Docker 镜像
+        run: |
+          docker-compose build ${{ steps.detect.outputs.project }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 部署到服务器
+        env:
+          PROJECT: ${{ needs.build.outputs.project }}
+          SERVER_HOST: ${{ secrets.SERVER_HOST }}
+          SERVER_USER: ${{ secrets.SERVER_USER }}
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          # 复制部署脚本和 compose 文件
+          scp .github/scripts/deploy.sh ${SERVER_USER}@${SERVER_HOST}:/opt/app/
+          scp docker-compose.yml ${SERVER_USER}@${SERVER_HOST}:/opt/app/
+
+          # 执行部署 (包含清理)
+          ssh ${SERVER_USER}@${SERVER_HOST} "
+            cd /opt/app
+            chmod +x deploy.sh
+            ./deploy.sh ${PROJECT} up
+          "
