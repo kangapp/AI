@@ -44,23 +44,22 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # 添加 GitHub host key
-            mkdir -p ~/.ssh
-            ssh-keyscan -H github.com >> ~/.ssh/known_hosts 2>/dev/null
+            # 1. 尝试进入目录
+            cd /home/admin/app || { echo "错误: 目录不存在"; exit 1; }
 
-            cd /home/admin/app
-
-            # 检查是否是 git 仓库
-            if [ ! -d .git ]; then
-              # 初始化 git 仓库（保留现有文件如 .env）
-              git init
-              git remote add origin git@github.com:kangapp/AI.git
-              git fetch origin
-              git checkout master
+            # 2. 检查当前是否是 Git 目录
+            if [ ! -d ".git" ]; then
+              echo "错误: 当前目录不是 Git 仓库，请先在服务器上手动 git clone"
+              exit 1
             fi
 
-            # 拉取最新代码
-            git pull origin master
+            # 3. 检查 Compose 文件是否存在
+            if [ ! -f "docker-compose.yml" ]; then
+              echo "错误: 找不到 docker-compose.yml 文件"
+              exit 1
+            fi
 
-            # 构建并启动指定项目
+            # 4. 执行更新
+            git pull origin main
             docker compose up -d --build ${{ steps.detect.outputs.project }}
+            docker image prune -f
