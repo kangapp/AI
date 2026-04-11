@@ -1,16 +1,25 @@
-FROM node:20-alpine
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# 安装依赖
-COPY package.json ./
-RUN npm install
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
 
-# 复制源码
-COPY . .
+# 复制后端代码
+COPY backend/ ./backend/
+
+# 安装 Python 依赖
+RUN pip install --no-cache-dir \
+    fastapi \
+    uvicorn \
+    python-dotenv \
+    httpx \
+    pydantic
 
 # 暴露端口
-EXPOSE 8080
+EXPOSE 8000
 
-# 启动命令 (需要查看 package.json 确认启动命令)
-CMD ["node", "backend/index.js"]
+# 启动命令
+CMD ["python", "-m", "uvicorn", "backend.main:app", "--host", "0.0.0.0", "--port", "8000"]
