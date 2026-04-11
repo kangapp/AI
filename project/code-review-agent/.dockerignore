@@ -1,0 +1,9 @@
+# Bun
+node_modules
+.bun
+.bun.lock
+
+# 本地文件
+reviews
+*.lock
+*.log
