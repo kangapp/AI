@@ -14,12 +14,16 @@ interface SlideItemProps {
 
 export default function SlideItem({ slide, index, isSelected, onSelect, onDelete, projectSlug }: SlideItemProps) {
   const [isEditing, setIsEditing] = useState(false);
-  const { updateSlideFull, images, generatingSid } = useSlidesStore();
-  const isGenerating = generatingSid === slide.sid;
+  const { images } = useSlidesStore();
 
   const getThumbnail = () => {
     if (slide.thumbnail) {
-      return slide.thumbnail;
+      // 如果是完整URL直接返回，否则构建完整URL
+      if (slide.thumbnail.startsWith('/') || slide.thumbnail.startsWith('http')) {
+        return slide.thumbnail;
+      }
+      // 是 hash，构建完整URL
+      return `/api/images/${projectSlug}/${slide.sid}/${slide.thumbnail}`;
     }
     const slideImages = images[slide.sid] || [];
     return slideImages[0]?.url || null;
@@ -31,11 +35,6 @@ export default function SlideItem({ slide, index, isSelected, onSelect, onDelete
   const handleDoubleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     setIsEditing(true);
-  };
-
-  const handleSaveEdit = (updatedSlide: Slide) => {
-    updateSlideFull(updatedSlide.sid, updatedSlide.text, updatedSlide.title, updatedSlide.thumbnail);
-    setIsEditing(false);
   };
 
   return (
@@ -51,12 +50,7 @@ export default function SlideItem({ slide, index, isSelected, onSelect, onDelete
       >
         {/* 卡片背景 */}
         <div className={`aspect-video ${isSelected ? 'bg-primary' : 'bg-bg-light'}`}>
-          {/* 加载动画 */}
-          {isGenerating ? (
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="w-8 h-8 border-3 border-text-primary/20 border-t-text-primary rounded-full animate-spin"></div>
-            </div>
-          ) : thumbnail ? (
+          {thumbnail ? (
             <img src={thumbnail} alt="" className="w-full h-full object-cover" />
           ) : (
             <div className="w-full h-full flex items-center justify-center">
@@ -101,7 +95,6 @@ export default function SlideItem({ slide, index, isSelected, onSelect, onDelete
           slide={slide}
           projectSlug={projectSlug || useSlidesStore.getState().selectedProjectSlug || 'default'}
           onClose={() => setIsEditing(false)}
-          onSave={handleSaveEdit}
         />
       )}
     </>

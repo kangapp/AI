@@ -167,6 +167,7 @@ function SelectingStep({
   geminiImage,
   selectedImage,
   onSelectImage,
+  onBack,
   onSkip,
   onCreateProject,
   onRefresh,
@@ -177,6 +178,7 @@ function SelectingStep({
   geminiImage: string | null;
   selectedImage: 'minimax' | 'gemini' | null;
   onSelectImage: (image: 'minimax' | 'gemini') => void;
+  onBack: () => void;
   onSkip: () => void;
   onCreateProject: () => void;
   onRefresh: () => void;
@@ -186,10 +188,16 @@ function SelectingStep({
   return (
     <div>
       <div className="flex justify-between items-center mb-4">
-        <div>
-          <h3 className="text-lg font-medium text-text-primary">选择参考图</h3>
-          <p className="text-sm text-text-primary/60">点击选择一张图片作为风格参考，或跳过此步骤</p>
-        </div>
+        <button
+          type="button"
+          onClick={onBack}
+          className="px-3 py-1.5 text-sm text-text-primary/60 hover:text-text-primary transition-colors flex items-center gap-1"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          返回修改
+        </button>
         <button
           type="button"
           onClick={onRefresh}
@@ -201,6 +209,11 @@ function SelectingStep({
           </svg>
           {isRefreshing ? '刷新中...' : '刷新'}
         </button>
+      </div>
+
+      <div className="mb-4">
+        <h3 className="text-lg font-medium text-text-primary">选择参考图</h3>
+        <p className="text-sm text-text-primary/60">点击选择一张图片作为风格参考，或跳过此步骤</p>
       </div>
 
       {/* Image Selection */}
@@ -306,6 +319,10 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
     setState(prev => ({ ...prev, selectedImage: image }));
   };
 
+  const handleBack = () => {
+    setState(prev => ({ ...prev, step: 'form' }));
+  };
+
   // Refresh preview images
   const handleRefresh = async () => {
     setState(prev => ({ ...prev, isRefreshing: true, selectedImage: null }));
@@ -314,7 +331,7 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
       const response = await fetch('/api/projects/preview-style', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ style_prompt: state.stylePrompt }),
+        body: JSON.stringify({ style: state.style, style_prompt: state.stylePrompt }),
       });
 
       if (!response.ok) {
@@ -342,10 +359,11 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
     setState(prev => ({ ...prev, step: 'previewing' }));
 
     try {
+      console.log('Sending preview request:', { style: state.style, style_prompt: state.stylePrompt });
       const response = await fetch('/api/projects/preview-style', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ style_prompt: state.stylePrompt }),
+        body: JSON.stringify({ style: state.style, style_prompt: state.stylePrompt }),
       });
 
       if (!response.ok) {
@@ -354,6 +372,9 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
 
       const data = await response.json();
 
+      console.log('Preview response:', data);
+      console.log('MiniMax image length:', data.minimax_image?.length);
+      console.log('Gemini image length:', data.gemini_image?.length);
       setState(prev => ({
         ...prev,
         step: 'selecting',
@@ -362,6 +383,7 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
       }));
     } catch (error) {
       console.error('Preview generation failed:', error);
+      console.error('Error details:', error instanceof Error ? error.message : String(error));
       // Go back to form on error
       setState(prev => ({ ...prev, step: 'form' }));
     }
@@ -419,6 +441,7 @@ export default function CreateProjectModal({ onClose }: CreateProjectModalProps)
             geminiImage={state.geminiImage}
             selectedImage={state.selectedImage}
             onSelectImage={handleSelectImage}
+            onBack={handleBack}
             onSkip={handleSkip}
             onCreateProject={handleCreateProject}
             onRefresh={handleRefresh}

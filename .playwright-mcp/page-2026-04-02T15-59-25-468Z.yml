@@ -1,0 +1,38 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button [ref=e6] [cursor=pointer]:
+        - img [ref=e7]
+      - heading "default" [level=2] [ref=e9]
+    - button "播放" [ref=e10] [cursor=pointer]:
+      - img [ref=e11]
+      - text: 播放
+  - generic [ref=e13]:
+    - complementary [ref=e14]:
+      - heading "Slides" [level=2] [ref=e16]
+      - generic [ref=e18] [cursor=pointer]:
+        - generic [ref=e21]: +
+        - generic [ref=e22]:
+          - generic [ref=e23]: 新幻灯片
+          - generic [ref=e24]: "01"
+        - button "×" [ref=e25]
+      - generic [ref=e26]:
+        - button "+ 新建 Slide" [ref=e27] [cursor=pointer]
+        - paragraph [ref=e28]: 点击按钮创建新幻灯片
+    - main [ref=e29]:
+      - generic [ref=e30]:
+        - generic [ref=e33]: +
+        - generic [ref=e35]:
+          - button "MiniMax" [ref=e36] [cursor=pointer]
+          - button "Gemini" [ref=e37] [cursor=pointer]
+        - paragraph [ref=e41]: 暂无图片
+        - generic:
+          - generic:
+            - paragraph: 新幻灯片
+        - generic [ref=e43]:
+          - paragraph [ref=e44]: 点击按钮生成图片
+          - button "生成图片" [ref=e45] [cursor=pointer]
+  - contentinfo [ref=e46]:
+    - generic [ref=e47]: "Gemini: $0.0000"
+    - generic [ref=e48]: "MiniMax: $0.0100"
+    - generic [ref=e49]: "Total: $0.0100"

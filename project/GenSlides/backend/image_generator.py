@@ -75,6 +75,19 @@ class ImageGenerator:
         # 构建完整 prompt
         full_text = f"{style_prompt}, {text}" if style_prompt else text
 
+        # MiniMax API prompt 长度限制为 1500 字符
+        MAX_PROMPT_LENGTH = 1500
+        if provider == ImageProvider.MINIMAX and len(full_text) > MAX_PROMPT_LENGTH:
+            # 优先保留用户文本，截断风格描述
+            if style_prompt and len(text) < MAX_PROMPT_LENGTH:
+                # 计算可用的风格描述长度
+                available = MAX_PROMPT_LENGTH - len(text) - 2  # 减去 ", " 的长度
+                truncated_style = style_prompt[:available]
+                full_text = f"{truncated_style}, {text}"
+            else:
+                # 如果文本本身就太长，直接截断
+                full_text = text[:MAX_PROMPT_LENGTH]
+
         # 调用 API 生成图片
         # 如果有参考图，传递给支持参考图的 API
         if provider == ImageProvider.GEMINI and style_reference_image:

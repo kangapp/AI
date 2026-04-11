@@ -44,6 +44,7 @@ class ImageInfo(BaseModel):
 
 
 class GenerateRequest(BaseModel):
+    text: Optional[str] = Field(None, description="可选的文本覆盖，如果提供则使用此文本而不是slide的文本")
     provider: ImageProvider = ImageProvider.MINIMAX
     force: bool = Field(default=False, description="是否强制重新生成")
 
@@ -134,4 +135,5 @@ class ProjectListResponse(BaseModel):
 
 
 class StylePreviewRequest(BaseModel):
-    style_prompt: str
+    style: ProjectStyle
+    style_prompt: str = ""

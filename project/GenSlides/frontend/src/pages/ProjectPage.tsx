@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useSlidesStore } from '../stores/slidesStore';
+import { useProjectsStore } from '../stores/projectsStore';
 import Header from '../components/Header';
 import Sidebar from '../components/Sidebar';
 import MainPreview from '../components/MainPreview';
@@ -9,13 +10,15 @@ import FullscreenPlayer from '../components/FullscreenPlayer';
 export default function ProjectPage() {
   const { slug } = useParams<{ slug: string }>();
   const { loadSlides, loadCost, cost, isPlaying } = useSlidesStore();
+  const { loadProjects } = useProjectsStore();
 
   useEffect(() => {
     if (slug) {
       loadSlides(slug);
       loadCost();
+      loadProjects();
     }
-  }, [slug, loadSlides, loadCost]);
+  }, [slug, loadSlides, loadCost, loadProjects]);
 
   return (
     <div className="min-h-screen bg-bg-light">

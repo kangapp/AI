@@ -15,7 +15,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from models import (
     SlideCreate, SlideUpdate, GenerateRequest, GenerateResponse,
     SlideListResponse, ImageInfo, CostInfo, PlaybackResponse, PlaybackSlide,
-    ProjectCreate, ProjectListResponse, StylePreviewRequest, ImageProvider
+    ProjectCreate, ProjectListResponse, StylePreviewRequest, ImageProvider,
+    PROJECT_STYLE_DEFAULTS
 )
 from slides_manager import SlidesManager
 from projects_manager import ProjectsManager
@@ -24,7 +25,7 @@ from image_generator import ImageGenerator
 
 
 # 初始化
-BASE_PATH = Path(__file__).parent.parent
+BASE_PATH = Path(__file__).parent
 app = FastAPI(title="GenSlides API", version="1.0.0")
 
 # CORS
@@ -67,8 +68,9 @@ def _get_project_thumbnail_path(slug: str) -> Optional[Path]:
     if not slides_data.slides:
         return None
     first_slide = slides_data.slides[0]
-    text_hash = slides_manager.compute_text_hash(first_slide.text)
-    return slides_manager.get_slide_images_dir(first_slide.sid, slug) / f"{text_hash}.jpg"
+    # 优先使用 slide.thumbnail（可能包含 UUID 后缀），否则回退到纯 text_hash
+    image_hash = first_slide.thumbnail or slides_manager.compute_text_hash(first_slide.text)
+    return slides_manager.get_slide_images_dir(first_slide.sid, slug) / f"{image_hash}.jpg"
 
 
 @app.get("/api/projects", response_model=ProjectListResponse)
@@ -129,10 +131,17 @@ async def generate_style_preview(request: StylePreviewRequest):
     """生成风格预览图，并行调用 MiniMax 和 Gemini"""
     import asyncio
 
+    # 组合完整风格描述
+    style_default = PROJECT_STYLE_DEFAULTS.get(request.style, "")
+    if request.style_prompt:
+        full_prompt = f"{style_default}, {request.style_prompt}" if style_default else request.style_prompt
+    else:
+        full_prompt = style_default
+
     async def generate_minimax():
         try:
             image_bytes = await image_generator.generate_preview_image(
-                request.style_prompt,
+                full_prompt,
                 ImageProvider.MINIMAX
             )
             if image_bytes:
@@ -145,7 +154,7 @@ async def generate_style_preview(request: StylePreviewRequest):
     async def generate_gemini():
         try:
             image_bytes = await image_generator.generate_preview_image(
-                request.style_prompt,
+                full_prompt,
                 ImageProvider.GEMINI
             )
             if image_bytes:
@@ -256,7 +265,16 @@ async def extract_title(slug: str, sid: str, request: ExtractTitleRequest):
         response.raise_for_status()
         data = response.json()
 
-    title = data["candidates"][0]["content"]["parts"][0]["text"].strip()
+    # 安全解析响应
+    try:
+        title = data.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
+        if not title:
+            # 尝试从 text 字段直接获取
+            title = data.get("text", "").strip() or request.text[:20]
+    except (IndexError, KeyError, TypeError) as e:
+        print(f"Failed to parse extract-title response: {e}, data: {data}")
+        title = request.text[:20]  # Fallback: 使用文本前20字
+
     return {"title": title}
 
 
@@ -280,9 +298,12 @@ async def generate_image(
     if slide is None:
         raise HTTPException(status_code=404, detail="Slide not found")
 
+    # 使用请求中的text（如果有），否则使用slide的文本
+    text = request.text if request.text is not None else slide.text
+
     return await image_generator.generate_image(
         sid=sid,
-        text=slide.text,
+        text=text,
         provider=request.provider,
         force=request.force,
         project_slug=slug
@@ -305,6 +326,21 @@ async def get_slide_images(slug: str, sid: str):
         ))
 
     return {"images": images}
+
+
+@app.delete("/api/projects/{slug}/slides/{sid}/images/{hash}")
+async def delete_slide_image(slug: str, sid: str, hash: str):
+    """删除指定 hash 的图片"""
+    image_path = slides_manager.get_slide_images_dir(sid, slug) / f"{hash}.jpg"
+    if not image_path.exists():
+        raise HTTPException(status_code=404, detail="Image not found")
+
+    try:
+        image_path.unlink()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete image: {e}")
+
+    return {"success": True}
 
 
 # === Image Serving ===

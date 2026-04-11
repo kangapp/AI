@@ -62,14 +62,19 @@ export const slidesApi = {
       method: 'DELETE',
     }).then(r => r.json()),
 
-  generate: (slug: string, sid: string, provider: 'gemini' | 'minimax' = 'minimax', force = false): Promise<GenerateResponse> =>
+  generate: (slug: string, sid: string, text: string, provider: 'gemini' | 'minimax' = 'minimax', force = false): Promise<GenerateResponse> =>
     fetchJSON(`/projects/${slug}/slides/${sid}/generate`, {
       method: 'POST',
-      body: JSON.stringify({ provider, force }),
+      body: JSON.stringify({ text, provider, force }),
     }),
 
   getImages: (slug: string, sid: string): Promise<{ images: ImageInfo[] }> =>
     fetchJSON(`/projects/${slug}/slides/${sid}/images`),
+
+  deleteImage: (slug: string, sid: string, hash: string): Promise<{ success: boolean }> =>
+    fetchJSON(`/projects/${slug}/slides/${sid}/images/${encodeURIComponent(hash)}`, {
+      method: 'DELETE',
+    }),
 };
 
 // Projects API

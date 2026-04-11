@@ -30,6 +30,7 @@ interface ProjectsState {
   loadProjects: () => Promise<void>;
   createProject: (data: { name: string; style: ProjectStyle; style_prompt: string; style_reference_image?: string }) => Promise<Project | null>;
   deleteProject: (slug: string) => Promise<void>;
+  updateProjectThumbnail: (slug: string, thumbnailUrl: string | null) => void;
 }
 
 const API_BASE = '/api';
@@ -93,5 +94,13 @@ export const useProjectsStore = create<ProjectsState>((set) => ({
     } catch (err) {
       set({ error: (err as Error).message });
     }
+  },
+
+  updateProjectThumbnail: (slug, thumbnailUrl) => {
+    set(state => ({
+      projects: state.projects.map(p =>
+        p.slug === slug ? { ...p, thumbnail_url: thumbnailUrl } : p
+      )
+    }));
   },
 }));

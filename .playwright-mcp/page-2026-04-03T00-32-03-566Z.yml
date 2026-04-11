@@ -1,0 +1,44 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - button [ref=e6] [cursor=pointer]:
+        - img [ref=e7]
+      - heading "ya-zi-wang-guo" [level=2] [ref=e9]
+    - button "播放" [ref=e10] [cursor=pointer]:
+      - img [ref=e11]
+      - text: 播放
+  - generic [ref=e13]:
+    - complementary [ref=e14]:
+      - heading "Slides" [level=2] [ref=e16]
+      - generic [ref=e17]:
+        - generic [ref=e18] [cursor=pointer]:
+          - generic [ref=e20]:
+            - generic [ref=e21]: 展现乘风破浪精神，砥砺前行共创未来
+            - generic [ref=e22]: "01"
+          - button "×" [ref=e23]
+        - generic [ref=e24] [cursor=pointer]:
+          - generic [ref=e26]:
+            - generic [ref=e27]: Codex系统整体技术架构图
+            - generic [ref=e28]: "02"
+          - button "×" [ref=e29]
+      - generic [ref=e30]:
+        - button "+ 新建 Slide" [ref=e31] [cursor=pointer]
+        - paragraph [ref=e32]: 点击按钮创建新幻灯片
+    - main [ref=e33]:
+      - generic [ref=e34]:
+        - generic [ref=e37]: +
+        - generic [ref=e39]:
+          - button "MiniMax" [ref=e40] [cursor=pointer]
+          - button "Gemini" [ref=e41] [cursor=pointer]
+        - paragraph [ref=e45]: 暂无图片
+        - generic:
+          - generic:
+            - paragraph: 乘风破浪
+            - paragraph: 展现乘风破浪精神，砥砺前行共创未来
+        - generic [ref=e47]:
+          - paragraph [ref=e48]: 点击按钮生成图片
+          - button "生成图片" [ref=e49] [cursor=pointer]
+  - contentinfo [ref=e50]:
+    - generic [ref=e51]: "Gemini: $0.0000"
+    - generic [ref=e52]: "MiniMax: $0.0000"
+    - generic [ref=e53]: "Total: $0.0000"

@@ -1,0 +1,32 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e7]: G
+      - heading "GenSlides" [level=1] [ref=e8]
+  - main [ref=e9]:
+    - button "创建项目" [ref=e11] [cursor=pointer]:
+      - img [ref=e12]
+      - text: 创建项目
+    - generic [ref=e14]:
+      - generic [ref=e15] [cursor=pointer]:
+        - generic [ref=e16]:
+          - img "鸭子王国" [ref=e17]
+          - button [ref=e18]:
+            - img [ref=e19]
+        - generic [ref=e21]:
+          - heading "鸭子王国" [level=3] [ref=e22]
+          - generic [ref=e23]:
+            - generic [ref=e24]: 2 slides
+            - generic [ref=e25]: custom
+          - generic [ref=e27]: 创建于 2026年4月3日
+      - generic [ref=e28] [cursor=pointer]:
+        - generic [ref=e29]:
+          - generic [ref=e31]: 📷
+          - button [ref=e32]:
+            - img [ref=e33]
+        - generic [ref=e35]:
+          - heading "默认项目" [level=3] [ref=e36]
+          - generic [ref=e37]:
+            - generic [ref=e38]: 1 slides
+            - generic [ref=e39]: 写实摄影
+          - generic [ref=e41]: 创建于 2026年4月2日

@@ -1,0 +1,22 @@
+- generic [ref=e43]:
+  - banner [ref=e44]:
+    - generic [ref=e45]:
+      - button [ref=e46] [cursor=pointer]:
+        - img [ref=e47]
+      - heading "默认项目" [level=2] [ref=e49]
+    - button "播放" [ref=e50] [cursor=pointer]:
+      - img [ref=e51]
+      - text: 播放
+  - generic [ref=e53]:
+    - complementary [ref=e54]:
+      - heading "Slides" [level=2] [ref=e56]
+      - paragraph [ref=e58]: 暂无幻灯片
+      - generic [ref=e59]:
+        - button "+ 新建 Slide" [ref=e60] [cursor=pointer]
+        - paragraph [ref=e61]: 点击按钮创建新幻灯片
+    - main [ref=e62]:
+      - paragraph [ref=e64]: 选择或创建一个幻灯片
+  - contentinfo [ref=e65]:
+    - generic [ref=e66]: "Gemini: $0.0000"
+    - generic [ref=e67]: "MiniMax: $0.0100"
+    - generic [ref=e68]: "Total: $0.0100"

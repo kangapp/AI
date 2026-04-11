@@ -1,0 +1,54 @@
+- generic [ref=e3]:
+  - banner [ref=e4]:
+    - generic [ref=e5]:
+      - generic [ref=e7]: G
+      - heading "GenSlides" [level=1] [ref=e8]
+  - main [ref=e9]:
+    - button "创建项目" [ref=e11] [cursor=pointer]:
+      - img [ref=e12]
+      - text: 创建项目
+    - generic [ref=e14]:
+      - generic [ref=e15] [cursor=pointer]:
+        - generic [ref=e16]:
+          - generic [ref=e18]: 📷
+          - button [ref=e19]:
+            - img [ref=e20]
+        - generic [ref=e22]:
+          - heading "鸭子王国" [level=3] [ref=e23]
+          - generic [ref=e24]:
+            - generic [ref=e25]: 2 slides
+            - generic [ref=e26]: custom
+          - generic [ref=e28]: 创建于 2026年4月3日
+      - generic [ref=e29] [cursor=pointer]:
+        - generic [ref=e30]:
+          - generic [ref=e32]: 📷
+          - button [ref=e33]:
+            - img [ref=e34]
+        - generic [ref=e36]:
+          - heading "默认项目" [level=3] [ref=e37]
+          - generic [ref=e38]:
+            - generic [ref=e39]: 1 slides
+            - generic [ref=e40]: 写实摄影
+          - generic [ref=e42]: 创建于 2026年4月2日
+  - generic [ref=e44]:
+    - heading "创建项目" [level=2] [ref=e45]
+    - generic [ref=e46]:
+      - generic [ref=e47]:
+        - generic [ref=e48]: 项目名称
+        - textbox "最多 50 字符" [active] [ref=e49]
+      - generic [ref=e50]:
+        - generic [ref=e51]: 风格
+        - combobox [ref=e52]:
+          - option "自定义 - 完全自定义风格描述" [selected]
+          - option "写实摄影 - 照片级真实感"
+          - option "动漫/二次元 - 日系动漫画风"
+          - option "水墨/国风 - 中国传统水墨画风格"
+          - option "赛博朋克 - 未来科技感"
+          - option "极简主义 - 简洁留白设计"
+          - option "油画/艺术 - 艺术绘画质感"
+      - generic [ref=e53]:
+        - generic [ref=e54]: 风格描述 (可选)
+        - textbox "描述你想要的图片风格..." [ref=e55]
+      - generic [ref=e56]:
+        - button "取消" [ref=e57] [cursor=pointer]
+        - button "生成风格预览" [disabled] [ref=e58]
