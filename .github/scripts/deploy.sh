@@ -17,12 +17,12 @@ docker image prune -af --filter "dangling=true" 2>/dev/null || true
 
 # 2. 停止旧容器 (如果存在)
 echo ">>> 停止旧容器..."
-docker-compose stop ${PROJECT} 2>/dev/null || true
-docker-compose rm -f ${PROJECT} 2>/dev/null || true
+docker compose stop ${PROJECT} 2>/dev/null || true
+docker compose rm -f ${PROJECT} 2>/dev/null || true
 
 # 3. 启动服务
 echo ">>> 启动服务..."
-docker-compose up -d ${PROJECT}
+docker compose up -d ${PROJECT}
 
 # 4. 等待服务启动
 echo ">>> 等待服务启动..."
