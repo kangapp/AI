@@ -22,10 +22,8 @@ on:
       - '.github/scripts/**'
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
-    outputs:
-      project: ${{ steps.detect.outputs.project }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,16 +37,6 @@ jobs:
             echo "project=${changed}" >> $GITHUB_OUTPUT
           fi
 
-      - name: 构建 Docker 镜像
-        run: |
-          docker compose build ${{ steps.detect.outputs.project }}
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
       - name: Deploy via SSH Action
         uses: appleboy/ssh-action@master
         with:
@@ -57,5 +45,15 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /home/admin/app
+
+            # 如果不是 git 仓库，先克隆
+            if [ ! -e .git ]; then
+              rm -rf .git
+              git clone git@github.com:kangapp/AI.git .
+            fi
+
+            # 拉取最新代码
             git pull origin master
-            docker compose up -d --build ${{ needs.build.outputs.project }}
+
+            # 构建并启动指定项目
+            docker compose up -d --build ${{ steps.detect.outputs.project }}
