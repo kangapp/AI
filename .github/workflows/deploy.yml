@@ -27,14 +27,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: 检测变更项目
-        id: detect
+      - name: 检测/设置项目变量
+        id: project
         run: |
           if [ "${{ github.event.inputs.project }}" != "" ]; then
-            echo "project=${{ github.event.inputs.project }}" >> $GITHUB_OUTPUT
+            # workflow_dispatch: 使用选择的项目
+            echo "PROJECT=${{ github.event.inputs.project }}" >> $GITHUB_OUTPUT
+            echo "Using selected project: ${{ github.event.inputs.project }}"
           else
+            # push: 自动检测变更的项目
             changed=$(git diff --name-only ${{ github.event.before }} HEAD | cut -d/ -f2 | sort -u | head -1)
-            echo "project=${changed}" >> $GITHUB_OUTPUT
+            echo "PROJECT=${changed}" >> $GITHUB_OUTPUT
+            echo "Auto-detected project: ${changed}"
           fi
 
       - name: Deploy via SSH Action
@@ -61,5 +65,5 @@ jobs:
 
             # 4. 执行更新
             git pull origin main
-            docker compose up -d --build ${{ steps.detect.outputs.project }}
+            docker compose up -d --build ${{ steps.project.outputs.PROJECT }}
             docker image prune -f
