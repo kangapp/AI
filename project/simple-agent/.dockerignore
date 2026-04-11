@@ -1,0 +1,12 @@
+# Bun
+node_modules
+.bun
+.bun.lock
+
+# 本地文件
+.sessions
+.uploads
+*.lock
+
+# 日志
+*.log
