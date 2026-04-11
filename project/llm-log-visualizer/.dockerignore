@@ -1,0 +1,10 @@
+# 依赖
+node_modules
+
+# 构建输出
+dist
+
+# 开发文件
+*.log
+.env
+.env.*
