@@ -282,12 +282,12 @@ jobs:
           chmod 600 ~/.ssh/id_rsa
 
           # 复制部署脚本和 compose 文件
-          scp .github/scripts/deploy.sh ${SERVER_USER}@${SERVER_HOST}:/opt/app/
-          scp docker-compose.yml ${SERVER_USER}@${SERVER_HOST}:/opt/app/
+          scp .github/scripts/deploy.sh ${SERVER_USER}@${SERVER_HOST}:/home/admin/app/
+          scp docker-compose.yml ${SERVER_USER}@${SERVER_HOST}:/home/admin/app/
 
           # 执行部署 (包含清理)
           ssh ${SERVER_USER}@${SERVER_HOST} "
-            cd /opt/app
+            cd /home/admin/app
             chmod +x deploy.sh
             ./deploy.sh ${PROJECT} up
           "
@@ -871,7 +871,7 @@ git commit -m "feat(raflow): add Dockerfile and env.example"
 **服务器端准备:**
 ```bash
 # 在服务器上创建部署目录
-mkdir -p /opt/app
+mkdir -p /home/admin/app
 
 # 确保 docker 和 docker-compose 已安装
 ```

@@ -268,12 +268,13 @@ jobs:
           echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
 
-          # 复制部署脚本
-          scp .github/scripts/deploy.sh ${SERVER_USER}@${SERVER_HOST}:/opt/app/
+          # 复制部署脚本和 compose 文件
+          scp .github/scripts/deploy.sh ${SERVER_USER}@${SERVER_HOST}:/home/admin/app/
+          scp docker-compose.yml ${SERVER_USER}@${SERVER_HOST}:/home/admin/app/
 
           # 执行部署 (包含清理)
           ssh ${SERVER_USER}@${SERVER_HOST} "
-            cd /opt/app
+            cd /home/admin/app
             chmod +x deploy.sh
             ./deploy.sh ${PROJECT} up
           "
