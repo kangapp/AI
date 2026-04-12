@@ -2,16 +2,15 @@ FROM python:3.11
 
 WORKDIR /app
 
-# 1. 先复制依赖文件（利用 Docker 缓存）
-COPY backend/requirements.txt ./backend/
-
-# 2. 设置阿里云 Pip 镜像并安装依赖（缓存优化：代码不变时不重新下载）
+# 设置阿里云 Pip 镜像
 RUN pip config set global.index-url https://mirrors.aliyun.com/pypi/simple/ && \
-    pip config set global.trusted-host mirrors.aliyun.com && \
-    pip install --no-cache-dir -r backend/requirements.txt
+    pip config set global.trusted-host mirrors.aliyun.com
 
-# 3. 再复制业务代码
+# 复制整个 backend 目录
 COPY backend/ ./backend/
+
+# 安装依赖
+RUN pip install --no-cache-dir -r backend/requirements.txt
 
 # 暴露端口
 EXPOSE 8000
