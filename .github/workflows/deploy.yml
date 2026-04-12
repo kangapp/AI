@@ -36,7 +36,12 @@ jobs:
             echo "Using selected project: ${{ github.event.inputs.project }}"
           else
             # push: 自动检测变更的项目
-            changed=$(git diff --name-only ${{ github.event.before }} HEAD | cut -d/ -f2 | sort -u | head -1)
+            if [ "${{ github.event.before }}" != "" ]; then
+              changed=$(git diff --name-only ${{ github.event.before }} HEAD | cut -d/ -f2 | sort -u | head -1)
+            else
+              # 首次 push 或新分支，使用 git diff --name-only HEAD~1
+              changed=$(git diff --name-only HEAD~1 HEAD 2>/dev/null | cut -d/ -f2 | sort -u | head -1) || changed=""
+            fi
             echo "PROJECT=${changed}" >> $GITHUB_OUTPUT
             echo "Auto-detected project: ${changed}"
           fi
