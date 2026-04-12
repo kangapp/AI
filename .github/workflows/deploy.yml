@@ -74,11 +74,8 @@ jobs:
             # 4. 执行更新
             git pull origin master
 
-            # 5. 强制重新构建（不使用缓存），确保最新代码被构建
-            docker compose build --no-cache ${{ steps.project.outputs.PROJECT }}
+            # 5. 构建并启动服务（使用 Docker 缓存加速）
+            docker compose up -d --build ${{ steps.project.outputs.PROJECT }}
 
-            # 6. 启动服务
-            docker compose up -d ${{ steps.project.outputs.PROJECT }}
-
-            # 7. 清理悬空镜像
+            # 6. 清理悬空镜像
             docker image prune -f
