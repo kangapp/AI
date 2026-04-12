@@ -20,15 +20,19 @@ echo ">>> 停止旧容器..."
 docker compose stop ${PROJECT} 2>/dev/null || true
 docker compose rm -f ${PROJECT} 2>/dev/null || true
 
-# 3. 启动服务
+# 3. 强制重新构建（不使用缓存）
+echo ">>> 强制重新构建镜像..."
+docker compose build --no-cache ${PROJECT}
+
+# 4. 启动服务
 echo ">>> 启动服务..."
 docker compose up -d ${PROJECT}
 
-# 4. 等待服务启动
+# 5. 等待服务启动
 echo ">>> 等待服务启动..."
 sleep 5
 
-# 5. 容器内缓存清理 (启动后执行)
+# 6. 容器内缓存清理 (启动后执行)
 echo ">>> 清理容器内缓存..."
 docker exec ${PROJECT} sh -c "
   # 通用清理
